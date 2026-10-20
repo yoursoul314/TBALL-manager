@@ -2437,3 +2437,296 @@ tr:last-child td {
     min-width: 110px;
   }
 }
+/* Date-based batting assessments: tablet touch first, responsive record cards. */
+.batting-workspace {
+  min-width: 0;
+  display: grid;
+  gap: 24px;
+}
+.assessment-batting {
+  display: grid;
+  gap: 24px;
+}
+.assessment-batting > .panel:first-child .assessment-person {
+  display: none;
+}
+.assessment-batting > .panel:first-child label {
+  max-width: 480px;
+}
+.assessment-batting > .panel:first-child .callout {
+  margin-bottom: 0;
+}
+.batting-workspace fieldset,
+.batting-session-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+  min-width: 0;
+}
+.batting-workspace button,
+.batting-report button,
+.batting-session-form button,
+.batting-workspace input,
+.batting-workspace select {
+  min-width: 44px;
+  min-height: 44px;
+}
+.batting-workspace textarea {
+  width: 100%;
+  min-height: 70px;
+}
+.batting-workspace summary,
+.batting-report summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.batting-workspace details details {
+  padding: 8px 12px;
+  background: #f4f6f1;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+.batting-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.batting-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f2f5ee;
+  padding: 18px;
+  border-radius: 12px;
+  min-width: 0;
+}
+.batting-summary strong {
+  font-size: clamp(16px, 2vw, 26px);
+  color: #23593f;
+  overflow-wrap: anywhere;
+}
+.batting-summary small,
+.batting-summary span {
+  color: #667465;
+  font-size: 12px;
+}
+.batting-report h4 {
+  margin: 20px 0 12px;
+}
+.batting-report .callout {
+  display: block;
+}
+.batting-analysis-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 24px;
+}
+.batting-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.batting-chart text {
+  font-size: 12px;
+  fill: #62715e;
+}
+.batting-heatmap {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+.batting-heatmap > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 12px 3px;
+  font-size: 12px;
+  color: #153c27;
+}
+.batting-heatmap b {
+  font-size: 18px;
+}
+.batting-ratios {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.batting-ratio {
+  display: grid;
+  grid-template-columns: 72px 1fr 65px;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  min-height: 30px;
+}
+.batting-ratio meter {
+  width: 100%;
+  accent-color: #286348;
+}
+.batting-ratio b {
+  text-align: right;
+}
+.batting-choices legend {
+  font-weight: 700;
+  margin: 20px 0 10px;
+}
+.batting-choices > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.batting-choices button {
+  min-width: 66px;
+}
+.batting-workspace .selected,
+.batting-workspace [aria-pressed='true'] {
+  background: #22573e;
+  color: white;
+  border-color: #22573e;
+}
+.batting-workspace .score-buttons {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(44px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.batting-workspace .score-buttons button {
+  min-width: 44px;
+  padding: 10px 0;
+  font-size: 18px;
+}
+.observation-fields:disabled {
+  opacity: 0.45;
+}
+.batting-workspace .foul-observation {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.batting-workspace .foul-observation input {
+  width: 24px;
+}
+.batting-workspace .batted-map {
+  max-width: 650px;
+  margin: 20px auto;
+}
+.attempt-sheet {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.attempt-sheet button {
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  white-space: normal;
+}
+.attempt-sheet span {
+  font-size: 12px;
+  font-weight: 400;
+}
+.attempt-sheet strong {
+  align-self: flex-end;
+}
+.period-filter {
+  flex-wrap: wrap;
+  align-items: end;
+}
+.period-filter label {
+  flex: 1;
+  min-width: 130px;
+}
+.batting-session-form {
+  margin: 14px 0;
+}
+.daily-values {
+  padding-left: 18px;
+  line-height: 1.9;
+  font-size: 13px;
+}
+@media (max-width: 1000px) {
+  .batting-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .batting-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .batting-workspace .form-row,
+  .batting-session-form .form-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .batting-workspace .form-row label,
+  .batting-session-form .form-row label {
+    min-width: 130px;
+    flex: 1;
+  }
+  .batting-workspace .score-buttons {
+    grid-template-columns: repeat(5, minmax(44px, 1fr));
+  }
+  .attempt-sheet {
+    grid-template-columns: 1fr;
+  }
+  .batting-ratios {
+    grid-template-columns: 1fr;
+  }
+  .batting-summary > div {
+    padding: 12px;
+  }
+  .batting-summary strong {
+    font-size: 18px;
+  }
+  .batting-report .callout {
+    overflow-wrap: anywhere;
+  }
+}
+.profile-batting-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+.profile-batting-comparison section {
+  background: #f1f5ed;
+  border-radius: 12px;
+  padding: 16px;
+}
+.profile-batting-comparison h3 {
+  margin: 0 0 12px;
+}
+.profile-batting-comparison p {
+  font-size: 12px;
+  color: #63725e;
+}
+.batting-settings-form button,
+.batting-settings-form input,
+.batting-settings-form select {
+  min-height: 44px;
+  min-width: 44px;
+}
+@media (max-width: 600px) {
+  .profile-batting-comparison {
+    grid-template-columns: 1fr;
+  }
+  .batting-settings-form .form-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .batting-settings-form label {
+    min-width: 140px;
+    flex: 1;
+  }
+}
