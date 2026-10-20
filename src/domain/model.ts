@@ -1,3 +1,4 @@
+import type { ErrorType, TeamworkCategory } from '../config/recording';
 import type { Ability, Position } from '../config/positions';
 import type { RULES_VERSION } from '../config/rules';
 
@@ -50,22 +51,53 @@ export type BatResult =
   | 'home-run'
   | 'out'
   | 'error'
+  | 'fielders-choice'
   | 'sacrifice-fly';
 export type Direction = 'left' | 'center' | 'right';
 export type Quality = 'ground' | 'line' | 'fly';
+
+export type Distance = 'near' | 'middle' | 'far';
+export type Strength = 'strong' | 'normal' | 'weak';
+/** Individually identified facts within one atomic, umpire-ended play. */
+export type PlayDetail = { id: Id } & (
+  | { type: 'FIELDERS_CHOICE'; targetRunnerId: Id }
+  | { type: 'RBI'; runnerId: Id }
+  | { type: 'DEFENSIVE_ERROR'; playerId: Id; errorType: ErrorType; note: string }
+  | { type: 'ERROR_ADVANCE'; playerId: Id; from: 0 | Base; to: Base | 'home'; errorId: Id }
+  | {
+      type: 'FIELDING_ACTION';
+      playerId: Id;
+      position: Position;
+      action: 'receive' | 'throw' | 'base' | 'out';
+      success: boolean;
+      runnerId?: Id;
+    }
+  | { type: 'DEFENSIVE_CREDIT'; playerId: Id; credit: 'putout' | 'assist'; runnerId: Id }
+);
+export interface EndPlayPayload {
+  type: 'END_PLAY';
+  endedBy: 'umpire-time';
+  result: BatResult;
+  outcomes: RunnerOutcome[];
+  direction: Direction;
+  quality: Quality;
+  fielding: FieldingObservation[];
+  distance?: Distance | null;
+  strength?: Strength | null;
+  details?: PlayDetail[];
+  /** Positions at the moment the ball leaves the field; explicit umpire ruling, never inferred. */
+  safetyAward?: { positionsAtThrow: Record<Id, 0 | Base> };
+}
 export type EventPayload =
   | { type: 'PITCH'; call: 'strike' | 'foul' }
   | { type: 'START_PLAY' }
+  | EndPlayPayload
   | {
-      type: 'END_PLAY';
-      endedBy: 'umpire-time';
-      result: BatResult;
-      outcomes: RunnerOutcome[];
-      direction: Direction;
-      quality: Quality;
-      fielding: FieldingObservation[];
-      /** Positions at the moment the ball leaves the field; explicit umpire ruling, never inferred. */
-      safetyAward?: { positionsAtThrow: Record<Id, 0 | Base> };
+      type: 'REVISE_PLAY';
+      targetId: Id;
+      reason: string;
+      author: string;
+      replacement: EndPlayPayload;
     }
   | { type: 'TEMP_RUNNER'; originalId: Id; replacementId: Id; approvedBy: string }
   | { type: 'SUBSTITUTE'; side: Side; slot: number; playerId: Id }
@@ -74,7 +106,7 @@ export type EventPayload =
   | { type: 'FINISH_GAME'; reason: string }
   | { type: 'RETRACT'; targetId: Id; reason: string };
 export interface GameEvent {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   id: Id;
   gameId: Id;
   sequence: number;
@@ -93,12 +125,16 @@ export interface PlateAppearance {
   fielding: FieldingObservation[];
   direction?: Direction;
   quality?: Quality;
+  distance?: Distance | null;
+  strength?: Strength | null;
+  details?: PlayDetail[];
   cancelledAdvances: boolean;
 }
 export interface GameState {
   inning: number;
   side: Side;
   appearances: number;
+  batted: Record<Side, Id[]>;
   strikes: number;
   outs: number;
   status: 'playing' | 'finished';
@@ -136,13 +172,25 @@ export interface Assessment {
   runningSkill: number | null;
   rawMeasurements: { metric: string; value: number; unit: string }[];
 }
-export interface TeamworkObservation {
+export interface LegacyTeamworkObservation {
   id: Id;
   playerId: Id;
   gameId: Id | null;
   recordedAt: string;
   category: 'communication' | 'support' | 'responsibility' | 'respect';
   score: number;
+  note: string;
+  observer: string;
+}
+
+export interface TeamworkObservation {
+  id: Id;
+  playerId: Id;
+  gameId: Id | null;
+  recordedAt: string;
+  category: TeamworkCategory;
+  opportunity: 'offered' | 'not-offered';
+  outcome: 'performed' | 'partial' | 'not-performed' | 'unobserved';
   note: string;
   observer: string;
 }
@@ -158,7 +206,9 @@ export interface Selection {
   approvedAt: string | null;
 }
 export interface Workspace {
-  schemaVersion: 1;
+  schemaVersion: 2;
+  legacyTeamwork: LegacyTeamworkObservation[];
+  legacySource?: { schemaVersion: 1; raw: string };
   revision: number;
   teams: Team[];
   players: Player[];
