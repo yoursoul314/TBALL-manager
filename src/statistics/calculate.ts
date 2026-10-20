@@ -1,10 +1,13 @@
 import type { Game, GameEvent, EvaluationPolicy, Id } from '../domain/model';
 import { replayGame, scoreboard, effectiveEvents, stateBeforeEvent } from '../engine/game';
+import { homeRunQualityKey } from './homeRuns';
 export interface PlayerStats {
   playerId: Id;
   pa: number;
   atBats: number;
   hits: number;
+  homeRuns: number;
+  homeRunQualities: Record<string, number>;
   totalBases: number;
   strikeouts: number;
   runs: number;
@@ -44,6 +47,8 @@ export function calculateStats(
         pa: 0,
         atBats: 0,
         hits: 0,
+        homeRuns: 0,
+        homeRunQualities: {},
         totalBases: 0,
         strikeouts: 0,
         runs: 0,
@@ -89,6 +94,11 @@ export function calculateStats(
     if (bases) {
       batter.hits++;
       batter.totalBases += bases;
+    }
+    if (play.result === 'home-run') {
+      batter.homeRuns++;
+      if (play.quality)
+        increment(batter.homeRunQualities, homeRunQualityKey(play.quality, play.strength));
     }
     if (play.result === 'fielders-choice') batter.fieldersChoices++;
     if (play.direction && play.distance)
