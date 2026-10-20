@@ -1,3 +1,4 @@
+import { emptyBattingData } from '../config/batting';
 import { ABILITIES } from '../config/positions';
 import { DEFAULT_POLICY } from '../config/evaluation';
 import { RULES_VERSION } from '../config/rules';
@@ -18,7 +19,8 @@ export function createDemoWorkspace(): Workspace {
     })),
   );
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    ...emptyBattingData(),
     revision: 0,
     teams,
     players,

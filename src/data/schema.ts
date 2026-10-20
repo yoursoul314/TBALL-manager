@@ -1,312 +1,174 @@
-import { ERROR_LABELS, type ErrorType } from '../config/recording';
 import { z } from 'zod';
-import { ABILITIES, POSITIONS } from '../config/positions';
-import { RULES_VERSION } from '../config/rules';
-import { replayGame } from '../engine/game';
 import type { Workspace } from '../domain/model';
-
+import { ZONES } from '../config/batting';
+import { parseWorkspaceV2 } from './schemaV2';
 const id = z.string().min(1).max(120);
-const text = z.string().max(200);
-const score = z.number().min(0).max(100);
-const side = z.enum(['away', 'home']);
-const base = z.union([z.literal(1), z.literal(2), z.literal(3)]);
-const abilityMap = z.partialRecord(z.enum(ABILITIES), score);
-const mix = z
-  .object({ skill: score, game: score })
-  .refine((v) => v.skill + v.game === 100, '합계 100');
-const decision = <T extends z.ZodType>(value: T) =>
-  z.object({ status: z.enum(['TODO', 'confirmed']), value, note: z.string().max(2000) });
-const policy = z.object({
-  version: id,
-  domainWeights: decision(
-    z
-      .object({ batting: score, defense: score, running: score, teamwork: score })
-      .refine((v) => Object.values(v).reduce((a, b) => a + b, 0) === 100, '영역 합계 100'),
-  ),
-  battingMix: decision(mix),
-  defenseMix: decision(mix),
-  runningMix: z.object({ skill: z.literal(40), game: z.literal(60) }),
-  conversion: decision(z.enum(['manual-0-100', 'table'])),
-  sacrificeFly: decision(z.enum(['exclude-from-at-bats', 'include-in-at-bats'])),
-  incompleteInnings: decision(z.enum(['include', 'exclude'])),
+const text = z.string().trim().min(1).max(200);
+const note = z.string().max(2000);
+const time = z.iso.datetime();
+const date = z.iso.date();
+export const battingSessionSchema = z.object({
+  id,
+  playerId: id,
+  date,
+  sessionNumber: z.number().int().min(1),
+  targetAttempts: z.number().int().min(1).max(200),
+  assessor: text,
+  purpose: text,
+  note,
+  status: z.enum(['in-progress', 'completed', 'cancelled']),
+  zoneDefinitionVersion: id,
+  createdAt: time,
+  updatedAt: time,
 });
-
-const detail = z.discriminatedUnion('type', [
-  z.object({ id, type: z.literal('FIELDERS_CHOICE'), targetRunnerId: id }),
-  z.object({ id, type: z.literal('RBI'), runnerId: id }),
-  z.object({
+export const battingAttemptSchema = z
+  .object({
     id,
-    type: z.literal('DEFENSIVE_ERROR'),
-    playerId: id,
-    errorType: z.enum(Object.keys(ERROR_LABELS) as [ErrorType, ...ErrorType[]]),
-    note: z.string().max(2000),
-  }),
-  z.object({
-    id,
-    type: z.literal('ERROR_ADVANCE'),
-    playerId: id,
-    from: z.union([z.literal(0), base]),
-    to: z.union([base, z.literal('home')]),
-    errorId: id,
-  }),
-  z.object({
-    id,
-    type: z.literal('FIELDING_ACTION'),
-    playerId: id,
-    position: z.enum(POSITIONS),
-    action: z.enum(['receive', 'throw', 'base', 'out']),
-    success: z.boolean(),
-    runnerId: id.optional(),
-  }),
-  z.object({
-    id,
-    type: z.literal('DEFENSIVE_CREDIT'),
-    playerId: id,
-    credit: z.enum(['putout', 'assist']),
-    runnerId: id,
-  }),
-]);
-const endPlay = z.object({
-  type: z.literal('END_PLAY'),
-  endedBy: z.literal('umpire-time'),
-  result: z.enum([
-    'single',
-    'double',
-    'triple',
-    'home-run',
-    'out',
-    'error',
-    'fielders-choice',
-    'sacrifice-fly',
-  ]),
-  outcomes: z
-    .array(
-      z.object({
-        playerId: id,
-        to: z.union([base, z.literal('home'), z.literal('out')]),
-        action: z.enum(['advance', 'tag-up', 'overrun', 'hold', 'lead', 'steal', 'slide']),
-        outReason: z
-          .enum(['force', 'tag', 'fly', 'strikeout', 'lead', 'steal', 'slide'])
-          .optional(),
-        outAt: z.union([base, z.literal('home')]).optional(),
-        intentToAdvance: z.boolean().optional(),
-      }),
+    sessionId: id,
+    attemptNumber: z.number().int().min(1).max(200),
+    result: z.enum(['fair', 'foul', 'miss']).nullable(),
+    directionZone: z.enum(ZONES).nullable(),
+    trajectory: z.enum(['ground', 'line', 'fly']).nullable(),
+    intensity: z.enum(['strong', 'normal', 'weak']).nullable(),
+    contactQuality: z.enum(['solid', 'normal', 'mishit']).nullable(),
+    score: z.number().int().min(1).max(10).nullable(),
+    note,
+    status: z.enum(['active', 'cancelled']),
+    createdAt: time,
+    updatedAt: time,
+  })
+  .superRefine((a, ctx) => {
+    if (
+      (a.result === 'miss' || a.result === null) &&
+      [a.directionZone, a.trajectory, a.intensity, a.contactQuality].some((v) => v !== null)
     )
-    .max(4),
-  direction: z.enum(['left', 'center', 'right']),
-  quality: z.enum(['ground', 'line', 'fly']),
-  fielding: z
-    .array(
-      z.object({
-        playerId: id,
-        skill: z.enum(ABILITIES),
-        success: z.boolean(),
-        position: z.enum(POSITIONS),
-      }),
-    )
-    .max(100),
-  distance: z.enum(['near', 'middle', 'far']).nullable().optional(),
-  strength: z.enum(['strong', 'normal', 'weak']).nullable().optional(),
-  details: z.array(detail).max(100).optional(),
-  safetyAward: z
-    .object({ positionsAtThrow: z.record(id, z.union([z.literal(0), base])) })
-    .optional(),
-});
-const payload = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('PITCH'), call: z.enum(['strike', 'foul']) }),
-  z.object({ type: z.literal('START_PLAY') }),
-  endPlay,
-  z.object({
-    type: z.literal('REVISE_PLAY'),
-    targetId: id,
-    reason: text.trim().min(1),
-    author: text.trim().min(1),
-    replacement: endPlay,
-  }),
-  z.object({
-    type: z.literal('TEMP_RUNNER'),
-    originalId: id,
-    replacementId: id,
-    approvedBy: text.min(1),
-  }),
-  z.object({ type: z.literal('SUBSTITUTE'), side, slot: z.number().int().min(0), playerId: id }),
-  z.object({
-    type: z.literal('DEFENSE'),
-    side,
-    assignments: z.partialRecord(z.enum(POSITIONS), id),
-  }),
-  z.object({
-    type: z.literal('RUNNER_VIOLATION'),
-    playerId: id,
-    violation: z.enum(['lead', 'steal', 'slide']),
-  }),
-  z.object({ type: z.literal('FINISH_GAME'), reason: text.min(1) }),
-  z.object({ type: z.literal('RETRACT'), targetId: id, reason: text.min(1) }),
-]);
-const workspaceSchema = z.object({
-  schemaVersion: z.literal(2),
-  legacySource: z.object({ schemaVersion: z.literal(1), raw: z.string() }).optional(),
-  revision: z.number().int().min(0),
-  teams: z
-    .array(z.object({ id, name: text.min(1), color: z.string().regex(/^#[0-9a-f]{6}$/i) }))
-    .max(100),
-  players: z
-    .array(
-      z.object({
-        id,
-        teamId: id,
-        name: text.min(1),
-        number: z.number().int().min(0).max(999),
-        active: z.boolean(),
-      }),
-    )
-    .max(2000),
-  games: z
-    .array(
-      z.object({
-        id,
-        name: text.min(1),
-        createdAt: z.iso.datetime(),
-        innings: z.number().int().min(1).max(20),
-        rulesVersion: z.literal(RULES_VERSION),
-        teamIds: z.object({ away: id, home: id }),
-        rosters: z.object({ away: z.array(id), home: z.array(id) }),
-        lineups: z.object({ away: z.array(id), home: z.array(id) }),
-      }),
-    )
+      ctx.addIssue({
+        code: 'custom',
+        message: '헛스윙·미측정의 타구 관찰은 해당 없음이어야 합니다',
+      });
+    if (a.result === null && a.score !== null)
+      ctx.addIssue({ code: 'custom', message: '미측정 회차는 점수를 부여할 수 없습니다' });
+  });
+const ratio = z.number().min(0).max(1).nullable();
+export const battingSettingsSchema = z.object({
+  scoreSource: z.enum(['detailed', 'legacy']),
+  currentZoneVersion: id,
+  zoneDefinitions: z
+    .array(z.object({ version: id, near: text, middle: text, far: text }))
     .min(1)
     .max(1000),
-  events: z
-    .array(
-      z.object({
-        schemaVersion: z.union([z.literal(1), z.literal(2)]),
-        id,
-        gameId: id,
-        sequence: z.number().int().min(1),
-        deviceId: id,
-        recordedAt: z.iso.datetime(),
-        payload,
-      }),
-    )
-    .max(100000),
-  assessments: z
-    .array(
-      z.object({
-        id,
-        playerId: id,
-        recordedAt: z.iso.datetime(),
-        assessor: text,
-        abilities: abilityMap,
-        battingSkill: score.nullable(),
-        runningSkill: score.nullable(),
-        rawMeasurements: z.array(z.object({ metric: text, value: z.number(), unit: text })),
-      }),
-    )
-    .max(10000),
-  legacyTeamwork: z
-    .array(
-      z.object({
-        id,
-        playerId: id,
-        gameId: id.nullable(),
-        recordedAt: z.iso.datetime(),
-        category: z.enum(['communication', 'support', 'responsibility', 'respect']),
-        score: z.number().int().min(1).max(5),
-        note: z.string().max(2000),
-        observer: text,
-      }),
-    )
-    .max(10000),
-
-  teamwork: z
-    .array(
-      z
-        .object({
-          id,
-          playerId: id,
-          gameId: id.nullable(),
-          recordedAt: z.iso.datetime(),
-          category: z.enum([
-            'communication',
-            'coverBackup',
-            'roleExecution',
-            'teammateSupport',
-            'teamTactics',
-          ]),
-          opportunity: z.enum(['offered', 'not-offered']),
-          outcome: z.enum(['performed', 'partial', 'not-performed', 'unobserved']),
-          note: z.string().max(2000),
-          observer: text,
-        })
-        .refine(
-          (o) => o.opportunity === 'offered' || o.outcome === 'unobserved',
-          '기회 없음은 수행 미관찰로 기록하세요',
-        ),
-    )
-    .max(10000),
-  selections: z.array(
-    z.object({
-      id,
-      teamId: id,
-      createdAt: z.iso.datetime(),
-      policyVersion: id,
-      sourceRevision: z.number().int().min(0),
-      assignments: z.array(z.object({ position: z.enum(POSITIONS), playerId: id, score })),
-      status: z.enum(['draft', 'approved']),
-      approvedBy: text.nullable(),
-      approvedAt: z.iso.datetime().nullable(),
-    }),
-  ),
-  policy,
+  classification: z.object({
+    minimumBalls: z.number().int().min(1).max(10000),
+    strongRatio: ratio,
+    solidRatio: ratio,
+    sideRatio: z.number().min(0.5).max(1).nullable(),
+    spreadMaxRatio: z
+      .number()
+      .min(1 / 3)
+      .max(0.5)
+      .nullable(),
+  }),
 });
+const auditBase = {
+  id,
+  changedAt: time,
+  changedBy: text,
+  reason: z.string().trim().min(1).max(2000),
+  originalId: id,
+};
+const battingSchema = z.object({
+  schemaVersion: z.literal(3),
+  migrationSource: z.object({ schemaVersion: z.literal(2), raw: z.string() }).optional(),
+  battingSettings: battingSettingsSchema,
+  battingSessions: z.array(battingSessionSchema).max(20000),
+  battingAttempts: z.array(battingAttemptSchema).max(100000),
+  battingAudit: z
+    .array(
+      z.discriminatedUnion('entity', [
+        z.object({
+          ...auditBase,
+          entity: z.literal('session'),
+          before: battingSessionSchema.nullable(),
+          after: battingSessionSchema,
+        }),
+        z.object({
+          ...auditBase,
+          entity: z.literal('attempt'),
+          before: battingAttemptSchema.nullable(),
+          after: battingAttemptSchema,
+        }),
+      ]),
+    )
+    .max(200000),
+});
+const require = (v: unknown, message: string) => {
+  if (!v) throw new Error(message);
+};
 export function parseWorkspace(input: unknown): Workspace {
-  const data: Workspace = workspaceSchema.parse(input);
-  const require = (value: unknown, message: string) => {
-    if (!value) throw new Error(message);
-  };
-  for (const collection of [
-    data.players,
-    data.teams,
-    data.games,
-    data.events,
-    data.assessments,
-    [...data.teamwork, ...data.legacyTeamwork],
-    data.selections,
-  ]) {
-    require(new Set(collection.map((x) => x.id)).size ===
-      collection.length, '중복 식별자가 있습니다');
+  const batting = battingSchema.parse(input);
+  const common = parseWorkspaceV2({ ...(input as object), schemaVersion: 2 });
+  const data: Workspace = { ...common, ...batting };
+  const players = new Set(data.players.map((p) => p.id));
+  const sessions = new Map(data.battingSessions.map((s) => [s.id, s]));
+  const versions = data.battingSettings.zoneDefinitions.map((z) => z.version);
+  require(new Set(versions).size === versions.length, '구역 정의 버전 중복');
+  require(versions.includes(data.battingSettings.currentZoneVersion), '현재 구역 정의 없음');
+  for (const records of [data.battingSessions, data.battingAttempts, data.battingAudit])
+    require(new Set(records.map((r) => r.id)).size === records.length, '타격 평가 식별자 중복');
+  require(new Set(data.battingSessions.map((s) => `${s.playerId}/${s.date}/${s.sessionNumber}`))
+    .size === data.battingSessions.length, '같은 날짜의 세션 번호 중복');
+  require(new Set(data.battingAttempts.map((a) => `${a.sessionId}/${a.attemptNumber}`)).size ===
+    data.battingAttempts.length, '동일 세션 회차 번호 중복');
+  const rounds = new Map<string, typeof data.battingAttempts>();
+  for (const a of data.battingAttempts) {
+    const s = sessions.get(a.sessionId);
+    require(s && a.attemptNumber <= s.targetAttempts, '회차의 세션 또는 평가 횟수 오류');
+    const list = rounds.get(a.sessionId) ?? [];
+    list.push(a);
+    rounds.set(a.sessionId, list);
   }
-  const player = new Map(data.players.map((p) => [p.id, p]));
-  const teams = new Set(data.teams.map((t) => t.id));
-  const games = new Set(data.games.map((g) => g.id));
-  for (const p of data.players) require(teams.has(p.teamId), '선수의 소속 팀이 없습니다');
-  for (const g of data.games) {
-    for (const s of ['away', 'home'] as const) {
-      require(teams.has(g.teamIds[s]), '경기의 팀이 없습니다');
-      require(g.rosters[s].every(
-        (id) => player.get(id)?.teamId === g.teamIds[s],
-      ), '경기 명단의 선수 소속이 다릅니다');
+  for (const s of data.battingSessions) {
+    require(players.has(s.playerId), '타격 평가 선수 없음');
+    require(versions.includes(s.zoneDefinitionVersion), '평가 당시 구역 정의 없음');
+    if (s.status === 'completed') {
+      const attempts = rounds.get(s.id) ?? [];
+      require(attempts.length === s.targetAttempts &&
+        attempts.every(
+          (a) => a.status === 'cancelled' || (a.result !== null && a.score !== null),
+        ), '완료하려면 모든 회차를 평가하거나 취소하세요');
     }
-    replayGame(
-      g,
-      data.events.filter((e) => e.gameId === g.id),
-    );
   }
-  require(data.events.every((e) => games.has(e.gameId)), '이벤트의 경기가 없습니다');
-  require(data.assessments.every((a) => player.has(a.playerId)), '평가의 선수가 없습니다');
-  require([...data.teamwork, ...data.legacyTeamwork].every(
-    (a) => player.has(a.playerId) && (!a.gameId || games.has(a.gameId)),
-  ), '관찰 대상이 없습니다');
-  for (const selection of data.selections) {
-    require(teams.has(selection.teamId), '선발의 팀이 없습니다');
-    require(selection.assignments.length === 10, 'TYPE1은 10포지션이 필요합니다');
-    require(new Set(selection.assignments.map((a) => a.position)).size === 10, '포지션 중복');
-    require(new Set(selection.assignments.map((a) => a.playerId)).size === 10, '선수 중복');
-    require(selection.assignments.every(
-      (a) => player.get(a.playerId)?.teamId === selection.teamId,
-    ), '선발 팀 불일치');
-    if (selection.status === 'approved')
-      require(selection.approvedAt && selection.approvedBy, '승인 기록 누락');
+  // Reconstruct every revision from the creation snapshot; imported audit chains must match current rows.
+  const history = new Map<string, object>();
+  for (const a of data.battingAudit) {
+    const key = `${a.entity}/${a.originalId}`;
+    require(a.after.id === a.originalId &&
+      (!a.before || a.before.id === a.originalId), '정정 원본 ID 불일치');
+    require(JSON.stringify(history.get(key) ?? null) ===
+      JSON.stringify(a.before), '정정 이력 연결 불일치');
+    require(a.after.updatedAt === a.changedAt, '정정 시각 불일치');
+    if (a.before) {
+      require(a.before.createdAt === a.after.createdAt, '최초 생성 시각 변경 불가');
+      if (a.entity === 'attempt')
+        require(a.before.sessionId === a.after.sessionId &&
+          a.before.attemptNumber === a.after.attemptNumber, '회차 식별 정보 변경 불가');
+      if (a.entity === 'session')
+        require(a.before.playerId === a.after.playerId &&
+          a.before.zoneDefinitionVersion ===
+            a.after.zoneDefinitionVersion, '평가 대상·구역 버전 변경 불가');
+    }
+    history.set(key, a.after);
   }
+  for (const [entity, records] of [
+    ['session', data.battingSessions],
+    ['attempt', data.battingAttempts],
+  ] as const)
+    for (const record of records) {
+      const key = `${entity}/${record.id}`;
+      require(JSON.stringify(history.get(key)) ===
+        JSON.stringify(record), '평가 원본 또는 최종 정정 이력 누락');
+      history.delete(key);
+    }
+  require(history.size === 0, '정정 대상 기록 누락');
   return data;
 }
