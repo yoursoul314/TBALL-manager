@@ -10,6 +10,7 @@ import { ABILITIES, ABILITY_LABELS, POSITIONS, POSITION_LABELS } from '../config
 import { positionScore } from '../evaluation/score';
 import type { Player, Workspace } from '../domain/model';
 import { calculateStats } from '../statistics/calculate';
+import { homeRunQualityLabel } from '../statistics/homeRuns';
 import { Badge, Modal, Panel, Progress, Empty, fmt } from './ui';
 export function Players({
   data,
@@ -215,6 +216,7 @@ export function Profile({
     key:
       | 'directions'
       | 'qualities'
+      | 'homeRunQualities'
       | 'fieldingTypes'
       | 'runningTypes'
       | 'zones'
@@ -321,6 +323,7 @@ export function Profile({
             'directions',
             'zones',
             'qualities',
+            'homeRunQualities',
             'strengths',
             'fieldingTypes',
             'fieldingActions',
@@ -335,6 +338,7 @@ export function Profile({
                   '타구 방향 (이전 기록 포함)',
                   '타구 9구역',
                   '타구 유형',
+                  '홈런 타구 질',
                   '타구 강도',
                   '9능력 관찰',
                   '수비 동작',
@@ -346,7 +350,9 @@ export function Profile({
             {Object.keys(distribution(key)).length ? (
               Object.entries(distribution(key)).map(([k, v]) => (
                 <div className="distribution" key={k}>
-                  <span>{labels[k] || k}</span>
+                  <span>
+                    {key === 'homeRunQualities' ? homeRunQualityLabel(k) : labels[k] || k}
+                  </span>
                   <b>{v}회</b>
                 </div>
               ))

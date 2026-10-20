@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import type { Workspace } from '../domain/model';
 import { calculateStats } from '../statistics/calculate';
+import { homeRunQualityLabel } from '../statistics/homeRuns';
 import { csvCell, downloadFile } from '../data/repository';
 import { Badge, Panel, Empty, fmt } from './ui';
 export function StatsView({
@@ -28,6 +29,8 @@ export function StatsView({
         '타석',
         '타수',
         '안타',
+        '홈런',
+        '홈런 타구 질',
         '타율',
         '득점',
         'RBI',
@@ -57,6 +60,15 @@ export function StatsView({
           r.pa,
           r.atBats,
           r.hits,
+          r.homeRuns,
+          JSON.stringify(
+            Object.fromEntries(
+              Object.entries(r.homeRunQualities).map(([key, count]) => [
+                homeRunQualityLabel(key),
+                count,
+              ]),
+            ),
+          ),
           fmt(r.battingAverage, 3),
           r.runs,
           r.rbi,
@@ -132,6 +144,8 @@ export function StatsView({
                   '타석',
                   '타수',
                   '안타',
+                  '홈런',
+                  '홈런 타구 질',
                   '타율',
                   '득점',
                   'RBI',
@@ -158,6 +172,15 @@ export function StatsView({
                   <td>{r.pa}</td>
                   <td>{r.atBats}</td>
                   <td>{r.hits}</td>
+                  <td>{r.homeRuns}</td>
+                  <td>
+                    {Object.entries(r.homeRunQualities).map(([key, count]) => (
+                      <div key={key}>
+                        {homeRunQualityLabel(key)} {count}회
+                      </div>
+                    ))}
+                    {!r.homeRuns && '—'}
+                  </td>
                   <td>
                     <b>{fmt(r.battingAverage, 3)}</b>
                   </td>

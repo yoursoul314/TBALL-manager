@@ -2253,6 +2253,51 @@ tr:last-child td {
 }
 
 /* v2 recording controls: large touch targets and readable audit history */
+.home-run-quality {
+  min-width: 0;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid #c7d9c6;
+  border-radius: 12px;
+  background: #f5f8ec;
+}
+.home-run-quality legend {
+  font-weight: 700;
+  color: #215b44;
+}
+.home-run-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.home-run-options button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 10px 6px;
+  border: 1px solid #9bbba0;
+  border-radius: 9px;
+  background: white;
+  color: #25523d;
+}
+.home-run-options button span {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.home-run-options button[aria-pressed='true'] {
+  background: #215b44;
+  color: white;
+  box-shadow: 0 0 0 2px #d6ed77;
+}
+.home-run-summary {
+  margin-bottom: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #215b44;
+}
 .privacy-notice {
   background: #fff5df;
   border: 1px solid #e5c884;

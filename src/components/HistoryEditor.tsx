@@ -3,7 +3,7 @@ import type { EventPayload, Game, Workspace } from '../domain/model';
 import { effectiveEvents, stateBeforeEvent } from '../engine/game';
 import { Modal, Badge } from './ui';
 import { PlayForm } from './PlayForm';
-import { resultLabels } from './playLabels';
+import { playResultLabel } from './playLabels';
 export function HistoryEditor({
   data,
   game,
@@ -33,7 +33,7 @@ export function HistoryEditor({
         상태와 충돌하면 저장되지 않습니다.
       </div>
       <p>
-        원본 판정: <b>{resultLabels[original.payload.result]}</b> ·{' '}
+        원본 판정: <b>{playResultLabel(original.payload)}</b> ·{' '}
         {new Date(original.recordedAt).toLocaleString('ko-KR')}
       </p>
       <details>
@@ -44,7 +44,7 @@ export function HistoryEditor({
             e.payload.type === 'REVISE_PLAY' &&
             e.payload.targetId === targetId && (
               <div className="observation" key={e.id}>
-                <Badge tone="neutral">{resultLabels[e.payload.replacement.result]}</Badge>
+                <Badge tone="neutral">{playResultLabel(e.payload.replacement)}</Badge>
                 <p>{e.payload.reason}</p>
                 <small>
                   {e.payload.author} · {new Date(e.recordedAt).toLocaleString('ko-KR')}
