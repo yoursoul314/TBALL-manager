@@ -21,17 +21,16 @@ it('날짜별 회차 입력·저장·새로고침 후 유지·정정과 프로�
   fireEvent.change(screen.getByLabelText('평가 목적'), { target: { value: '테스트 연습' } });
   await user.click(screen.getByRole('button', { name: '평가 세션 생성' }));
   await user.click(screen.getByRole('button', { name: '정상 타격' }));
+  await user.click(screen.getByRole('button', { name: '상세 모드' }));
   await user.click(screen.getByRole('button', { name: '좌 원거리' }));
   await user.click(screen.getByRole('button', { name: '직선타' }));
   await user.click(
     within(screen.getByRole('group', { name: '타구 강도' })).getByRole('button', { name: '강' }),
   );
   await user.click(screen.getByRole('button', { name: '정타' }));
-  expect(
-    screen.getByText('강도·정타 여부로 점수를 자동 생성하지 않습니다. 현재 미평가.'),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '기록 저장 · 다음 회차' })).toBeDisabled();
   await user.click(screen.getByRole('button', { name: '평가 8점' }));
-  await user.click(screen.getByRole('button', { name: '기록 저장' }));
+  await user.click(screen.getByRole('button', { name: '기록 저장 · 다음 회차' }));
   expect(screen.getByTestId('batting-score')).toHaveTextContent('80.0');
   expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).battingAttempts[0]).toMatchObject({
     score: 8,
@@ -49,7 +48,7 @@ it('날짜별 회차 입력·저장·새로고침 후 유지·정정과 프로�
   fireEvent.change(screen.getByLabelText('회차 수정 사유'), {
     target: { value: '영상 확인 후 정정' },
   });
-  await user.click(screen.getByRole('button', { name: '정정 기록 저장' }));
+  await user.click(screen.getByRole('button', { name: '정정 저장 · 다음 회차' }));
   expect(screen.getByTestId('batting-score')).toHaveTextContent('100.0');
   const d = new LocalWorkspaceRepository(localStorage).load()!;
   expect(d.battingAudit.at(-1)).toMatchObject({
@@ -88,6 +87,7 @@ it('헛스윙은 필드맵이 비활성화되고 파울은 실제 관찰 선택 
   render(<App />);
   await user.click(screen.getByRole('button', { name: '기능평가 & 팀워크' }));
   fireEvent.change(screen.getByLabelText('평가 날짜'), { target: { value: date } });
+  await user.click(screen.getByRole('button', { name: '상세 모드' }));
   await user.click(screen.getByRole('button', { name: '헛스윙' }));
   expect(screen.getByRole('button', { name: '좌 원거리' })).toBeDisabled();
   await user.click(screen.getByRole('button', { name: '파울' }));
@@ -96,7 +96,7 @@ it('헛스윙은 필드맵이 비활성화되고 파울은 실제 관찰 선택 
   expect(screen.getByRole('button', { name: '좌 원거리' })).toBeEnabled();
   await user.click(screen.getByRole('button', { name: '좌 원거리' }));
   await user.click(screen.getByRole('button', { name: '평가 4점' }));
-  await user.click(screen.getByRole('button', { name: '기록 저장' }));
+  await user.click(screen.getByRole('button', { name: '기록 저장 · 다음 회차' }));
   expect(new LocalWorkspaceRepository(localStorage).load()!.battingAttempts[0]).toMatchObject({
     result: 'foul',
     score: 4,

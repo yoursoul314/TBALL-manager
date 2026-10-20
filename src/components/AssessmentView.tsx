@@ -8,12 +8,31 @@ import { Panel, Badge } from './ui';
 export function AssessmentView({
   data,
   onSave,
+  onDirtyChange,
 }: {
   data: Workspace;
   onSave: (data: Workspace) => void;
+  onDirtyChange?: (v: boolean) => void;
 }) {
   const [playerId, setPlayerId] = useState(data.players[0].id);
   const [tab, setTab] = useState<'batting' | 'skill' | 'teamwork'>('batting');
+  const [dirty, setDirty] = useState(false);
+  const [warning, setWarning] = useState('');
+  const changePlayer = (id: string) => {
+    if (dirty) {
+      setWarning('저장하지 않은 입력이 있습니다. 기록 저장 또는 입력 되돌리기 후 이동하세요.');
+      return;
+    }
+    setWarning('');
+    setPlayerId(id);
+  };
+  const changeTab = (next: typeof tab) => {
+    if (dirty) {
+      setWarning('저장하지 않은 입력이 있습니다. 먼저 저장하거나 입력을 되돌리세요.');
+      return;
+    }
+    setTab(next);
+  };
   const latest = data.assessments.filter((a) => a.playerId === playerId).at(-1);
   const current = data.players.find((p) => p.id === playerId)!;
   return (
@@ -29,13 +48,16 @@ export function AssessmentView({
         <Badge tone="amber">실측 환산표 TODO</Badge>
       </div>
       <div className="tabs">
-        <button className={tab === 'batting' ? 'active' : ''} onClick={() => setTab('batting')}>
+        <button className={tab === 'batting' ? 'active' : ''} onClick={() => changeTab('batting')}>
           타격 상세평가
         </button>
-        <button className={tab === 'skill' ? 'active' : ''} onClick={() => setTab('skill')}>
+        <button className={tab === 'skill' ? 'active' : ''} onClick={() => changeTab('skill')}>
           기능평가
         </button>
-        <button className={tab === 'teamwork' ? 'active' : ''} onClick={() => setTab('teamwork')}>
+        <button
+          className={tab === 'teamwork' ? 'active' : ''}
+          onClick={() => changeTab('teamwork')}
+        >
           팀워크 관찰
         </button>
       </div>
@@ -43,7 +65,7 @@ export function AssessmentView({
         <Panel title="평가 대상">
           <label>
             선수 선택
-            <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
+            <select value={playerId} onChange={(e) => changePlayer(e.target.value)}>
               {data.players.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} · {data.teams.find((t) => t.id === p.teamId)?.name}
@@ -51,6 +73,25 @@ export function AssessmentView({
               ))}
             </select>
           </label>
+          <div className="button-row">
+            <button
+              disabled={data.players[0].id === playerId}
+              onClick={() =>
+                changePlayer(data.players[data.players.findIndex((p) => p.id === playerId) - 1].id)
+              }
+            >
+              이전 선수
+            </button>
+            <button
+              disabled={data.players.at(-1)!.id === playerId}
+              onClick={() =>
+                changePlayer(data.players[data.players.findIndex((p) => p.id === playerId) + 1].id)
+              }
+            >
+              다음 선수
+            </button>
+          </div>
+          {warning && <p role="alert">{warning}</p>}
           <div className="assessment-person">
             <span className="avatar large">{String(current.number).padStart(2, '0')}</span>
             <h2>{current.name}</h2>
@@ -65,7 +106,17 @@ export function AssessmentView({
           </div>
         </Panel>
         {tab === 'batting' ? (
-          <BattingAssessmentPanel key={playerId} data={data} playerId={playerId} onSave={onSave} />
+          <BattingAssessmentPanel
+            key={playerId}
+            data={data}
+            playerId={playerId}
+            onSave={onSave}
+            onDirtyChange={(v) => {
+              setDirty(v);
+              onDirtyChange?.(v);
+              if (!v) setWarning('');
+            }}
+          />
         ) : tab === 'skill' ? (
           <Panel
             title="기능평가 입력"

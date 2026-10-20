@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Workspace } from '../domain/model';
 import { ZONES } from '../config/batting';
 import { parseWorkspaceV2 } from './schemaV2';
+import { parseCurrentCommon } from './schemaCommon';
 const id = z.string().min(1).max(120);
 const text = z.string().trim().min(1).max(200);
 const note = z.string().max(2000);
@@ -27,6 +28,7 @@ export const battingAttemptSchema = z
     sessionId: id,
     attemptNumber: z.number().int().min(1).max(200),
     result: z.enum(['fair', 'foul', 'miss']).nullable(),
+    direction: z.enum(['left', 'center', 'right']).nullable().optional(),
     directionZone: z.enum(ZONES).nullable(),
     trajectory: z.enum(['ground', 'line', 'fly']).nullable(),
     intensity: z.enum(['strong', 'normal', 'weak']).nullable(),
@@ -38,9 +40,13 @@ export const battingAttemptSchema = z
     updatedAt: time,
   })
   .superRefine((a, ctx) => {
+    if (a.direction != null && a.directionZone && !a.directionZone.startsWith(a.direction + '-'))
+      ctx.addIssue({ code: 'custom', message: '방향과 9구역 불일치' });
     if (
       (a.result === 'miss' || a.result === null) &&
-      [a.directionZone, a.trajectory, a.intensity, a.contactQuality].some((v) => v !== null)
+      [a.direction ?? null, a.directionZone, a.trajectory, a.intensity, a.contactQuality].some(
+        (v) => v !== null,
+      )
     )
       ctx.addIssue({
         code: 'custom',
@@ -77,8 +83,10 @@ const auditBase = {
   originalId: id,
 };
 const battingSchema = z.object({
-  schemaVersion: z.literal(3),
-  migrationSource: z.object({ schemaVersion: z.literal(2), raw: z.string() }).optional(),
+  schemaVersion: z.union([z.literal(3), z.literal(4)]),
+  migrationSource: z
+    .object({ schemaVersion: z.union([z.literal(2), z.literal(3)]), raw: z.string() })
+    .optional(),
   battingSettings: battingSettingsSchema,
   battingSessions: z.array(battingSessionSchema).max(20000),
   battingAttempts: z.array(battingAttemptSchema).max(100000),
@@ -104,10 +112,14 @@ const battingSchema = z.object({
 const require = (v: unknown, message: string) => {
   if (!v) throw new Error(message);
 };
-export function parseWorkspace(input: unknown): Workspace {
+export function parseWorkspace(input: unknown, legacyV3 = false): Workspace {
   const batting = battingSchema.parse(input);
-  const common = parseWorkspaceV2({ ...(input as object), schemaVersion: 2 });
-  const data: Workspace = { ...common, ...batting };
+  if (batting.schemaVersion !== (legacyV3 ? 3 : 4)) throw new Error('스키마 이전이 필요합니다');
+  const common = (legacyV3 ? parseWorkspaceV2 : parseCurrentCommon)({
+    ...(input as object),
+    schemaVersion: 2,
+  });
+  const data: Workspace = { ...common, ...batting, schemaVersion: 4 };
   const players = new Set(data.players.map((p) => p.id));
   const sessions = new Map(data.battingSessions.map((s) => [s.id, s]));
   const versions = data.battingSettings.zoneDefinitions.map((z) => z.version);

@@ -7,7 +7,13 @@ import { emptyBattingData } from '../config/batting';
 export function migrateWorkspace(input: unknown, originalText?: string): Workspace {
   if (!input || typeof input !== 'object' || !('schemaVersion' in input))
     throw new Error('저장 데이터의 스키마 버전이 없습니다');
-  if (input.schemaVersion === 3) return parseWorkspace(input);
+  if (input.schemaVersion === 4) return parseWorkspace(input);
+  if (input.schemaVersion === 3)
+    return parseWorkspace({
+      ...parseWorkspace(input, true),
+      schemaVersion: 4,
+      migrationSource: { schemaVersion: 3, raw: originalText ?? JSON.stringify(input) },
+    });
   if (input.schemaVersion !== 1 && input.schemaVersion !== 2)
     throw new Error('지원하지 않는 스키마 버전');
   try {
@@ -15,14 +21,14 @@ export function migrateWorkspace(input: unknown, originalText?: string): Workspa
       return parseWorkspace({
         ...parseWorkspaceV2(input),
         ...emptyBattingData(),
-        schemaVersion: 3,
+        schemaVersion: 4,
         migrationSource: { schemaVersion: 2, raw: originalText ?? JSON.stringify(input) },
       });
     const legacy = parseLegacyWorkspace(input);
     return parseWorkspace({
       ...legacy,
       ...emptyBattingData(),
-      schemaVersion: 3,
+      schemaVersion: 4,
       teamwork: [],
       legacyTeamwork: legacy.teamwork,
       legacySource: { schemaVersion: 1, raw: originalText ?? JSON.stringify(input) },

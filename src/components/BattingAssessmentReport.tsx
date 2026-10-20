@@ -98,6 +98,16 @@ export function BattingAssessmentReport({
       </p>
       <details open={!compact}>
         <summary>성장 그래프 · 타구 분포 · 타격 성향</summary>
+        <section className="direction-distribution">
+          <h4>좌·중·우 분포 · 거리 미관찰 포함</h4>
+          {Object.entries({ left: '좌측', center: '중앙', right: '우측' }).map(([key, label]) => (
+            <span key={key}>
+              {label} {report.directions.counts[key] ?? 0}회 ·{' '}
+              {percent(report.directions.ratio(key))}{' '}
+            </span>
+          ))}
+          <p className="hint">9구역 히트맵은 거리를 관찰한 타구만 포함합니다.</p>
+        </section>
         <div className="batting-analysis-grid">
           <section>
             <h4>날짜별 평균과 누적 추세</h4>

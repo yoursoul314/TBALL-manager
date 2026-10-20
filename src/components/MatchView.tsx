@@ -1,10 +1,18 @@
 import { HistoryEditor } from './HistoryEditor';
 import { DefenseEditor } from './DefenseEditor';
 import { PlayForm } from './PlayForm';
-import { playResultLabel } from './playLabels';
+import { playResultLabel, resultLabels } from './playLabels';
 import { useState } from 'react';
-import { ArrowRight, CircleDot, Flag, RotateCcw, Plus, Play } from 'lucide-react';
-import type { EventPayload, Game, GameState, Id, Side, Workspace } from '../domain/model';
+import { ArrowRight, CircleDot, Flag, RotateCcw, Plus } from 'lucide-react';
+import type {
+  BatResult,
+  EventPayload,
+  Game,
+  GameState,
+  Id,
+  Side,
+  Workspace,
+} from '../domain/model';
 import { currentBatter, dueRunner, effectiveEvents, scoreboard } from '../engine/game';
 import { RULES_VERSION } from '../config/rules';
 import { Badge, Panel, Modal, Empty } from './ui';
@@ -19,6 +27,8 @@ interface Props {
   onProfile: (id: Id) => void;
 }
 export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onProfile }: Props) {
+  const [detailMode, setDetailMode] = useState(false);
+  const [quickResult, setQuickResult] = useState<BatResult>('single');
   const [creating, setCreating] = useState(false);
   const [temp, setTemp] = useState('');
   const [manager, setManager] = useState('');
@@ -62,32 +72,55 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
         </Badge>
         <span className="muted">{game.innings}이닝 경기 · 전원 타격제</span>
       </div>
-      <div className="scoreboard">
-        <div className="team-score">
-          <span className="team-mark green">G</span>
-          <div>
-            <small>AWAY · 선공</small>
-            <h2>{teamName('away')}</h2>
+      <div className="match-status">
+        <div className="scoreboard">
+          <div className="team-score">
+            <span className="team-mark green">G</span>
+            <div>
+              <small>AWAY · 선공</small>
+              <h2>{teamName('away')}</h2>
+            </div>
+            <strong>{score.total.away}</strong>
           </div>
-          <strong>{score.total.away}</strong>
+          <div className="inning">
+            <Badge tone="lime">
+              {state.inning}회 {state.side === 'away' ? '초' : '말'}
+            </Badge>
+            <span>
+              {state.status === 'finished'
+                ? '종료'
+                : state.appearances + 1 + ' / ' + state.lineups[state.side].length + '번 타순'}
+            </span>
+          </div>
+          <div className="team-score home">
+            <strong>{score.total.home}</strong>
+            <div>
+              <small>HOME · 후공</small>
+              <h2>{teamName('home')}</h2>
+            </div>
+            <span className="team-mark orange">O</span>
+          </div>
         </div>
-        <div className="inning">
-          <Badge tone="lime">
-            {state.inning}회 {state.side === 'away' ? '초' : '말'}
-          </Badge>
+        <div className="live-context">
+          <b>
+            현재 타자 {names(current)}
+            {state.appearances === state.lineups[state.side].length - 1 ? ' · 마지막 타자' : ''}
+          </b>
           <span>
-            {state.status === 'finished'
-              ? '종료'
-              : state.appearances + 1 + ' / ' + state.lineups[state.side].length + '번 타순'}
+            스트라이크 {state.strikes} / 3 · 아웃 {state.outs}
           </span>
-        </div>
-        <div className="team-score home">
-          <strong>{score.total.home}</strong>
-          <div>
-            <small>HOME · 후공</small>
-            <h2>{teamName('home')}</h2>
-          </div>
-          <span className="team-mark orange">O</span>
+          <span>
+            {([1, 2, 3] as const)
+              .map(
+                (base) =>
+                  base +
+                  '루 ' +
+                  (state.bases[state.side][base]
+                    ? names(state.bases[state.side][base]!)
+                    : '비어 있음'),
+              )
+              .join(' / ')}
+          </span>
         </div>
       </div>
       <div className="score-note">
@@ -108,44 +141,47 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
             : '현재 점수는 진행 중인 이닝을 포함합니다'}
         </span>
       </div>
-      <div className="match-grid">
-        <Panel
-          title="그라운드"
-          eyebrow="ON THE FIELD"
-          action={<Badge tone="neutral">TYPE 1</Badge>}
-        >
-          <Field
-            bases={state.bases[state.side]}
-            players={data.players}
-            assignments={Object.entries(state.defense[state.side === 'away' ? 'home' : 'away']).map(
-              ([position, playerId]) => ({
+      <div className="match-grid quick-match-grid">
+        <details className="field-disclosure">
+          <summary>경기장 · 수비 배치 보기 (TYPE 1)</summary>
+          <Panel
+            title="그라운드"
+            eyebrow="ON THE FIELD"
+            action={<Badge tone="neutral">TYPE 1</Badge>}
+          >
+            <Field
+              bases={state.bases[state.side]}
+              players={data.players}
+              assignments={Object.entries(
+                state.defense[state.side === 'away' ? 'home' : 'away'],
+              ).map(([position, playerId]) => ({
                 position: position as keyof typeof state.defense.away,
                 playerId,
                 score: 0,
-              }),
-            )}
-            onPlayer={onProfile}
-          />
-          <div className="field-footer">
-            <div>
-              <small>STRIKES</small>
-              <div className="strike-dots">
-                {[0, 1, 2].map((i) => (
-                  <i key={i} className={i < state.strikes ? 'filled' : ''} />
-                ))}
+              }))}
+              onPlayer={onProfile}
+            />
+            <div className="field-footer">
+              <div>
+                <small>STRIKES</small>
+                <div className="strike-dots">
+                  {[0, 1, 2].map((i) => (
+                    <i key={i} className={i < state.strikes ? 'filled' : ''} />
+                  ))}
+                </div>
               </div>
+              <div>
+                <small>현재 공격 아웃</small>
+                <b>{state.outs}</b>
+              </div>
+              <p>
+                3아웃이 되어도 공수교대하지 않습니다.
+                <br />
+                출전 선수 전원 타격 후 교대합니다.
+              </p>
             </div>
-            <div>
-              <small>현재 공격 아웃</small>
-              <b>{state.outs}</b>
-            </div>
-            <p>
-              3아웃이 되어도 공수교대하지 않습니다.
-              <br />
-              출전 선수 전원 타격 후 교대합니다.
-            </p>
-          </div>
-        </Panel>
+          </Panel>
+        </details>
         <Panel
           title={state.status === 'finished' ? '경기 기록 완료' : '지금 타석에'}
           eyebrow="AT BAT"
@@ -233,17 +269,45 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
                       </small>
                     </button>
                   </div>
-                  <button
-                    className="primary wide big"
-                    onClick={() => onEvent({ type: 'START_PLAY' })}
-                  >
-                    <Play size={18} />
-                    타구 발생 · 플레이 시작
-                  </button>
+                  <h3>1 · 타격 결과 선택</h3>
+                  <div className="quick-results">
+                    {Object.entries(resultLabels)
+                      .filter(([k]) => !['strikeout', 'sacrifice-fly'].includes(k))
+                      .map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            if (onEvent({ type: 'START_PLAY' })) setQuickResult(key as BatResult);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    <button
+                      disabled={state.strikes !== 2}
+                      onClick={() => onEvent({ type: 'PITCH', call: 'strike' })}
+                    >
+                      삼진
+                    </button>
+                  </div>
+                  <p className="hint">
+                    삼진 버튼은 2스트라이크에서 세 번째 스트라이크를 기록합니다. 파울도 카운트에
+                    포함됩니다.
+                  </p>
                   <p className="hint">진루와 아웃을 확인한 뒤 심판 타임으로 확정하세요.</p>
                 </>
               ) : (
-                <PlayForm key={last?.id} state={state} game={game} data={data} onEvent={onEvent} />
+                <PlayForm
+                  key={last?.id}
+                  initialResult={quickResult}
+                  defaultDetailed={detailMode}
+                  onModeChange={setDetailMode}
+                  state={state}
+                  game={game}
+                  data={data}
+                  onEvent={onEvent}
+                />
               )}
             </>
           )}
