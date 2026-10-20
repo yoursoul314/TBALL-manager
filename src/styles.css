@@ -2759,6 +2759,7 @@ tr:last-child td {
   gap: 8px;
 }
 .quick-three button,
+.match-grid .quick-results button,
 .quick-results button {
   min-height: 60px;
   font-size: 16px;
