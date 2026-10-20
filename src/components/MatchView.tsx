@@ -102,10 +102,10 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
           </div>
         </div>
         <div className="live-context">
-          <b>
+          <button className="current-batter-link" onClick={() => onProfile(current)}>
             현재 타자 {names(current)}
             {state.appearances === state.lineups[state.side].length - 1 ? ' · 마지막 타자' : ''}
-          </b>
+          </button>
           <span>
             스트라이크 {state.strikes} / 3 · 아웃 {state.outs}
           </span>
