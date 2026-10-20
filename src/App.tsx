@@ -15,7 +15,12 @@ import {
   WifiOff,
 } from 'lucide-react';
 import type { EventPayload, Game, Workspace } from './domain/model';
-import { LocalWorkspaceRepository, STORAGE_KEY, downloadFile } from './data/repository';
+import {
+  LocalWorkspaceRepository,
+  STORAGE_KEY,
+  LEGACY_STORAGE_KEY,
+  downloadFile,
+} from './data/repository';
 import { createDemoWorkspace } from './data/seed';
 import { replayGame } from './engine/game';
 import { Players, Profile } from './components/Players';
@@ -26,7 +31,8 @@ import { SettingsView } from './components/SettingsView';
 import { StatsView } from './components/StatsView';
 import { Badge, Panel } from './components/ui';
 import { Field } from './components/Field';
-const repository = new LocalWorkspaceRepository(localStorage);
+const previewMode = new URLSearchParams(location.search).get('preview') === '1';
+const repository = new LocalWorkspaceRepository(previewMode ? sessionStorage : localStorage);
 const navigation = [
   { id: 'dashboard', name: '대시보드', icon: LayoutDashboard },
   { id: 'players', name: '선수 & 팀', icon: Users },
@@ -57,7 +63,7 @@ export default function App() {
   useEffect(() => {
     const connection = () => setOnline(navigator.onLine);
     const storage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setStale(true);
+      if (!previewMode && (e.key === STORAGE_KEY || e.key === LEGACY_STORAGE_KEY)) setStale(true);
     };
     window.addEventListener('online', connection);
     window.addEventListener('offline', connection);
@@ -84,7 +90,7 @@ export default function App() {
           onClick={() =>
             downloadFile(
               'TB-Manager-recovery.json',
-              localStorage.getItem(STORAGE_KEY) || '',
+              repository.recoverySnapshot(),
               'application/json',
             )
           }
@@ -101,7 +107,7 @@ export default function App() {
       // Revision detects previous writes; transactional cross-tab locking remains a TODO.
       const saved = repository.save(next, data.revision);
       setData(saved);
-      notify('이 브라우저에 저장했습니다.');
+      notify(previewMode ? '검증 탭에 임시 저장했습니다.' : '이 브라우저에 저장했습니다.');
     } catch (error) {
       notify(error instanceof Error ? error.message : '저장 실패', true);
       throw error;
@@ -117,22 +123,28 @@ export default function App() {
   const game = data.games.find((g) => g.id === gameId) ?? data.games[0];
   const events = data.events.filter((e) => e.gameId === game.id);
   const state = replayGame(game, events);
-  const record = (payload: EventPayload) =>
-    safelySave({
-      ...data,
-      events: [
-        ...data.events,
-        {
-          schemaVersion: 1,
-          id: crypto.randomUUID(),
-          gameId: game.id,
-          sequence: events.length + 1,
-          deviceId,
-          recordedAt: new Date().toISOString(),
-          payload,
-        },
-      ],
-    });
+  const record = (payload: EventPayload) => {
+    try {
+      save({
+        ...data,
+        events: [
+          ...data.events,
+          {
+            schemaVersion: 2,
+            id: crypto.randomUUID(),
+            gameId: game.id,
+            sequence: events.length + 1,
+            deviceId,
+            recordedAt: new Date().toISOString(),
+            payload,
+          },
+        ],
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
   const create = (g: Game) => {
     try {
       save({ ...data, games: [...data.games, g] });
@@ -212,13 +224,24 @@ export default function App() {
           </div>
           <div className="topbar-right">
             <span className="save-state">
-              {online ? <i /> : <WifiOff size={14} />} {online ? '기기 내 저장' : '오프라인'}
+              {online ? <i /> : <WifiOff size={14} />}{' '}
+              {previewMode ? '검증 탭 임시 저장' : online ? '기기 내 저장' : '오프라인'}
             </span>
-            <span className="version">BETA 0.1</span>
+            <span className="version">BETA 0.2</span>
             <div className="top-avatar">TB</div>
           </div>
         </header>
         <main>
+          {previewMode && (
+            <div className="callout">
+              검증 모드 · 이 탭의 가상 기록만 임시 저장합니다. 실제 브라우저 기록과 분리됩니다.
+            </div>
+          )}
+          <div className="privacy-notice" role="note">
+            <b>학생 개인정보 주의</b> · 서버 인증·접근 권한이 아직 구현되지 않았습니다. 실명·학번 등
+            실제 학생 개인정보를 입력하지 말고 별칭·가상 데이터로 사용하세요. 백업 파일도 안전하게
+            보관하세요.
+          </div>
           {stale && (
             <div className="alert" role="alert">
               다른 탭에서 데이터가 변경되었습니다. 기록 전에{' '}
