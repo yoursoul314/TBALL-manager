@@ -41,15 +41,19 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
   const balls = observed.filter(
     (a) =>
       a.result !== 'miss' &&
-      [a.directionZone, a.trajectory, a.intensity, a.contactQuality].some((v) => v !== null),
+      [a.direction ?? null, a.directionZone, a.trajectory, a.intensity, a.contactQuality].some(
+        (v) => v !== null,
+      ),
   );
   const distribution = (
-    key: 'directionZone' | 'trajectory' | 'intensity' | 'contactQuality' | 'result',
+    key: 'direction' | 'directionZone' | 'trajectory' | 'intensity' | 'contactQuality' | 'result',
   ) => {
-    const rows = observed.filter((a) => a[key] !== null);
+    const value = (a: Attempt) =>
+      key === 'direction' ? (a.direction ?? a.directionZone?.split('-')[0] ?? null) : a[key];
+    const rows = observed.filter((a) => value(a) != null);
     const counts: Record<string, number> = {};
     for (const a of rows) {
-      const k = a[key]!;
+      const k = value(a)!;
       counts[k] = (counts[k] ?? 0) + 1;
     }
     return {
@@ -58,7 +62,8 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
       ratio: (value: string) => (rows.length ? (counts[value] ?? 0) / rows.length : null),
     };
   };
-  const zones = distribution('directionZone'),
+  const directions = distribution('direction'),
+    zones = distribution('directionZone'),
     trajectories = distribution('trajectory'),
     intensities = distribution('intensity'),
     contacts = distribution('contactQuality'),
@@ -66,7 +71,7 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
   const settings = data.battingSettings.classification,
     types: string[] = [];
   const sides = { left: 0, center: 0, right: 0 };
-  for (const [key, n] of Object.entries(zones.counts))
+  for (const [key, n] of Object.entries(directions.counts))
     sides[key.split('-')[0] as keyof typeof sides] += n;
   const eligible = (n: number) => n >= settings.minimumBalls;
   if (
@@ -81,17 +86,17 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
     contacts.ratio('solid')! >= settings.solidRatio
   )
     types.push('정확성 중심형');
-  if (eligible(zones.total)) {
+  if (eligible(directions.total)) {
     if (settings.sideRatio !== null)
       for (const [side, label] of [
         ['left', '좌측'],
         ['center', '중앙'],
         ['right', '우측'],
       ] as const)
-        if (sides[side] / zones.total >= settings.sideRatio) types.push(label + ' 집중형');
+        if (sides[side] / directions.total >= settings.sideRatio) types.push(label + ' 집중형');
     if (
       settings.spreadMaxRatio !== null &&
-      Object.values(sides).every((n) => n > 0 && n / zones.total <= settings.spreadMaxRatio!)
+      Object.values(sides).every((n) => n > 0 && n / directions.total <= settings.spreadMaxRatio!)
     )
       types.push('분산 타격형');
   }
@@ -114,6 +119,7 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
     balls: balls.length,
     observed: observed.length,
     zones,
+    directions,
     trajectories,
     intensities,
     contacts,

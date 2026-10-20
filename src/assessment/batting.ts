@@ -17,6 +17,7 @@ export type SessionInput = Pick<
 export type AttemptInput = Pick<
   Attempt,
   | 'result'
+  | 'direction'
   | 'directionZone'
   | 'trajectory'
   | 'intensity'
@@ -27,6 +28,7 @@ export type AttemptInput = Pick<
 >;
 export const blankAttempt = (): AttemptInput => ({
   result: null,
+  direction: null,
   directionZone: null,
   trajectory: null,
   intensity: null,
@@ -110,6 +112,7 @@ function normalized(input: AttemptInput): AttemptInput {
   if (input.result === null)
     return {
       ...input,
+      direction: null,
       directionZone: null,
       trajectory: null,
       intensity: null,
@@ -119,6 +122,7 @@ function normalized(input: AttemptInput): AttemptInput {
   if (input.result === 'miss')
     return {
       ...input,
+      direction: null,
       directionZone: null,
       trajectory: null,
       intensity: null,
