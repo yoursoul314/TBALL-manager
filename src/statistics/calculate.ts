@@ -29,6 +29,8 @@ export interface PlayerStats {
   violations: number;
   directions: Record<string, number>;
   qualities: Record<string, number>;
+  positionAttempts: Record<string, number>;
+  positionSuccesses: Record<string, number>;
   fieldingTypes: Record<string, number>;
   runningTypes: Record<string, number>;
 }
@@ -70,6 +72,8 @@ export function calculateStats(
         violations: 0,
         directions: {},
         qualities: {},
+        positionAttempts: {},
+        positionSuccesses: {},
         fieldingTypes: {},
         runningTypes: {},
       });
@@ -112,7 +116,7 @@ export function calculateStats(
         row(detail.playerId).errors++;
         increment(row(detail.playerId).errorsByType, detail.errorType);
       }
-      if (detail.type === 'FIELDING_ACTION')
+      if (detail.type === 'FIELDING_ACTION' && detail.success !== null)
         increment(
           row(detail.playerId).fieldingActions,
           detail.action + ':' + (detail.success ? 'success' : 'failure'),
@@ -126,7 +130,10 @@ export function calculateStats(
     if (play.quality) increment(batter.qualities, play.quality);
     for (const id of play.runs) row(id).runs++;
     for (const observation of play.fielding) {
+      if (observation.success === null) continue;
       const fielder = row(observation.playerId);
+      increment(fielder.positionAttempts, observation.position);
+      if (observation.success) increment(fielder.positionSuccesses, observation.position);
       fielder.fieldingAttempts++;
       if (observation.success) fielder.fieldingSuccesses++;
       increment(fielder.fieldingTypes, observation.skill);
