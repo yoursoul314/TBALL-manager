@@ -1,3 +1,5 @@
+import { summarizeBatting } from '../assessment/battingSummary';
+import { BattingAssessmentReport } from './BattingAssessmentReport';
 import {
   DIRECTION_LABELS,
   DISTANCE_LABELS,
@@ -192,6 +194,7 @@ export function Profile({
 }) {
   const p = data.players.find((p) => p.id === id)!;
   const a = data.assessments.filter((a) => a.playerId === id).at(-1);
+  const batting = summarizeBatting(data, id);
   const stats = data.games
     .flatMap(
       (game) =>
@@ -279,6 +282,21 @@ export function Profile({
           </p>
         </div>
       </div>
+      <div className="profile-batting-comparison">
+        <section>
+          <h3>실전 경기</h3>
+          <b>
+            {sum('pa')}타석 · {sum('hits')}안타
+          </b>
+          <p>경기 원본 이벤트에서 계산</p>
+        </section>
+        <section>
+          <h3>타격 기능평가</h3>
+          <b>{batting.score?.toFixed(1) ?? '평가 기록 없음'} / 100</b>
+          <p>{batting.count}회 유효 평가 · 경기 기록과 별도</p>
+        </section>
+      </div>
+      <h3>실전 경기 기록</h3>
       <div className="mini-stats">
         <div>
           <small>타율</small>
@@ -303,6 +321,7 @@ export function Profile({
         관측이 없는 항목은 미측정으로 표시합니다. 희생플라이 등 미확정 정책에 따라 통계가 달라질 수
         있습니다.
       </div>
+      <BattingAssessmentReport data={data} playerId={id} />
       <h3>수비 능력 · 9개 지표</h3>
       {a ? (
         ABILITIES.map((k) => (
