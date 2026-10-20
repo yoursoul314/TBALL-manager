@@ -1,7 +1,7 @@
 import { HistoryEditor } from './HistoryEditor';
 import { DefenseEditor } from './DefenseEditor';
 import { PlayForm } from './PlayForm';
-import { resultLabels } from './playLabels';
+import { playResultLabel } from './playLabels';
 import { useState } from 'react';
 import { ArrowRight, CircleDot, Flag, RotateCcw, Plus, Play } from 'lucide-react';
 import type { EventPayload, Game, GameState, Id, Side, Workspace } from '../domain/model';
@@ -327,7 +327,7 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
                       {p.inning}회 {p.side === 'away' ? '초' : '말'} · {names(p.batterId)}
                     </small>
                     <b>
-                      {resultLabels[p.result]}
+                      {playResultLabel(p)}
                       {p.runs.length > 0 ? ' · ' + p.runs.length + '득점' : ''}
                     </b>
                     {p.result !== 'strikeout' && (

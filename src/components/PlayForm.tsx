@@ -18,6 +18,11 @@ import type {
 import { BattedBallMap } from './BattedBallMap';
 import { PlayDetailsEditor } from './PlayDetailsEditor';
 import { resultLabels } from './playLabels';
+import {
+  HOME_RUN_TRAJECTORIES,
+  homeRunQualityKey,
+  homeRunQualityLabel,
+} from '../statistics/homeRuns';
 export function PlayForm({
   state,
   game,
@@ -35,6 +40,7 @@ export function PlayForm({
   const [result, setResult] = useState<BatResult>(initial?.result ?? 'single');
   const [direction, setDirection] = useState<Direction>(initial?.direction ?? 'center');
   const [quality, setQuality] = useState<Quality>(initial?.quality ?? 'ground');
+  const [qualityChosen, setQualityChosen] = useState(Boolean(initial));
   const [outcomes, setOutcomes] = useState<RunnerOutcome[]>(
     initial?.outcomes ??
       participants.map((id) => ({
@@ -97,15 +103,56 @@ export function PlayForm({
               ))}
           </select>
         </label>
-        <label>
-          타구 유형
-          <select value={quality} onChange={(e) => setQuality(e.target.value as typeof quality)}>
-            <option value="ground">땅볼</option>
-            <option value="line">직선타</option>
-            <option value="fly">뜬공</option>
-          </select>
-        </label>
+        {result !== 'home-run' && (
+          <label>
+            타구 유형
+            <select
+              value={quality}
+              onChange={(e) => {
+                setQuality(e.target.value as Quality);
+                setQualityChosen(true);
+              }}
+            >
+              <option value="ground">땅볼</option>
+              <option value="line">직선타</option>
+              <option value="fly">뜬공</option>
+            </select>
+          </label>
+        )}
       </div>
+      {result === 'home-run' && (
+        <fieldset className="home-run-quality">
+          <legend>홈런 타구 질</legend>
+          <p className="hint">실제 타구의 궤적을 고르고 아래에서 강도를 선택하세요.</p>
+          <div className="home-run-options">
+            {(
+              Object.entries(HOME_RUN_TRAJECTORIES) as [
+                Quality,
+                { label: string; description: string },
+              ][]
+            ).map(([key, item]) => (
+              <button
+                type="button"
+                key={key}
+                aria-label={item.label + ' ' + item.description}
+                aria-pressed={qualityChosen && quality === key}
+                onClick={() => {
+                  setQuality(key);
+                  setQualityChosen(true);
+                }}
+              >
+                <b>{item.label}</b>
+                <span>{item.description}</span>
+              </button>
+            ))}
+          </div>
+          <p className="home-run-summary" role="status">
+            {qualityChosen
+              ? `홈런 · ${homeRunQualityLabel(homeRunQualityKey(quality, strength))}`
+              : '홈런 타구의 궤적을 선택하세요.'}
+          </p>
+        </fieldset>
+      )}
       <BattedBallMap
         direction={direction}
         distance={distance}
@@ -284,7 +331,9 @@ export function PlayForm({
       </details>
       <button
         className="primary wide"
-        disabled={!initial && (!distance || !strength)}
+        disabled={
+          (!initial && (!distance || !strength)) || (result === 'home-run' && !qualityChosen)
+        }
         onClick={() =>
           onEvent({
             type: 'END_PLAY',
