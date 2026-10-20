@@ -1,3 +1,4 @@
+import type { BattingData } from './batting';
 import type { ErrorType, TeamworkCategory } from '../config/recording';
 import type { Ability, Position } from '../config/positions';
 import type { RULES_VERSION } from '../config/rules';
@@ -205,8 +206,9 @@ export interface Selection {
   approvedBy: string | null;
   approvedAt: string | null;
 }
-export interface Workspace {
-  schemaVersion: 2;
+export interface Workspace extends BattingData {
+  schemaVersion: 3;
+  migrationSource?: { schemaVersion: 2; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

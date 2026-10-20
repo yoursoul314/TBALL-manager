@@ -19,6 +19,7 @@ import {
   LocalWorkspaceRepository,
   STORAGE_KEY,
   LEGACY_STORAGE_KEY,
+  V2_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
@@ -63,7 +64,11 @@ export default function App() {
   useEffect(() => {
     const connection = () => setOnline(navigator.onLine);
     const storage = (e: StorageEvent) => {
-      if (!previewMode && (e.key === STORAGE_KEY || e.key === LEGACY_STORAGE_KEY)) setStale(true);
+      if (
+        !previewMode &&
+        (e.key === STORAGE_KEY || e.key === LEGACY_STORAGE_KEY || e.key === V2_STORAGE_KEY)
+      )
+        setStale(true);
     };
     window.addEventListener('online', connection);
     window.addEventListener('offline', connection);
@@ -227,7 +232,7 @@ export default function App() {
               {online ? <i /> : <WifiOff size={14} />}{' '}
               {previewMode ? '검증 탭 임시 저장' : online ? '기기 내 저장' : '오프라인'}
             </span>
-            <span className="version">BETA 0.2</span>
+            <span className="version">BETA 0.3</span>
             <div className="top-avatar">TB</div>
           </div>
         </header>
@@ -262,17 +267,12 @@ export default function App() {
             />
           )}
           {view === 'stats' && <StatsView data={data} onProfile={setProfile} />}
-          {view === 'assessment' && <AssessmentView data={data} onSave={safelySave} />}
+          {view === 'assessment' && <AssessmentView data={data} onSave={save} />}
           {view === 'selection' && (
             <SelectionView data={data} onSave={safelySave} onProfile={setProfile} />
           )}
           {view === 'settings' && (
-            <SettingsView
-              key={data.policy.version}
-              data={data}
-              onSave={safelySave}
-              onNotify={notify}
-            />
+            <SettingsView key={data.policy.version} data={data} onSave={save} onNotify={notify} />
           )}
           <footer>
             <span>

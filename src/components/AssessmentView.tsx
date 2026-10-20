@@ -1,3 +1,4 @@
+import { BattingAssessmentPanel } from './BattingAssessmentPanel';
 import { TeamworkPanel } from './TeamworkPanel';
 import { useState } from 'react';
 import { Check, ClipboardCheck } from 'lucide-react';
@@ -12,7 +13,7 @@ export function AssessmentView({
   onSave: (data: Workspace) => void;
 }) {
   const [playerId, setPlayerId] = useState(data.players[0].id);
-  const [tab, setTab] = useState<'skill' | 'teamwork'>('skill');
+  const [tab, setTab] = useState<'batting' | 'skill' | 'teamwork'>('batting');
   const latest = data.assessments.filter((a) => a.playerId === playerId).at(-1);
   const current = data.players.find((p) => p.id === playerId)!;
   return (
@@ -28,6 +29,9 @@ export function AssessmentView({
         <Badge tone="amber">실측 환산표 TODO</Badge>
       </div>
       <div className="tabs">
+        <button className={tab === 'batting' ? 'active' : ''} onClick={() => setTab('batting')}>
+          타격 상세평가
+        </button>
         <button className={tab === 'skill' ? 'active' : ''} onClick={() => setTab('skill')}>
           기능평가
         </button>
@@ -35,7 +39,7 @@ export function AssessmentView({
           팀워크 관찰
         </button>
       </div>
-      <div className="assessment-grid">
+      <div className={tab === 'batting' ? 'assessment-batting' : 'assessment-grid'}>
         <Panel title="평가 대상">
           <label>
             선수 선택
@@ -60,7 +64,9 @@ export function AssessmentView({
             <p>타격·수비의 기능/실전 비율과 최종 영역 비율은 아직 초안입니다.</p>
           </div>
         </Panel>
-        {tab === 'skill' ? (
+        {tab === 'batting' ? (
+          <BattingAssessmentPanel key={playerId} data={data} playerId={playerId} onSave={onSave} />
+        ) : tab === 'skill' ? (
           <Panel
             title="기능평가 입력"
             eyebrow="SKILL ASSESSMENT"
@@ -119,7 +125,7 @@ export function AssessmentView({
               </div>
               <div className="form-row">
                 <label>
-                  타격 기능
+                  이전 수동 타격 기능 (참고)
                   <input
                     type="number"
                     min="0"
