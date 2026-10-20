@@ -350,7 +350,10 @@ export function replayGame(game: Game, events: GameEvent[]): GameState {
   const state = initialState(game);
   const ids = new Set<string>();
   events.forEach((event, index) => {
-    assert(event.schemaVersion === 1 || event.schemaVersion === 2, '지원하지 않는 이벤트 버전');
+    assert(
+      event.schemaVersion === 1 || event.schemaVersion === 2 || event.schemaVersion === 3,
+      '지원하지 않는 이벤트 버전',
+    );
     assert(event.gameId === game.id, '다른 경기의 이벤트');
     assert(event.sequence === index + 1, '이벤트 순서 누락 또는 충돌');
     assert(!ids.has(event.id), '중복 이벤트 ID');
