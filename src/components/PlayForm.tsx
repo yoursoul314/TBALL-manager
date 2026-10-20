@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import type {
   BatResult,
@@ -43,6 +43,10 @@ export function PlayForm({
   defaultDetailed?: boolean;
   onModeChange?: (v: boolean) => void;
 }) {
+  const anchor = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!initial) anchor.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  }, [initial]);
   const participants = [...Object.values(state.live!.bases), state.live!.batterId];
   const [result, setResult] = useState<BatResult>(initial?.result ?? initialResult ?? 'single');
   const [direction, setDirection] = useState<Direction | null>(initial?.direction ?? null);
@@ -74,7 +78,7 @@ export function PlayForm({
     setTime(false);
   };
   return (
-    <div className={'play-form ' + (detailed ? 'expanded' : '')}>
+    <div ref={anchor} className={'play-form ' + (detailed ? 'expanded' : '')}>
       <div className="record-mode">
         <button type="button" aria-pressed={!detailed} onClick={() => setDetailed(false)}>
           간편 모드
