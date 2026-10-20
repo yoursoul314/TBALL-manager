@@ -21,6 +21,8 @@ export interface BattingAssessmentAttempt {
   sessionId: string;
   attemptNumber: number;
   result: AssessmentResult | null;
+  /** Optional only on preserved v3 rows; never invent distance. */
+  direction?: Direction | null;
   directionZone: DirectionZone | null;
   trajectory: Quality | null;
   intensity: Strength | null;

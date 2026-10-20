@@ -42,7 +42,8 @@ export interface RunnerOutcome {
 export interface FieldingObservation {
   playerId: Id;
   skill: Ability;
-  success: boolean;
+  success: boolean | null;
+  difficulty?: 'routine' | 'challenging' | 'difficult' | null;
   position: Position;
 }
 export type BatResult =
@@ -70,7 +71,8 @@ export type PlayDetail = { id: Id } & (
       playerId: Id;
       position: Position;
       action: 'receive' | 'throw' | 'base' | 'out';
-      success: boolean;
+      success: boolean | null;
+      difficulty?: 'routine' | 'challenging' | 'difficult' | null;
       runnerId?: Id;
     }
   | { type: 'DEFENSIVE_CREDIT'; playerId: Id; credit: 'putout' | 'assist'; runnerId: Id }
@@ -80,8 +82,8 @@ export interface EndPlayPayload {
   endedBy: 'umpire-time';
   result: BatResult;
   outcomes: RunnerOutcome[];
-  direction: Direction;
-  quality: Quality;
+  direction: Direction | null;
+  quality: Quality | null;
   fielding: FieldingObservation[];
   distance?: Distance | null;
   strength?: Strength | null;
@@ -107,7 +109,7 @@ export type EventPayload =
   | { type: 'FINISH_GAME'; reason: string }
   | { type: 'RETRACT'; targetId: Id; reason: string };
 export interface GameEvent {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   id: Id;
   gameId: Id;
   sequence: number;
@@ -124,8 +126,8 @@ export interface PlateAppearance {
   runs: Id[];
   outcomes: RunnerOutcome[];
   fielding: FieldingObservation[];
-  direction?: Direction;
-  quality?: Quality;
+  direction?: Direction | null;
+  quality?: Quality | null;
   distance?: Distance | null;
   strength?: Strength | null;
   details?: PlayDetail[];
@@ -207,8 +209,8 @@ export interface Selection {
   approvedAt: string | null;
 }
 export interface Workspace extends BattingData {
-  schemaVersion: 3;
-  migrationSource?: { schemaVersion: 2; raw: string };
+  schemaVersion: 4;
+  migrationSource?: { schemaVersion: 2 | 3; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;
