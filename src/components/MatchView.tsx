@@ -1,15 +1,10 @@
+import { HistoryEditor } from './HistoryEditor';
+import { DefenseEditor } from './DefenseEditor';
+import { PlayForm } from './PlayForm';
+import { resultLabels } from './playLabels';
 import { useState } from 'react';
 import { ArrowRight, CircleDot, Flag, RotateCcw, Plus, Play } from 'lucide-react';
-import type {
-  BatResult,
-  EventPayload,
-  Game,
-  GameState,
-  Id,
-  RunnerOutcome,
-  Side,
-  Workspace,
-} from '../domain/model';
+import type { EventPayload, Game, GameState, Id, Side, Workspace } from '../domain/model';
 import { currentBatter, dueRunner, effectiveEvents, scoreboard } from '../engine/game';
 import { RULES_VERSION } from '../config/rules';
 import { Badge, Panel, Modal, Empty } from './ui';
@@ -18,7 +13,7 @@ interface Props {
   data: Workspace;
   game: Game;
   state: GameState;
-  onEvent: (p: EventPayload) => void;
+  onEvent: (p: EventPayload) => boolean;
   onCreate: (g: Game) => void;
   onSelect: (id: Id) => void;
   onProfile: (id: Id) => void;
@@ -29,6 +24,8 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
   const [manager, setManager] = useState('');
   const [swap, setSwap] = useState(false);
   const [finish, setFinish] = useState(false);
+  const [history, setHistory] = useState<string | null>(null);
+  const [defense, setDefense] = useState(false);
   const names = (id: Id) => data.players.find((p) => p.id === id)?.name || id;
   const teamName = (side: Side) => data.teams.find((t) => t.id === game.teamIds[side])?.name;
   const score = scoreboard(state);
@@ -117,7 +114,18 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
           eyebrow="ON THE FIELD"
           action={<Badge tone="neutral">TYPE 1</Badge>}
         >
-          <Field bases={state.bases[state.side]} players={data.players} />
+          <Field
+            bases={state.bases[state.side]}
+            players={data.players}
+            assignments={Object.entries(state.defense[state.side === 'away' ? 'home' : 'away']).map(
+              ([position, playerId]) => ({
+                position: position as keyof typeof state.defense.away,
+                playerId,
+                score: 0,
+              }),
+            )}
+            onPlayer={onProfile}
+          />
           <div className="field-footer">
             <div>
               <small>STRIKES</small>
@@ -260,6 +268,13 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
             </button>
             <button
               className="subtle"
+              disabled={state.ball !== 'dead' || state.status === 'finished'}
+              onClick={() => setDefense(true)}
+            >
+              수비 포지션 변경
+            </button>
+            <button
+              className="subtle"
               disabled={state.ball === 'live' || state.status === 'finished'}
               onClick={() => setFinish(true)}
             >
@@ -315,6 +330,15 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
                       {resultLabels[p.result]}
                       {p.runs.length > 0 ? ' · ' + p.runs.length + '득점' : ''}
                     </b>
+                    {p.result !== 'strikeout' && (
+                      <button
+                        className="text-button"
+                        disabled={state.ball === 'live'}
+                        onClick={() => setHistory(p.eventId)}
+                      >
+                        플레이 수정 · 이력
+                      </button>
+                    )}
                     {p.cancelledAdvances && (
                       <span className="warning-text">RULE02 적용 · 진루·득점 취소, 잔루 복구</span>
                     )}
@@ -325,6 +349,23 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
           </div>
         </Panel>
       </div>
+      {history && (
+        <HistoryEditor
+          data={data}
+          game={game}
+          targetId={history}
+          onEvent={onEvent}
+          onClose={() => setHistory(null)}
+        />
+      )}
+      {defense && (
+        <DefenseEditor
+          data={data}
+          state={state}
+          onEvent={onEvent}
+          onClose={() => setDefense(false)}
+        />
+      )}
       {creating && (
         <NewGame
           data={data}
@@ -342,8 +383,9 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
           state={state}
           onClose={() => setSwap(false)}
           onEvent={(p) => {
-            onEvent(p);
-            setSwap(false);
+            const saved = onEvent(p);
+            if (saved) setSwap(false);
+            return saved;
           }}
         />
       )}
@@ -357,8 +399,8 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
             onSubmit={(e) => {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
-              onEvent({ type: 'FINISH_GAME', reason: String(f.get('reason')) });
-              setFinish(false);
+              if (onEvent({ type: 'FINISH_GAME', reason: String(f.get('reason')) }))
+                setFinish(false);
             }}
           >
             <label>
@@ -370,318 +412,6 @@ export function MatchView({ data, game, state, onEvent, onCreate, onSelect, onPr
         </Modal>
       )}
     </>
-  );
-}
-export const resultLabels: Record<string, string> = {
-  single: '1루타',
-  double: '2루타',
-  triple: '3루타',
-  'home-run': '홈런',
-  out: '아웃',
-  error: '실책 출루',
-  'sacrifice-fly': '희생플라이 (임시 정책)',
-  strikeout: '삼진',
-};
-function PlayForm({
-  state,
-  game,
-  data,
-  onEvent,
-}: {
-  state: GameState;
-  game: Game;
-  data: Workspace;
-  onEvent: (p: EventPayload) => void;
-}) {
-  const participants = [...Object.values(state.live!.bases), state.live!.batterId];
-  const [result, setResult] = useState<BatResult>('single');
-  const [direction, setDirection] = useState<'left' | 'center' | 'right'>('center');
-  const [quality, setQuality] = useState<'ground' | 'line' | 'fly'>('ground');
-  const [outcomes, setOutcomes] = useState<RunnerOutcome[]>(
-    participants.map((id) => ({
-      playerId: id,
-      to:
-        id === state.live!.batterId
-          ? 1
-          : (Number(Object.entries(state.live!.bases).find(([, v]) => v === id)![0]) as 1 | 2 | 3),
-      action: id === state.live!.batterId ? 'advance' : 'hold',
-    })),
-  );
-  const [fielder, setFielder] = useState('');
-  const [success, setSuccess] = useState(true);
-  const [award, setAward] = useState(false);
-  const [awardFrom, setAwardFrom] = useState<Record<string, 0 | 1 | 2 | 3>>({});
-  const [skill, setSkill] = useState<'G' | 'F' | 'C' | 'A' | 'L' | 'Q' | 'M' | 'J' | 'B'>('G');
-  const [position, setPosition] = useState<
-    '1B' | '2B' | 'SS' | '3B' | 'HP' | 'P' | 'LF' | 'CF1' | 'CF2' | 'RF'
-  >('1B');
-  const patch = (id: string, value: Partial<RunnerOutcome>) =>
-    setOutcomes((old) => old.map((o) => (o.playerId === id ? { ...o, ...value } : o)));
-  return (
-    <div className="play-form">
-      <div className="form-row">
-        <label>
-          타격 결과
-          <select
-            value={result}
-            onChange={(e) => {
-              const next = e.target.value as BatResult;
-              setResult(next);
-              const to =
-                next === 'out' || next === 'sacrifice-fly'
-                  ? 'out'
-                  : next === 'double'
-                    ? 2
-                    : next === 'triple'
-                      ? 3
-                      : next === 'home-run'
-                        ? 'home'
-                        : 1;
-              patch(state.live!.batterId, {
-                to,
-                action: 'advance',
-                outReason: next === 'sacrifice-fly' ? 'fly' : 'force',
-                outAt: 1,
-              });
-              if (next === 'sacrifice-fly') setQuality('fly');
-            }}
-          >
-            {Object.entries(resultLabels)
-              .filter(([key]) => key !== 'strikeout')
-              .map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label>
-          타구 방향
-          <select
-            value={direction}
-            onChange={(e) => setDirection(e.target.value as typeof direction)}
-          >
-            <option value="left">좌측</option>
-            <option value="center">중앙</option>
-            <option value="right">우측</option>
-          </select>
-        </label>
-        <label>
-          타구 질
-          <select value={quality} onChange={(e) => setQuality(e.target.value as typeof quality)}>
-            <option value="ground">땅볼</option>
-            <option value="line">라인드라이브</option>
-            <option value="fly">뜬공</option>
-          </select>
-        </label>
-      </div>
-      <p className="hint">
-        모든 주자의 최종 위치를 직접 확인하세요. 자동 진루는 적용하지 않습니다.
-      </p>
-      {outcomes.map((o) => (
-        <div className="runner-row" key={o.playerId}>
-          <b>
-            {data.players.find((p) => p.id === o.playerId)?.name}
-            {o.playerId === state.live!.batterId ? ' · 타자' : ''}
-          </b>
-          <div className="form-row">
-            <label>
-              최종 위치
-              <select
-                aria-label={o.playerId + ' 최종 위치'}
-                value={o.to}
-                onChange={(e) =>
-                  patch(o.playerId, {
-                    to: ['out', 'home'].includes(e.target.value)
-                      ? (e.target.value as 'out' | 'home')
-                      : (Number(e.target.value) as 1 | 2 | 3),
-                    action: 'advance',
-                    outReason: 'tag',
-                    outAt: 1,
-                  })
-                }
-              >
-                {[1, 2, 3].map((b) => (
-                  <option value={b} key={b}>
-                    {b}루
-                  </option>
-                ))}
-                <option value="home">홈 · 득점</option>
-                <option value="out">아웃</option>
-              </select>
-            </label>
-            <label>
-              주루 유형
-              <select
-                value={o.action}
-                onChange={(e) => {
-                  const action = e.target.value as RunnerOutcome['action'];
-                  patch(o.playerId, {
-                    action,
-                    ...(['lead', 'steal', 'slide'].includes(action)
-                      ? { to: 'out', outReason: action as 'lead' | 'steal' | 'slide', outAt: 1 }
-                      : {}),
-                    intentToAdvance: false,
-                  });
-                }}
-              >
-                <option value="advance">진루</option>
-                <option value="hold">잔류</option>
-                <option value="tag-up">태그업</option>
-                <option value="overrun">오버런 · 추가 진루 의사 없음</option>
-                <option value="lead">리드 위반</option>
-                <option value="steal">도루 위반</option>
-                <option value="slide">슬라이딩 위반</option>
-              </select>
-            </label>
-          </div>
-          {o.to === 'out' && (
-            <div className="form-row">
-              <label>
-                아웃 종류
-                <select
-                  value={o.outReason || 'tag'}
-                  onChange={(e) =>
-                    patch(o.playerId, { outReason: e.target.value as RunnerOutcome['outReason'] })
-                  }
-                >
-                  {['force', 'tag', 'fly', 'lead', 'steal', 'slide'].map((v, i) => (
-                    <option key={v} value={v}>
-                      {
-                        [
-                          '포스아웃',
-                          '태그아웃',
-                          '뜬공 아웃',
-                          '리드 위반',
-                          '도루 위반',
-                          '슬라이딩 위반',
-                        ][i]
-                      }
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                아웃 위치
-                <select
-                  value={o.outAt || 1}
-                  onChange={(e) =>
-                    patch(o.playerId, {
-                      outAt:
-                        e.target.value === 'home' ? 'home' : (Number(e.target.value) as 1 | 2 | 3),
-                    })
-                  }
-                >
-                  <option value="1">1루</option>
-                  <option value="2">2루</option>
-                  <option value="3">3루</option>
-                  <option value="home">홈</option>
-                </select>
-              </label>
-            </div>
-          )}
-        </div>
-      ))}
-      <details>
-        <summary>수비 관찰 · 안전진루권</summary>
-        <label>
-          수비 선수 (선택)
-          <select value={fielder} onChange={(e) => setFielder(e.target.value)}>
-            <option value="">관찰 없음</option>
-            {game.rosters[state.side === 'away' ? 'home' : 'away'].map((id) => (
-              <option key={id} value={id}>
-                {data.players.find((p) => p.id === id)?.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {fielder && (
-          <>
-            <div className="form-row">
-              <label>
-                수비 유형
-                <select value={skill} onChange={(e) => setSkill(e.target.value as typeof skill)}>
-                  {['G', 'F', 'C', 'A', 'L', 'Q', 'M', 'J', 'B'].map((k) => (
-                    <option key={k}>{k}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                포지션
-                <select
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value as typeof position)}
-                >
-                  {['1B', '2B', 'SS', '3B', 'HP', 'P', 'LF', 'CF1', 'CF2', 'RF'].map((k) => (
-                    <option key={k}>{k}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={success}
-                onChange={(e) => setSuccess(e.target.checked)}
-              />
-              수비 성공
-            </label>
-          </>
-        )}
-        <label className="check">
-          <input type="checkbox" checked={award} onChange={(e) => setAward(e.target.checked)} />
-          경기장 밖 악송구 · 안전진루권
-        </label>
-        {award && (
-          <>
-            <p className="hint">
-              심판이 판정한 악송구 시점의 진루권 대상과 위치를 지정하세요. 최종 결과는 최소 1베이스
-              진루해야 합니다.
-            </p>
-            {participants.map((id) => (
-              <label key={id}>
-                {data.players.find((p) => p.id === id)?.name}
-                <select
-                  value={awardFrom[id] ?? ''}
-                  onChange={(e) =>
-                    setAwardFrom((old) => {
-                      const next = { ...old };
-                      if (e.target.value === '') delete next[id];
-                      else next[id] = Number(e.target.value) as 0 | 1 | 2 | 3;
-                      return next;
-                    })
-                  }
-                >
-                  <option value="">대상 아님 (이미 득점·아웃 등)</option>
-                  {[0, 1, 2, 3].map((n) => (
-                    <option value={n} key={n}>
-                      {n === 0 ? '타자석' : n + '루'}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-          </>
-        )}
-      </details>
-      <button
-        className="primary wide"
-        onClick={() =>
-          onEvent({
-            type: 'END_PLAY',
-            endedBy: 'umpire-time',
-            result,
-            outcomes,
-            direction,
-            quality,
-            fielding: fielder ? [{ playerId: fielder, skill, success, position }] : [],
-            ...(award ? { safetyAward: { positionsAtThrow: awardFrom } } : {}),
-          })
-        }
-      >
-        심판 타임 · 플레이 확정 <ArrowRight size={16} />
-      </button>
-    </div>
   );
 }
 function NewGame({
@@ -794,7 +524,7 @@ function Substitution({
   data: Workspace;
   game: Game;
   state: GameState;
-  onEvent: (p: EventPayload) => void;
+  onEvent: (p: EventPayload) => boolean;
   onClose: () => void;
 }) {
   const [side, setSide] = useState<Side>(state.side);
@@ -831,7 +561,15 @@ function Substitution({
         <select value={id} onChange={(e) => setId(e.target.value)}>
           <option value="">선수 선택</option>
           {game.rosters[side]
-            .filter((id) => !state.lineups[side].includes(id))
+            .filter(
+              (id) =>
+                !state.lineups[side].includes(id) &&
+                !(
+                  side === state.side &&
+                  slot >= state.appearances &&
+                  state.batted[side].includes(id)
+                ),
+            )
             .map((id) => (
               <option key={id} value={id}>
                 {data.players.find((p) => p.id === id)?.name}

@@ -30,6 +30,16 @@ export function StatsView({
         '안타',
         '타율',
         '득점',
+        'RBI',
+        'FC',
+        '자살 PO',
+        '보살 A',
+        '실책 E',
+        '실책 추가 진루 베이스',
+        '9구역 분포',
+        '강도 분포',
+        '실책 유형',
+        '수비 동작',
         '삼진',
         '수비 시도',
         '수비 성공',
@@ -49,6 +59,16 @@ export function StatsView({
           r.hits,
           fmt(r.battingAverage, 3),
           r.runs,
+          r.rbi,
+          r.fieldersChoices,
+          r.putouts,
+          r.assists,
+          r.errors,
+          r.errorAdvanceBases,
+          JSON.stringify(r.zones),
+          JSON.stringify(r.strengths),
+          JSON.stringify(r.errorsByType),
+          JSON.stringify(r.fieldingActions),
           r.strikeouts,
           r.fieldingAttempts,
           r.fieldingSuccesses,
@@ -114,6 +134,10 @@ export function StatsView({
                   '안타',
                   '타율',
                   '득점',
+                  'RBI',
+                  'FC',
+                  'PO / A / E',
+                  '실책 진루',
                   '삼진',
                   '수비 성공/시도',
                   '주루 아웃',
@@ -138,6 +162,12 @@ export function StatsView({
                     <b>{fmt(r.battingAverage, 3)}</b>
                   </td>
                   <td>{r.runs}</td>
+                  <td>{r.rbi}</td>
+                  <td>{r.fieldersChoices}</td>
+                  <td>
+                    {r.putouts} / {r.assists} / {r.errors}
+                  </td>
+                  <td>{r.errorAdvanceBases}</td>
                   <td>{r.strikeouts}</td>
                   <td>
                     {r.fieldingSuccesses}/{r.fieldingAttempts}
@@ -154,7 +184,8 @@ export function StatsView({
         )}
         <p className="hint">
           미측정 비율은 —로 표시합니다. 수비 성공률은 입력된 관찰 횟수를 분모로 하며, 공식 야구
-          수비율로 해석하지 않습니다.
+          수비율로 해석하지 않습니다. RBI·PO·A·E는 기록원의 별도 판정 기록만 집계합니다. 미기록은
+          자동 추정하지 않습니다.
         </p>
       </Panel>
     </>

@@ -80,7 +80,12 @@ export function SelectionView({
       </div>
       <div className="callout amber">
         현재 추천은 입력된 9개 수비 능력의 가중합을 최대화합니다. 실전 환산과 최종 영역 비율이
-        미확정이므로 <b>최종 종합 선발이 아닙니다.</b> TYPE2는 참고용으로 정의를 기다리고 있습니다.
+        미확정이므로{' '}
+        <b>
+          최종 선발 알고리즘은 TODO입니다. 추천은 확정 엔트리가 아니며, 사용자 승인 전에는 검토 대기
+          상태입니다.
+        </b>{' '}
+        TYPE2는 참고용으로 정의를 기다리고 있습니다.
       </div>
       {message && (
         <div role="alert" className="alert">
