@@ -1,5 +1,5 @@
 import type { Game, GameEvent, EvaluationPolicy, Id } from '../domain/model';
-import { replayGame, scoreboard, effectiveEvents } from '../engine/game';
+import { replayGame, scoreboard, effectiveEvents, stateBeforeEvent } from '../engine/game';
 export interface PlayerStats {
   playerId: Id;
   pa: number;
@@ -8,6 +8,16 @@ export interface PlayerStats {
   totalBases: number;
   strikeouts: number;
   runs: number;
+  rbi: number;
+  fieldersChoices: number;
+  putouts: number;
+  assists: number;
+  errors: number;
+  errorAdvanceBases: number;
+  zones: Record<string, number>;
+  strengths: Record<string, number>;
+  errorsByType: Record<string, number>;
+  fieldingActions: Record<string, number>;
   battingAverage: number | null;
   fieldingAttempts: number;
   fieldingSuccesses: number;
@@ -37,6 +47,16 @@ export function calculateStats(
         totalBases: 0,
         strikeouts: 0,
         runs: 0,
+        rbi: 0,
+        fieldersChoices: 0,
+        putouts: 0,
+        assists: 0,
+        errors: 0,
+        errorAdvanceBases: 0,
+        zones: {},
+        strengths: {},
+        errorsByType: {},
+        fieldingActions: {},
         battingAverage: null,
         fieldingAttempts: 0,
         fieldingSuccesses: 0,
@@ -70,6 +90,27 @@ export function calculateStats(
       batter.hits++;
       batter.totalBases += bases;
     }
+    if (play.result === 'fielders-choice') batter.fieldersChoices++;
+    if (play.direction && play.distance)
+      increment(batter.zones, play.direction + '-' + play.distance);
+    if (play.strength) increment(batter.strengths, play.strength);
+    for (const detail of play.details ?? []) {
+      if (detail.type === 'RBI' && play.runs.includes(detail.runnerId)) batter.rbi++;
+      if (detail.type === 'DEFENSIVE_CREDIT')
+        row(detail.playerId)[detail.credit === 'putout' ? 'putouts' : 'assists']++;
+      if (detail.type === 'DEFENSIVE_ERROR') {
+        row(detail.playerId).errors++;
+        increment(row(detail.playerId).errorsByType, detail.errorType);
+      }
+      if (detail.type === 'FIELDING_ACTION')
+        increment(
+          row(detail.playerId).fieldingActions,
+          detail.action + ':' + (detail.success ? 'success' : 'failure'),
+        );
+      if (detail.type === 'ERROR_ADVANCE' && !play.cancelledAdvances)
+        row(detail.playerId).errorAdvanceBases +=
+          (detail.to === 'home' ? 4 : detail.to) - detail.from;
+    }
     if (play.result === 'strikeout') batter.strikeouts++;
     if (play.direction) increment(batter.directions, play.direction);
     if (play.quality) increment(batter.qualities, play.quality);
@@ -93,7 +134,7 @@ export function calculateStats(
   for (const event of effectiveEvents(events)) {
     if (event.payload.type !== 'RUNNER_VIOLATION') continue;
     // Prefix replay gives the event's actual inning, including substitutions/corrections.
-    const before = replayGame(game, events.slice(0, event.sequence - 1));
+    const before = stateBeforeEvent(game, events, event.id);
     if (!include(before.inning)) continue;
     const runner = row(event.payload.playerId);
     runner.runningOuts++;

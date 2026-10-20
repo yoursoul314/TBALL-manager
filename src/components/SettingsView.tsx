@@ -31,7 +31,7 @@ export function SettingsView({
           </h1>
           <p>확정 규칙은 그대로, 결정이 필요한 항목은 명확하게.</p>
         </div>
-        <Badge tone="neutral">v0.1.0</Badge>
+        <Badge tone="neutral">v0.2.0</Badge>
       </div>
       <div className="two-col">
         <Panel title="저장과 백업" eyebrow="YOUR DATA">
@@ -75,7 +75,9 @@ export function SettingsView({
           <div className="callout">
             현재 리비전 {data.revision} · 경기 {data.games.length}개 · 이벤트 {data.events.length}개
             <br />
-            정정 이력과 평가 정책도 백업에 포함됩니다.
+            정정 이력과 평가 정책도 백업에 포함됩니다. v1·v2 백업을 읽을 수 있고 내보내기는
+            v2입니다. v2 백업은 구버전 앱에서 열 수 없습니다. 이전 팀워크{' '}
+            {data.legacyTeamwork.length}건을 보존하고 있습니다.
           </div>
         </Panel>
         <Panel title="PWA · 어디서든 준비" eyebrow="IPAD & DESKTOP">

@@ -1,3 +1,9 @@
+import {
+  DIRECTION_LABELS,
+  DISTANCE_LABELS,
+  STRENGTH_LABELS,
+  ERROR_LABELS,
+} from '../config/recording';
 import { useState } from 'react';
 import { Search, Plus, ArrowUpRight } from 'lucide-react';
 import { ABILITIES, ABILITY_LABELS, POSITIONS, POSITION_LABELS } from '../config/positions';
@@ -205,7 +211,17 @@ export function Profile({
       | 'fieldingSuccesses'
       | 'violations',
   ) => stats.reduce((s, r) => s + r[key], 0);
-  const distribution = (key: 'directions' | 'qualities' | 'fieldingTypes' | 'runningTypes') =>
+  const distribution = (
+    key:
+      | 'directions'
+      | 'qualities'
+      | 'fieldingTypes'
+      | 'runningTypes'
+      | 'zones'
+      | 'strengths'
+      | 'fieldingActions'
+      | 'errorsByType',
+  ) =>
     stats.reduce(
       (acc, r) => {
         for (const [k, v] of Object.entries(r[key])) acc[k] = (acc[k] || 0) + v;
@@ -218,7 +234,25 @@ export function Profile({
     center: '중앙',
     right: '우측',
     ground: '땅볼',
-    line: '라인드라이브',
+    line: '직선타',
+    ...STRENGTH_LABELS,
+    ...ERROR_LABELS,
+    ...Object.fromEntries(
+      Object.entries(DIRECTION_LABELS).flatMap(([d, dl]) =>
+        Object.entries(DISTANCE_LABELS).map(([r, rl]) => [d + '-' + r, dl + ' ' + rl]),
+      ),
+    ),
+    ...Object.fromEntries(
+      Object.entries({
+        receive: '포구',
+        throw: '송구',
+        base: '베이스 처리',
+        out: '아웃 기여',
+      }).flatMap(([k, v]) => [
+        [k + ':success', v + ' 성공'],
+        [k + ':failure', v + ' 실패'],
+      ]),
+    ),
     fly: '뜬공',
     advance: '진루',
     'tag-up': '태그업',
@@ -282,9 +316,33 @@ export function Profile({
         <Empty>기능평가를 먼저 기록하세요.</Empty>
       )}
       <div className="two-col profile-distributions">
-        {(['directions', 'qualities', 'fieldingTypes', 'runningTypes'] as const).map((key, i) => (
+        {(
+          [
+            'directions',
+            'zones',
+            'qualities',
+            'strengths',
+            'fieldingTypes',
+            'fieldingActions',
+            'errorsByType',
+            'runningTypes',
+          ] as const
+        ).map((key, i) => (
           <section key={key}>
-            <h3>{['타구 방향', '타구 질', '수비 유형', '주루 유형'][i]}</h3>
+            <h3>
+              {
+                [
+                  '타구 방향 (이전 기록 포함)',
+                  '타구 9구역',
+                  '타구 유형',
+                  '타구 강도',
+                  '9능력 관찰',
+                  '수비 동작',
+                  '실책 유형',
+                  '주루 유형',
+                ][i]
+              }
+            </h3>
             {Object.keys(distribution(key)).length ? (
               Object.entries(distribution(key)).map(([k, v]) => (
                 <div className="distribution" key={k}>

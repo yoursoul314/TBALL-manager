@@ -1,8 +1,9 @@
+import { TeamworkPanel } from './TeamworkPanel';
 import { useState } from 'react';
 import { Check, ClipboardCheck } from 'lucide-react';
 import { ABILITIES, ABILITY_LABELS } from '../config/positions';
 import type { Workspace } from '../domain/model';
-import { Panel, Badge, Empty } from './ui';
+import { Panel, Badge } from './ui';
 export function AssessmentView({
   data,
   onSave,
@@ -153,84 +154,7 @@ export function AssessmentView({
             </form>
           </Panel>
         ) : (
-          <Panel title="팀워크 관찰 기록" eyebrow="BEYOND THE SCORE">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const form = e.currentTarget;
-                const f = new FormData(form);
-                onSave({
-                  ...data,
-                  teamwork: [
-                    ...data.teamwork,
-                    {
-                      id: crypto.randomUUID(),
-                      playerId,
-                      gameId: null,
-                      recordedAt: new Date().toISOString(),
-                      category: String(f.get('category')) as 'communication',
-                      score: Number(f.get('score')),
-                      note: String(f.get('note')),
-                      observer: String(f.get('observer')),
-                    },
-                  ],
-                });
-                form.reset();
-              }}
-            >
-              <div className="form-row">
-                <label>
-                  관찰 영역
-                  <select name="category">
-                    <option value="communication">의사소통</option>
-                    <option value="support">동료 지원</option>
-                    <option value="responsibility">책임감</option>
-                    <option value="respect">존중</option>
-                  </select>
-                </label>
-                <label>
-                  관찰 점수 (임시 척도)
-                  <select name="score">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <option key={n}>{n}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label>
-                관찰한 행동
-                <textarea
-                  name="note"
-                  required
-                  maxLength={1000}
-                  placeholder="예: 실수한 동료를 격려하고 다음 플레이를 안내함"
-                />
-              </label>
-              <label>
-                관찰자
-                <input name="observer" required />
-              </label>
-              <button className="primary">관찰 저장</button>
-            </form>
-            <div className="separated">
-              {data.teamwork.filter((o) => o.playerId === playerId).length === 0 ? (
-                <Empty>관찰한 장면을 첫 기록으로 남겨 주세요.</Empty>
-              ) : (
-                data.teamwork
-                  .filter((o) => o.playerId === playerId)
-                  .reverse()
-                  .map((o) => (
-                    <div className="observation" key={o.id}>
-                      <Badge>{o.score}/5</Badge>
-                      <p>{o.note}</p>
-                      <small>
-                        {o.observer} · {new Date(o.recordedAt).toLocaleDateString('ko-KR')}
-                      </small>
-                    </div>
-                  ))
-              )}
-            </div>
-          </Panel>
+          <TeamworkPanel key={playerId} data={data} playerId={playerId} onSave={onSave} />
         )}
       </div>
     </>

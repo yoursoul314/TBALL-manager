@@ -1,3 +1,4 @@
+import { validateDetails } from './details';
 import { POSITIONS } from '../config/positions';
 import { RULES_VERSION } from '../config/rules';
 import type {
@@ -38,6 +39,7 @@ export function initialState(game: Game): GameState {
     inning: 1,
     side: 'away',
     appearances: 0,
+    batted: { away: [], home: [] },
     strikes: 0,
     outs: 0,
     status: 'playing',
@@ -57,6 +59,11 @@ export function dueRunner(state: GameState): Id | null {
   return Object.values(state.bases[state.side]).includes(batter) ? batter : null;
 }
 function completeAppearance(state: GameState, game: Game, play: PlateAppearance) {
+  assert(
+    !state.batted[state.side].includes(play.batterId),
+    'RULE01: 같은 공격 이닝에 동일 학생이 중복 타격할 수 없습니다',
+  );
+  state.batted[state.side].push(play.batterId);
   state.plays.push(play);
   state.appearances++;
   state.strikes = 0;
@@ -67,11 +74,14 @@ function completeAppearance(state: GameState, game: Game, play: PlateAppearance)
     state.completed[state.side] = state.inning;
     state.appearances = 0;
     state.outs = 0;
-    if (state.side === 'away') state.side = 'home';
-    else if (state.inning === game.innings) state.status = 'finished';
+    if (state.side === 'away') {
+      state.side = 'home';
+      state.batted.home = [];
+    } else if (state.inning === game.innings) state.status = 'finished';
     else {
       state.side = 'away';
       state.inning++;
+      state.batted.away = [];
     }
   }
 }
@@ -80,6 +90,11 @@ function apply(state: GameState, game: Game, event: GameEvent) {
   assert(state.status === 'playing', '이미 종료된 경기입니다');
   const side = state.side;
   const batterId = currentBatter(state);
+  if (p.type === 'PITCH' || p.type === 'START_PLAY')
+    assert(
+      !state.batted[side].includes(batterId),
+      'RULE01: 같은 공격 이닝에 동일 학생이 중복 타격할 수 없습니다',
+    );
   const dead = () => assert(state.ball === 'dead', '볼 데드 상태에서만 가능합니다');
   switch (p.type) {
     case 'PITCH': {
@@ -195,6 +210,7 @@ function apply(state: GameState, game: Game, event: GameEvent) {
         p.fielding.every((o) => game.rosters[defendingSide].includes(o.playerId)),
         '수비 기록의 선수가 상대 팀 명단에 없습니다',
       );
+      validateDetails(p, before, batterId, game, side);
       const rollback =
         state.live.lastBatter &&
         batterOutcome.to === 'out' &&
@@ -212,6 +228,9 @@ function apply(state: GameState, game: Game, event: GameEvent) {
         fielding: p.fielding,
         direction: p.direction,
         quality: p.quality,
+        distance: p.distance,
+        strength: p.strength,
+        details: p.details,
         cancelledAdvances: rollback,
       });
       return;
@@ -249,6 +268,14 @@ function apply(state: GameState, game: Game, event: GameEvent) {
         !Object.values(state.bases[p.side]).includes(p.playerId),
         '이미 주자로 출전 중인 선수입니다',
       );
+      assert(
+        !(
+          p.side === side &&
+          p.slot >= state.appearances &&
+          state.batted[side].includes(p.playerId)
+        ),
+        'RULE01: 이미 타격한 학생을 같은 공격 이닝의 남은 타순에 넣을 수 없습니다',
+      );
       const previous = state.lineups[p.side][p.slot];
       state.lineups[p.side][p.slot] = p.playerId;
       for (const [base, id] of Object.entries(state.bases[p.side])) {
@@ -284,28 +311,46 @@ function apply(state: GameState, game: Game, event: GameEvent) {
       assert(p.reason.trim(), '경기 종료 사유를 기록하세요');
       state.status = 'finished';
       return;
+    case 'REVISE_PLAY':
     case 'RETRACT':
       throw new Error('RETRACT는 재생 전 처리해야 합니다');
   }
 }
-/** Append-only corrections. Only the latest effective event can be retracted. */
+/** Original envelopes remain unchanged; revisions replace only the replay projection. */
 export function effectiveEvents(events: GameEvent[]): GameEvent[] {
   const active: GameEvent[] = [];
   for (const event of events) {
-    if (event.payload.type !== 'RETRACT') active.push(event);
-    else {
-      assert(event.payload.reason.trim(), '정정 사유가 필요합니다');
-      assert(active.at(-1)?.id === event.payload.targetId, '가장 최근 유효 이벤트부터 정정하세요');
+    const p = event.payload;
+    if (p.type === 'REVISE_PLAY') {
+      assert(p.reason.trim() && p.author.trim(), '수정 사유와 작성자가 필요합니다');
+      const index = active.findIndex((e) => e.id === p.targetId);
+      assert(
+        index >= 0 && active[index].payload.type === 'END_PLAY',
+        '수정 대상 플레이가 없거나 취소되었습니다',
+      );
+      active[index] = { ...active[index], payload: structuredClone(p.replacement) };
+    } else if (p.type === 'RETRACT') {
+      assert(p.reason.trim(), '정정 사유가 필요합니다');
+      assert(active.at(-1)?.id === p.targetId, '가장 최근 유효 이벤트부터 정정하세요');
       active.pop();
-    }
+    } else active.push(event);
   }
   return active;
+}
+/** Reconstruct the target's actual context using all effective historical corrections. */
+export function stateBeforeEvent(game: Game, events: GameEvent[], targetId: Id) {
+  const state = initialState(game);
+  for (const event of effectiveEvents(events)) {
+    if (event.id === targetId) return state;
+    apply(state, game, event);
+  }
+  throw new Error('대상 이벤트가 없습니다');
 }
 export function replayGame(game: Game, events: GameEvent[]): GameState {
   const state = initialState(game);
   const ids = new Set<string>();
   events.forEach((event, index) => {
-    assert(event.schemaVersion === 1, '지원하지 않는 이벤트 버전');
+    assert(event.schemaVersion === 1 || event.schemaVersion === 2, '지원하지 않는 이벤트 버전');
     assert(event.gameId === game.id, '다른 경기의 이벤트');
     assert(event.sequence === index + 1, '이벤트 순서 누락 또는 충돌');
     assert(!ids.has(event.id), '중복 이벤트 ID');

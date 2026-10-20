@@ -1,3 +1,4 @@
+import { ERROR_LABELS, type ErrorType } from '../config/recording';
 import { z } from 'zod';
 import { ABILITIES, POSITIONS } from '../config/positions';
 import { RULES_VERSION } from '../config/rules';
@@ -29,42 +30,98 @@ const policy = z.object({
   sacrificeFly: decision(z.enum(['exclude-from-at-bats', 'include-in-at-bats'])),
   incompleteInnings: decision(z.enum(['include', 'exclude'])),
 });
+
+const detail = z.discriminatedUnion('type', [
+  z.object({ id, type: z.literal('FIELDERS_CHOICE'), targetRunnerId: id }),
+  z.object({ id, type: z.literal('RBI'), runnerId: id }),
+  z.object({
+    id,
+    type: z.literal('DEFENSIVE_ERROR'),
+    playerId: id,
+    errorType: z.enum(Object.keys(ERROR_LABELS) as [ErrorType, ...ErrorType[]]),
+    note: z.string().max(2000),
+  }),
+  z.object({
+    id,
+    type: z.literal('ERROR_ADVANCE'),
+    playerId: id,
+    from: z.union([z.literal(0), base]),
+    to: z.union([base, z.literal('home')]),
+    errorId: id,
+  }),
+  z.object({
+    id,
+    type: z.literal('FIELDING_ACTION'),
+    playerId: id,
+    position: z.enum(POSITIONS),
+    action: z.enum(['receive', 'throw', 'base', 'out']),
+    success: z.boolean(),
+    runnerId: id.optional(),
+  }),
+  z.object({
+    id,
+    type: z.literal('DEFENSIVE_CREDIT'),
+    playerId: id,
+    credit: z.enum(['putout', 'assist']),
+    runnerId: id,
+  }),
+]);
+const endPlay = z.object({
+  type: z.literal('END_PLAY'),
+  endedBy: z.literal('umpire-time'),
+  result: z.enum([
+    'single',
+    'double',
+    'triple',
+    'home-run',
+    'out',
+    'error',
+    'fielders-choice',
+    'sacrifice-fly',
+  ]),
+  outcomes: z
+    .array(
+      z.object({
+        playerId: id,
+        to: z.union([base, z.literal('home'), z.literal('out')]),
+        action: z.enum(['advance', 'tag-up', 'overrun', 'hold', 'lead', 'steal', 'slide']),
+        outReason: z
+          .enum(['force', 'tag', 'fly', 'strikeout', 'lead', 'steal', 'slide'])
+          .optional(),
+        outAt: z.union([base, z.literal('home')]).optional(),
+        intentToAdvance: z.boolean().optional(),
+      }),
+    )
+    .max(4),
+  direction: z.enum(['left', 'center', 'right']),
+  quality: z.enum(['ground', 'line', 'fly']),
+  fielding: z
+    .array(
+      z.object({
+        playerId: id,
+        skill: z.enum(ABILITIES),
+        success: z.boolean(),
+        position: z.enum(POSITIONS),
+      }),
+    )
+    .max(100),
+  distance: z.enum(['near', 'middle', 'far']).nullable().optional(),
+  strength: z.enum(['strong', 'normal', 'weak']).nullable().optional(),
+  details: z.array(detail).max(100).optional(),
+  safetyAward: z
+    .object({ positionsAtThrow: z.record(id, z.union([z.literal(0), base])) })
+    .optional(),
+});
 const payload = z.discriminatedUnion('type', [
   z.object({ type: z.literal('PITCH'), call: z.enum(['strike', 'foul']) }),
   z.object({ type: z.literal('START_PLAY') }),
+  endPlay,
   z.object({
-    type: z.literal('END_PLAY'),
-    endedBy: z.literal('umpire-time'),
-    result: z.enum(['single', 'double', 'triple', 'home-run', 'out', 'error', 'sacrifice-fly']),
-    outcomes: z
-      .array(
-        z.object({
-          playerId: id,
-          to: z.union([base, z.literal('home'), z.literal('out')]),
-          action: z.enum(['advance', 'tag-up', 'overrun', 'hold', 'lead', 'steal', 'slide']),
-          outReason: z
-            .enum(['force', 'tag', 'fly', 'strikeout', 'lead', 'steal', 'slide'])
-            .optional(),
-          outAt: z.union([base, z.literal('home')]).optional(),
-          intentToAdvance: z.boolean().optional(),
-        }),
-      )
-      .max(4),
-    direction: z.enum(['left', 'center', 'right']),
-    quality: z.enum(['ground', 'line', 'fly']),
-    fielding: z
-      .array(
-        z.object({
-          playerId: id,
-          skill: z.enum(ABILITIES),
-          success: z.boolean(),
-          position: z.enum(POSITIONS),
-        }),
-      )
-      .max(100),
-    safetyAward: z
-      .object({ positionsAtThrow: z.record(id, z.union([z.literal(0), base])) })
-      .optional(),
+    type: z.literal('REVISE_PLAY'),
+    targetId: id,
+    reason: text.trim().min(1),
+    author: text.trim().min(1),
+    replacement: endPlay,
   }),
   z.object({
     type: z.literal('TEMP_RUNNER'),
@@ -87,7 +144,8 @@ const payload = z.discriminatedUnion('type', [
   z.object({ type: z.literal('RETRACT'), targetId: id, reason: text.min(1) }),
 ]);
 const workspaceSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
+  legacySource: z.object({ schemaVersion: z.literal(1), raw: z.string() }).optional(),
   revision: z.number().int().min(0),
   teams: z
     .array(z.object({ id, name: text.min(1), color: z.string().regex(/^#[0-9a-f]{6}$/i) }))
@@ -121,7 +179,7 @@ const workspaceSchema = z.object({
   events: z
     .array(
       z.object({
-        schemaVersion: z.literal(1),
+        schemaVersion: z.union([z.literal(1), z.literal(2)]),
         id,
         gameId: id,
         sequence: z.number().int().min(1),
@@ -145,7 +203,7 @@ const workspaceSchema = z.object({
       }),
     )
     .max(10000),
-  teamwork: z
+  legacyTeamwork: z
     .array(
       z.object({
         id,
@@ -157,6 +215,33 @@ const workspaceSchema = z.object({
         note: z.string().max(2000),
         observer: text,
       }),
+    )
+    .max(10000),
+
+  teamwork: z
+    .array(
+      z
+        .object({
+          id,
+          playerId: id,
+          gameId: id.nullable(),
+          recordedAt: z.iso.datetime(),
+          category: z.enum([
+            'communication',
+            'coverBackup',
+            'roleExecution',
+            'teammateSupport',
+            'teamTactics',
+          ]),
+          opportunity: z.enum(['offered', 'not-offered']),
+          outcome: z.enum(['performed', 'partial', 'not-performed', 'unobserved']),
+          note: z.string().max(2000),
+          observer: text,
+        })
+        .refine(
+          (o) => o.opportunity === 'offered' || o.outcome === 'unobserved',
+          '기회 없음은 수행 미관찰로 기록하세요',
+        ),
     )
     .max(10000),
   selections: z.array(
@@ -185,7 +270,7 @@ export function parseWorkspace(input: unknown): Workspace {
     data.games,
     data.events,
     data.assessments,
-    data.teamwork,
+    [...data.teamwork, ...data.legacyTeamwork],
     data.selections,
   ]) {
     require(new Set(collection.map((x) => x.id)).size ===
@@ -209,7 +294,7 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   require(data.events.every((e) => games.has(e.gameId)), '이벤트의 경기가 없습니다');
   require(data.assessments.every((a) => player.has(a.playerId)), '평가의 선수가 없습니다');
-  require(data.teamwork.every(
+  require([...data.teamwork, ...data.legacyTeamwork].every(
     (a) => player.has(a.playerId) && (!a.gameId || games.has(a.gameId)),
   ), '관찰 대상이 없습니다');
   for (const selection of data.selections) {
