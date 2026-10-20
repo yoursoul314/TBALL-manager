@@ -2730,3 +2730,13 @@ tr:last-child td {
     flex: 1;
   }
 }
+
+.modal .batting-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.modal .batting-analysis-grid {
+  grid-template-columns: 1fr;
+}
+.batting-summary > div:nth-child(3) strong {
+  font-size: 16px;
+}
