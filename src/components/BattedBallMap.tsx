@@ -5,7 +5,7 @@ export function BattedBallMap({
   distance,
   onChange,
 }: {
-  direction: Direction;
+  direction: Direction | null;
   distance: Distance | null;
   onChange: (direction: Direction, distance: Distance) => void;
 }) {
@@ -34,7 +34,7 @@ export function BattedBallMap({
         <div className="home-plate-label">⌂ 홈</div>
       </div>
       <p className="hint" aria-live="polite">
-        {distance
+        {distance && direction
           ? DIRECTION_LABELS[direction] + ' · ' + DISTANCE_LABELS[distance]
           : '거리 미기록 · 구역을 터치하세요'}
       </p>

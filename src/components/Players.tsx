@@ -192,6 +192,7 @@ export function Profile({
   data: Workspace;
   onClose: () => void;
 }) {
+  const [view, setView] = useState<'combined' | 'assessment' | 'game'>('combined');
   const p = data.players.find((p) => p.id === id)!;
   const a = data.assessments.filter((a) => a.playerId === id).at(-1);
   const batting = summarizeBatting(data, id);
@@ -207,6 +208,7 @@ export function Profile({
     .filter((r) => r.playerId === id);
   const sum = (
     key:
+      | 'totalBases'
       | 'pa'
       | 'hits'
       | 'atBats'
@@ -217,6 +219,8 @@ export function Profile({
   ) => stats.reduce((s, r) => s + r[key], 0);
   const distribution = (
     key:
+      | 'positionAttempts'
+      | 'positionSuccesses'
       | 'directions'
       | 'qualities'
       | 'homeRunQualities'
@@ -282,7 +286,20 @@ export function Profile({
           </p>
         </div>
       </div>
-      <div className="profile-batting-comparison">
+      <div className="tabs" aria-label="프로필 분석 구분">
+        {(
+          [
+            ['assessment', '기능평가'],
+            ['game', '실전 경기'],
+            ['combined', '통합 분석'],
+          ] as const
+        ).map(([v, l]) => (
+          <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <div hidden={view !== 'combined'} className="profile-batting-comparison">
         <section>
           <h3>실전 경기</h3>
           <b>
@@ -296,91 +313,140 @@ export function Profile({
           <p>{batting.count}회 유효 평가 · 경기 기록과 별도</p>
         </section>
       </div>
-      <h3>실전 경기 기록</h3>
-      <div className="mini-stats">
-        <div>
-          <small>타율</small>
-          <b>{sum('atBats') ? fmt(sum('hits') / sum('atBats'), 3) : '—'}</b>
+      <section hidden={view === 'assessment'}>
+        <h3>실전 경기 기록</h3>
+        <div className="mini-stats">
+          <div>
+            <small>타율</small>
+            <b>{sum('atBats') ? fmt(sum('hits') / sum('atBats'), 3) : '—'}</b>
+          </div>
+          <div>
+            <small>장타율</small>
+            <b>{sum('atBats') ? fmt(sum('totalBases') / sum('atBats'), 3) : '미측정'}</b>
+          </div>
+          <div>
+            <small>타석</small>
+            <b>{sum('pa')}</b>
+          </div>
+          <div>
+            <small>득점</small>
+            <b>{sum('runs')}</b>
+          </div>
+          <div>
+            <small>수비 성공</small>
+            <b>
+              {sum('fieldingAttempts')
+                ? sum('fieldingSuccesses') + '/' + sum('fieldingAttempts')
+                : '미측정'}
+            </b>
+          </div>
         </div>
-        <div>
-          <small>타석</small>
-          <b>{sum('pa')}</b>
+        <div className="callout">
+          관측이 없는 항목은 미측정으로 표시합니다. 희생플라이 등 미확정 정책에 따라 통계가 달라질
+          수 있습니다.
         </div>
-        <div>
-          <small>득점</small>
-          <b>{sum('runs')}</b>
-        </div>
-        <div>
-          <small>수비 성공</small>
-          <b>
-            {sum('fieldingSuccesses')}/{sum('fieldingAttempts')}
-          </b>
-        </div>
-      </div>
-      <div className="callout">
-        관측이 없는 항목은 미측정으로 표시합니다. 희생플라이 등 미확정 정책에 따라 통계가 달라질 수
-        있습니다.
-      </div>
-      <BattingAssessmentReport data={data} playerId={id} />
-      <h3>수비 능력 · 9개 지표</h3>
-      {a ? (
-        ABILITIES.map((k) => (
-          <Progress
-            key={k}
-            value={a.abilities[k] ?? 0}
-            label={
-              k + ' · ' + ABILITY_LABELS[k] + (a.abilities[k] === undefined ? ' (미측정)' : '')
-            }
-          />
-        ))
-      ) : (
-        <Empty>기능평가를 먼저 기록하세요.</Empty>
-      )}
-      <div className="two-col profile-distributions">
-        {(
-          [
-            'directions',
-            'zones',
-            'qualities',
-            'homeRunQualities',
-            'strengths',
-            'fieldingTypes',
-            'fieldingActions',
-            'errorsByType',
-            'runningTypes',
-          ] as const
-        ).map((key, i) => (
-          <section key={key}>
-            <h3>
-              {
-                [
-                  '타구 방향 (이전 기록 포함)',
-                  '타구 9구역',
-                  '타구 유형',
-                  '홈런 타구 질',
-                  '타구 강도',
-                  '9능력 관찰',
-                  '수비 동작',
-                  '실책 유형',
-                  '주루 유형',
-                ][i]
+      </section>
+      <section hidden={view === 'game'}>
+        <BattingAssessmentReport data={data} playerId={id} />
+        <details>
+          <summary>회차별 평가점수</summary>
+          <div className="attempt-sheet">
+            {data.battingSessions
+              .filter((s) => s.playerId === id)
+              .map((s) => (
+                <section key={s.id}>
+                  <b>
+                    {s.date} · {s.sessionNumber}차 {s.status === 'cancelled' ? '(취소)' : ''}
+                  </b>
+                  {data.battingAttempts
+                    .filter((a) => a.sessionId === s.id)
+                    .map((a) => (
+                      <p key={a.id}>
+                        {a.attemptNumber}회 ·{' '}
+                        {a.status === 'cancelled'
+                          ? '취소'
+                          : a.score === null
+                            ? '미평가'
+                            : a.score + '점'}
+                      </p>
+                    ))}
+                </section>
+              ))}
+          </div>
+        </details>
+        <h3>수비 능력 · 9개 지표</h3>
+        {a ? (
+          ABILITIES.map((k) => (
+            <Progress
+              key={k}
+              value={a.abilities[k] ?? 0}
+              label={
+                k + ' · ' + ABILITY_LABELS[k] + (a.abilities[k] === undefined ? ' (미측정)' : '')
               }
-            </h3>
-            {Object.keys(distribution(key)).length ? (
-              Object.entries(distribution(key)).map(([k, v]) => (
-                <div className="distribution" key={k}>
-                  <span>
-                    {key === 'homeRunQualities' ? homeRunQualityLabel(k) : labels[k] || k}
-                  </span>
-                  <b>{v}회</b>
-                </div>
-              ))
-            ) : (
-              <p className="muted">아직 관찰 기록이 없습니다.</p>
-            )}
-          </section>
-        ))}
-      </div>
+            />
+          ))
+        ) : (
+          <Empty>기능평가를 먼저 기록하세요.</Empty>
+        )}
+      </section>
+      <section hidden={view === 'assessment'}>
+        <h3>포지션별 수행 · 9능력 관찰 성공 / 평가 기회</h3>
+        {Object.entries(distribution('positionAttempts')).length ? (
+          Object.entries(distribution('positionAttempts')).map(([p, n]) => (
+            <p key={p}>
+              {POSITION_LABELS[p as keyof typeof POSITION_LABELS]} ·{' '}
+              {distribution('positionSuccesses')[p] ?? 0}/{n}회
+            </p>
+          ))
+        ) : (
+          <p>미측정 · 수비 관찰 기록 없음</p>
+        )}
+        <div className="two-col profile-distributions">
+          {(
+            [
+              'directions',
+              'zones',
+              'qualities',
+              'homeRunQualities',
+              'strengths',
+              'fieldingTypes',
+              'fieldingActions',
+              'errorsByType',
+              'runningTypes',
+            ] as const
+          ).map((key, i) => (
+            <section key={key}>
+              <h3>
+                {
+                  [
+                    '타구 방향 (이전 기록 포함)',
+                    '타구 9구역',
+                    '타구 유형',
+                    '홈런 타구 질',
+                    '타구 강도',
+                    '9능력 관찰',
+                    '수비 동작',
+                    '실책 유형',
+                    '주루 유형',
+                  ][i]
+                }
+              </h3>
+              {Object.keys(distribution(key)).length ? (
+                Object.entries(distribution(key)).map(([k, v]) => (
+                  <div className="distribution" key={k}>
+                    <span>
+                      {key === 'homeRunQualities' ? homeRunQualityLabel(k) : labels[k] || k}
+                    </span>
+                    <b>{v}회</b>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">아직 관찰 기록이 없습니다.</p>
+              )}
+            </section>
+          ))}
+        </div>
+      </section>
     </Modal>
   );
 }

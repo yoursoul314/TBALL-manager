@@ -66,7 +66,8 @@ export function PlayDetailsEditor({
         playerId,
         position: 'SS',
         action: 'receive',
-        success: true,
+        success: null,
+        difficulty: null,
       },
       DEFENSIVE_CREDIT: { id, type: 'DEFENSIVE_CREDIT', playerId, credit: 'assist', runnerId },
     };
@@ -266,8 +267,13 @@ export function PlayDetailsEditor({
                 동작 수행 결과
                 <select
                   value={String(d.success)}
-                  onChange={(e) => patch(d.id, { success: e.target.value === 'true' })}
+                  onChange={(e) =>
+                    patch(d.id, {
+                      success: e.target.value === 'null' ? null : e.target.value === 'true',
+                    })
+                  }
                 >
+                  <option value="null">미관찰</option>
                   <option value="true">성공</option>
                   <option value="false">실패</option>
                 </select>
@@ -348,6 +354,29 @@ export function PlayDetailsEditor({
               </select>
             </label>
           </div>
+          <label>
+            수비 난도 (선택)
+            <select
+              value={o.difficulty ?? ''}
+              onChange={(e) =>
+                onObservations(
+                  observations.map((x, n) =>
+                    n === i
+                      ? {
+                          ...x,
+                          difficulty: (e.target.value || null) as FieldingObservation['difficulty'],
+                        }
+                      : x,
+                  ),
+                )
+              }
+            >
+              <option value="">미관찰</option>
+              <option value="routine">쉬움</option>
+              <option value="challenging">보통</option>
+              <option value="difficult">어려움</option>
+            </select>
+          </label>
           <div className="form-row">
             <label>
               관찰 포지션
@@ -375,11 +404,17 @@ export function PlayDetailsEditor({
                 onChange={(e) =>
                   onObservations(
                     observations.map((x, n) =>
-                      n === i ? { ...x, success: e.target.value === 'true' } : x,
+                      n === i
+                        ? {
+                            ...x,
+                            success: e.target.value === 'null' ? null : e.target.value === 'true',
+                          }
+                        : x,
                     ),
                   )
                 }
               >
+                <option value="null">미관찰</option>
                 <option value="true">성공</option>
                 <option value="false">실패</option>
               </select>
@@ -392,7 +427,7 @@ export function PlayDetailsEditor({
         onClick={() =>
           onObservations([
             ...observations,
-            { playerId: defenders[0], skill: 'G', position: 'SS', success: true },
+            { playerId: defenders[0], skill: 'G', position: 'SS', success: null, difficulty: null },
           ])
         }
       >

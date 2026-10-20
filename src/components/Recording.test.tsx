@@ -17,7 +17,8 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
   render(<App />);
   expect(screen.getByText(/서버 인증·접근 권한/)).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /경기 기록하기/ }));
-  await user.click(screen.getByRole('button', { name: /타구 발생 · 플레이 시작/ }));
+  await user.click(screen.getByRole('button', { name: '1루타' }));
+  await user.click(screen.getByRole('button', { name: '상세 모드' }));
   const commit = screen.getByRole('button', { name: /심판 타임 · 플레이 확정/ });
   expect(commit).toBeDisabled();
   expect(screen.getAllByRole('button', { name: /^[좌중우] (근거리|중거리|원거리)$/ })).toHaveLength(
@@ -26,6 +27,9 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
   await user.click(screen.getByRole('button', { name: '우 원거리' }));
   expect(screen.getByRole('button', { name: '우 원거리' })).toHaveAttribute('aria-pressed', 'true');
   await user.selectOptions(screen.getByLabelText('타구 강도'), 'strong');
+  await user.selectOptions(screen.getByLabelText('타구 유형'), 'ground');
+  await user.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
+  await user.click(screen.getByLabelText('심판 타임 선언 확인'));
   await user.click(commit);
   const first = saved();
   expect(first.events[1].payload).toMatchObject({
@@ -39,7 +43,9 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
   const dialog = within(screen.getByRole('dialog'));
   await user.type(dialog.getByLabelText('수정자 별칭'), '테스트 기록원');
   await user.type(dialog.getByLabelText('수정 사유'), '타격 결과 확인');
-  await user.selectOptions(dialog.getByLabelText('타격 결과'), 'home-run');
+  await user.click(dialog.getByRole('button', { name: '홈런' }));
+  await user.click(dialog.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
+  await user.click(dialog.getByLabelText('심판 타임 선언 확인'));
   await user.click(dialog.getByRole('button', { name: '수정 이력 저장 · 전체 경기 재계산' }));
   const next = saved();
   expect(next.events).toHaveLength(3);
@@ -62,7 +68,7 @@ it('볼 데드 수비 포지션 변경 화면을 저장하고 라이브에서는
     side: 'home',
     assignments: { '1B': 'orange-1', SS: 'orange-2' },
   });
-  await user.click(screen.getByRole('button', { name: /타구 발생 · 플레이 시작/ }));
+  await user.click(screen.getByRole('button', { name: '1루타' }));
   expect(screen.getByRole('button', { name: '수비 포지션 변경' })).toBeDisabled();
 });
 it('팀워크 기회 없음은 미관찰로 저장하고 책임감·존중 원본을 화면에서 보존한다', async () => {
