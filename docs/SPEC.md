@@ -17,12 +17,12 @@
 
 ## 저장 모델과 이전
 
-Workspace.schemaVersion=2. Player, Team, Game, Assessment, Selection, EvaluationPolicy는 기존 구조를 유지한다. GameEvent는 기존 v1 봉투를 보존하며 새 기록은 schemaVersion=2다. ID, gameId, 연속 sequence, deviceId, UTC recordedAt을 유지한다.
+Workspace.schemaVersion=3. Player, Team, Game, Assessment, Selection, EvaluationPolicy는 기존 구조를 유지한다. GameEvent는 기존 v1 봉투를 보존하며 새 기록은 schemaVersion=2다. ID, gameId, 연속 sequence, deviceId, UTC recordedAt을 유지한다.
 
 상세한 무손실 이전 순서·실패 처리·백업 계약: [MIGRATION.md](MIGRATION.md).
 v1 키는 남기고 v2 키에 쓴다. v1 원문은 legacySource.raw에도 보존한다. 기존 팀워크는 legacyTeamwork로 보존한다. 구버전 탭의 v1 후속 변경을 탐지하면 덮어쓰기를 거절한다. 손상·중복 타격 등 충돌은 자동 보정하지 않는다.
 
-JSON 백업: format=tb-manager-backup, version=2, exportedAt, workspace. v1/v2 입력 지원, v2 출력. v2는 구버전 앱에서 읽을 수 없다. 복원 전 10MB 제한, 스키마/참조/전체 경기 재생 검증 및 현재 데이터 백업을 수행한다.
+JSON 백업: format=tb-manager-backup, version=3, exportedAt, workspace. v1/v2/v3 입력 지원, v3 출력. v3는 구버전 앱에서 읽을 수 없다. 복원 전 10MB 제한, 스키마/참조/전체 경기 재생 검증 및 현재 데이터 백업을 수행한다.
 
 ## 타구와 플레이
 
@@ -111,6 +111,43 @@ npm run check = 타입 검사 + Vitest + 프로덕션/PWA 빌드. RULE01~08, 가
 - 홈런 입력에서 궤적별 설명이 있는 큰 버튼을 제공한다. 신규 기록에서 선택 전 기본 땅볼이 자동 확정되지 않도록 한다.
 - 타임라인·수정 이력·선수 프로필·경기 분석·CSV에 같은 분류를 표시한다.
 - 통계는 홈런 개수와 궤적×강도 분포를 원본 이벤트의 유효 재생 결과에서 계산한다. 과거 수정·취소와 통계 범위 정책을 그대로 따른다.
-- 저장 스키마는 v2 유지. 저장 필드를 추가하거나 기존 원본을 수정하지 않으므로 추가 마이그레이션이 필요 없다. v1/v2 백업 호환성을 유지한다.
+- 당시 홈런 보완의 저장 스키마는 v2 유지 (이후 날짜별 평가에서 v3로 확장). 저장 필드를 추가하거나 기존 원본을 수정하지 않으므로 추가 마이그레이션이 필요 없다. v1/v2 백업 호환성을 유지한다.
 - 기존 홈런의 강도가 없으면 '직선타형 · 강도 미기록' 등으로 표시하고 강도를 추정하지 않는다.
 - RULE01~08, TYPE1 v2.0 가중치, RBI 판정, 주자 진루 및 최종 선발 TODO 정책은 유지한다.
+
+## 날짜별 타격 기능평가 v1.0 (앱 v0.3 / 저장 v3)
+
+### 구현 계획 및 경계
+
+기존 구조 분석 → 별도 모델·순수 명령/집계 → v1/v2 원본 보존 이전 → 계산/저장 테스트 → 날짜별 입력 UI → 프로필 분석 → 반응형/전체 check 검증 순서로 확장한다. 경기 이벤트/규칙 엔진과 TYPE1 가중치에는 변경이 없다. 타격 기능·실전 40:60 및 최종 선발은 TODO를 유지한다.
+
+### 모델과 감사 계약
+
+- BattingAssessmentSession: id, playerId, date(현지 달력 YYYY-MM-DD), sessionNumber(선수·날짜별 고유 번호), targetAttempts(기본10, UI/저장 범위1~200), assessor, purpose, note, status(in-progress/completed/cancelled), zoneDefinitionVersion, createdAt/updatedAt(UTC).
+- BattingAssessmentAttempt: id, sessionId, attemptNumber(1부터), result(fair/foul/miss/null), directionZone(left/center/right × near/middle/far), trajectory(ground/line/fly), intensity(strong/normal/weak), contactQuality(solid/normal/mishit), score(정수1~10/null), note, status(active/cancelled), createdAt/updatedAt.
+- BattingAudit: 최초 생성도 before=null 스냅샷으로 남긴다. 정정은 entity, originalId, before, after, changedAt, changedBy, reason을 추가한다. 같은 원본 ID에 대한 연결된 스냅샷에서 현재 행을 검증한다. 삭제는 취소로 처리하고 원본/모든 정정을 보존한다.
+- 동일 세션·회차 및 선수·날짜·세션 번호 중복을 차단한다. 신규 회차는 순서대로 기록하고, 미측정 행을 명시적으로 저장한 후 다음 회차로 이동할 수 있다. 기록된 회차보다 작게 targetAttempts를 줄일 수 없다.
+- 완료는 모든 회차가 점수와 결과를 갖거나 취소된 경우에만 가능하다. 완료 세션의 유효 정정/취소는 가능하나 미평가로 되돌리려면 먼저 진행 중으로 변경한다. 취소 세션은 재개 후 수정한다.
+- 세션 날짜 정정 시 이동 날짜의 새 세션 번호를 배정한다. 선수·구역 버전과 최초 생성 시각은 변경하지 않는다. 세션 updatedAt은 세션 메타데이터 정정 시각이며 각 회차 시각은 독립적이다.
+
+### 결측과 집계
+
+미측정 result=null은 모든 관찰과 점수를 null로 저장한다. 헛스윙은 관찰값을 null로 정규화하되 감독 점수는 입력 가능하다. 파울은 초기 관찰 없음이며 실제 관찰한 방향/유형/강도/정확성을 선택 기록할 수 있다. 서로 다른 지표를 자동 추론하거나 강도/정타로 점수를 생성하지 않는다.
+
+선수·기간별 유효 회차 = 취소되지 않은 세션의 active 회차 중 result와 score가 null이 아닌 회차. 날짜별/누적 평균은 점수 합계÷유효 회차 수, 100점 환산은 누적 평균×10이다. 계산 중 반올림하지 않고 표시만 소수 첫째 자리로 한다. 분모0은 null. 날짜별 평균을 단순 재평균하지 않는다. 진행 중 세션을 포함한 집계는 잠정 평균이다. 평가 일수/최근 평가일은 유효 점수가 있는 날만 세며 최근 변화는 직전 유효 평가일 평균과의 차이다.
+
+비율의 분모는 해당 항목이 관찰된 유효 회차 수이며, 정상 타격 비율은 result를 기록한 회차 수를 사용한다. 유효 타구 표본은 정상/파울 중 실제 관찰 지표가 하나 이상 있는 회차다. 유형 판정은 각 지표별 관찰 수가 최소 표본을 충족해야 한다.
+
+- 최소 관찰 수 기본15, 변경 가능. 강타형=강도 strong 비율, 정확성 중심형=solid 비율, 방향 집중형=좌/중/우 해당 비율, 분산형=세 방향 모두 관찰 및 각 방향 비율 상한.
+- 경계값은 모두 null(TODO) 기본값이다. 사용자가 명시적으로 설정한 기준만 참고 분석하며, 최소 표본 미달/경계값 미설정 시 판정을 보류한다. 방향 집중 경계 설정 범위50~100%, 분산 상한33.34~50%는 UI 유효 범위이며 공식 평가 기준이 아니다.
+- 점수 출처 기본 detailed: 신규 상세 누적 평균만 표시, 없으면 null. legacy를 명시적으로 선택하면 최근 수동 Assessment.battingSkill을 표시한다. 이전 수동 점수는 기간과 별도의 참고 기록이며 두 점수를 혼합하거나 역산하지 않는다. 종합 선발 알고리즘에는 연결하지 않는다.
+
+### 구역 정의와 화면
+
+9구역은 경기 기록과 공통 Direction/Distance/Quality/Strength 타입 및 상수를 사용한다. 거리 정의는 임의 미터 수치를 만들지 않고 기본 미설정으로 표시한다. 감독이 현장 경계 설명을 설정하면 새 버전을 추가한다. 세션은 생성 당시 버전을 참조하고 이전 버전을 보존한다. 서로 다른 구역 정의를 합친 히트맵에는 비교 주의를 표시한다.
+
+입력 화면: 선수/등번호, 기간 요약, 날짜/세션 선택, 신규 세션, 감사 가능한 메타데이터 수정, 9구역 터치 필드맵, 독립 선택 항목, 1~10 점수, 저장/이전/다음, 카드형 기록지, 감사 이력. 세션 완료 전 기록 저장은 임시 저장으로 동작한다. 미저장 회차는 저장/되돌리기 전 다른 회차/세션 이동을 막는다. 주요 터치 영역44px 이상, 작은 화면은 카드형 기록지/5열 점수 버튼이다.
+
+선수 프로필: 실전 PA/H와 기능평가를 별도 비교, 날짜 평균/회차 가중 누적 평균 SVG 선그래프(수치 목록 제공), 9구역 히트맵, 유형·강도·정확성·정상 타격 비율, 최근 변화 및 설정 기준에 따른 참고 유형. 입력 화면과 프로필은 같은 summarizeBatting 순수 함수를 공유한다.
+
+이번 작업의 실전 경기 입력 UI 확장은 없다. 기능평가 원본은 GameEvent 배열에 들어가지 않으며 PA/H/득점 및 모든 경기 통계에 영향을 주지 않는다. JSON 백업은 세션·회차·원본/정정·구역 정의·설정을 모두 포함한다. 신규 평가 전용 CSV는 TODO다.
