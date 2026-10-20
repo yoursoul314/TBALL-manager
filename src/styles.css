@@ -3100,3 +3100,80 @@ tr:last-child td {
     scroll-margin-top: 165px;
   }
 }
+/* Verified at 820px: stack the input groups to keep every score target above 48px. */
+@media (max-width: 1050px) {
+  .quick-assessment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.quick-three button {
+  white-space: nowrap;
+}
+.record-input-anchor {
+  scroll-margin-top: 140px;
+}
+@media (max-width: 700px) {
+  .assessment-summary,
+  .match-status {
+    top: 62px;
+  }
+  .record-input-anchor {
+    scroll-margin-top: 260px;
+  }
+}
+/* Put the result and actual runner confirmation side by side during live recording. */
+@media (min-width: 1051px) {
+  .play-form:not(.expanded) .play-flow {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.5fr);
+    gap: 22px;
+    align-items: start;
+  }
+  .play-form:not(.expanded) .quick-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .play-form:not(.expanded) .runner-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 10px;
+  }
+  .play-form:not(.expanded) .runner-row > b {
+    grid-column: 1 / -1;
+  }
+  .play-form:not(.expanded) .runner-row .form-row {
+    min-width: 0;
+    gap: 8px;
+  }
+  .play-form:not(.expanded) .runner-row select {
+    padding: 8px;
+    min-height: 48px;
+  }
+  .play-form:not(.expanded) .runner-confirm {
+    font-size: 12px;
+    padding: 8px;
+  }
+  .play-form:not(.expanded) h3 {
+    margin: 8px 0;
+  }
+  .play-form:not(.expanded) .hint {
+    margin: 8px 0;
+  }
+}
+.quick-match-grid .batter-card {
+  display: none;
+}
+.current-batter-link {
+  padding: 0 8px;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  font-weight: 700;
+  color: inherit;
+}
+.runner-confirm[aria-pressed='true']::before {
+  content: none;
+}
+.play-runner-step,
+.play-result-step {
+  min-width: 0;
+}
