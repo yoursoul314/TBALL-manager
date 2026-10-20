@@ -18,7 +18,7 @@ export function createDemoWorkspace(): Workspace {
     })),
   );
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 0,
     teams,
     players,
@@ -58,6 +58,7 @@ export function createDemoWorkspace(): Workspace {
       rawMeasurements: [],
     })),
     teamwork: [],
+    legacyTeamwork: [],
     selections: [],
     policy: structuredClone(DEFAULT_POLICY),
   };

@@ -29,7 +29,7 @@ it('손상된 데이터는 샘플 데이터로 덮어쓰지 않는다', () => {
 });
 it('지원하지 않는 버전·선수 참조·고정 주루 비율 변경을 차단', () => {
   const data = createDemoWorkspace();
-  expect(() => parseWorkspace({ ...data, schemaVersion: 2 })).toThrow();
+  expect(() => parseWorkspace({ ...data, schemaVersion: 99 })).toThrow();
   data.games[0].rosters.away.push('missing');
   expect(() => parseWorkspace(data)).toThrow();
   const second = createDemoWorkspace();
