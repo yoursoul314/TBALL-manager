@@ -20,6 +20,7 @@ import {
   STORAGE_KEY,
   LEGACY_STORAGE_KEY,
   V2_STORAGE_KEY,
+  V3_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
@@ -58,6 +59,7 @@ export default function App() {
   const [deviceId] = useState(() => crypto.randomUUID());
   const [profile, setProfile] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ message: string; error: boolean } | null>(null);
+  const [assessmentDirty, setAssessmentDirty] = useState(false);
   const [menu, setMenu] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [stale, setStale] = useState(false);
@@ -66,7 +68,10 @@ export default function App() {
     const storage = (e: StorageEvent) => {
       if (
         !previewMode &&
-        (e.key === STORAGE_KEY || e.key === LEGACY_STORAGE_KEY || e.key === V2_STORAGE_KEY)
+        (e.key === STORAGE_KEY ||
+          e.key === LEGACY_STORAGE_KEY ||
+          e.key === V2_STORAGE_KEY ||
+          e.key === V3_STORAGE_KEY)
       )
         setStale(true);
     };
@@ -135,7 +140,7 @@ export default function App() {
         events: [
           ...data.events,
           {
-            schemaVersion: 2,
+            schemaVersion: 3,
             id: crypto.randomUUID(),
             gameId: game.id,
             sequence: events.length + 1,
@@ -159,6 +164,13 @@ export default function App() {
     }
   };
   const navigate = (next: View) => {
+    if (assessmentDirty && next !== view) {
+      setNotice({
+        message: '저장하지 않은 평가 입력이 있습니다. 먼저 저장하거나 입력을 되돌리세요.',
+        error: true,
+      });
+      return;
+    }
     setView(next);
     setMenu(false);
     window.scrollTo({ top: 0 });
@@ -232,7 +244,7 @@ export default function App() {
               {online ? <i /> : <WifiOff size={14} />}{' '}
               {previewMode ? '검증 탭 임시 저장' : online ? '기기 내 저장' : '오프라인'}
             </span>
-            <span className="version">BETA 0.3</span>
+            <span className="version">BETA 0.4</span>
             <div className="top-avatar">TB</div>
           </div>
         </header>
@@ -267,7 +279,9 @@ export default function App() {
             />
           )}
           {view === 'stats' && <StatsView data={data} onProfile={setProfile} />}
-          {view === 'assessment' && <AssessmentView data={data} onSave={save} />}
+          {view === 'assessment' && (
+            <AssessmentView data={data} onSave={save} onDirtyChange={setAssessmentDirty} />
+          )}
           {view === 'selection' && (
             <SelectionView data={data} onSave={safelySave} onProfile={setProfile} />
           )}
