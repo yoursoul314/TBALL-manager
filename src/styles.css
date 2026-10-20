@@ -3177,3 +3177,11 @@ tr:last-child td {
 .play-result-step {
   min-width: 0;
 }
+.play-form {
+  scroll-margin-top: 180px;
+}
+@media (max-width: 700px) {
+  .play-form {
+    scroll-margin-top: 260px;
+  }
+}
