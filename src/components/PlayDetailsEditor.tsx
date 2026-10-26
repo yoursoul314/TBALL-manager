@@ -18,6 +18,7 @@ export function PlayDetailsEditor({
   onChange,
   observations,
   onObservations,
+  lockedDetailIds = new Set<string>(),
 }: {
   data: Workspace;
   game: Game;
@@ -27,6 +28,7 @@ export function PlayDetailsEditor({
   onChange: (v: PlayDetail[]) => void;
   observations: FieldingObservation[];
   onObservations: (v: FieldingObservation[]) => void;
+  lockedDetailIds?: Set<string>;
 }) {
   const defenders = game.rosters[side === 'away' ? 'home' : 'away'];
   const name = (id: string) => data.players.find((p) => p.id === id)?.name || id;
@@ -88,9 +90,10 @@ export function PlayDetailsEditor({
         ))}
       </div>
       {details.map((d, index) => (
-        <fieldset className="detail-card" key={d.id}>
+        <fieldset className="detail-card" key={d.id} disabled={lockedDetailIds.has(d.id)}>
           <legend>
             {index + 1}. {detailNames[d.type]}
+            {lockedDetailIds.has(d.id) ? ' · 수비 연결에서 수정' : ''}
           </legend>
           <button
             type="button"

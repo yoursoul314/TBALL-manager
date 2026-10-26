@@ -265,7 +265,7 @@ const workspaceSchema = z.object({
   ),
   policy,
 });
-export function parseCurrentCommon(input: unknown): WorkspaceV2 {
+export function parseCurrentCommon(input: unknown, historicalMembership = false): WorkspaceV2 {
   const data: WorkspaceV2 = workspaceSchema.parse(input);
   const require = (value: unknown, message: string) => {
     if (!value) throw new Error(message);
@@ -289,8 +289,8 @@ export function parseCurrentCommon(input: unknown): WorkspaceV2 {
   for (const g of data.games) {
     for (const s of ['away', 'home'] as const) {
       require(teams.has(g.teamIds[s]), '경기의 팀이 없습니다');
-      require(g.rosters[s].every(
-        (id) => player.get(id)?.teamId === g.teamIds[s],
+      require(g.rosters[s].every((id) =>
+        historicalMembership ? player.has(id) : player.get(id)?.teamId === g.teamIds[s],
       ), '경기 명단의 선수 소속이 다릅니다');
     }
     replayGame(
@@ -308,8 +308,10 @@ export function parseCurrentCommon(input: unknown): WorkspaceV2 {
     require(selection.assignments.length === 10, 'TYPE1은 10포지션이 필요합니다');
     require(new Set(selection.assignments.map((a) => a.position)).size === 10, '포지션 중복');
     require(new Set(selection.assignments.map((a) => a.playerId)).size === 10, '선수 중복');
-    require(selection.assignments.every(
-      (a) => player.get(a.playerId)?.teamId === selection.teamId,
+    require(selection.assignments.every((a) =>
+      historicalMembership
+        ? player.has(a.playerId)
+        : player.get(a.playerId)?.teamId === selection.teamId,
     ), '선발 팀 불일치');
     if (selection.status === 'approved')
       require(selection.approvedAt && selection.approvedBy, '승인 기록 누락');

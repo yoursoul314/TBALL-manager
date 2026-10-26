@@ -1,3 +1,4 @@
+import { PhotoBackupPanel } from './PhotoBackupPanel';
 import { BattingAssessmentSettings } from './BattingAssessmentSettings';
 import { useState } from 'react';
 import { Download, Upload, ShieldCheck } from 'lucide-react';
@@ -76,8 +77,8 @@ export function SettingsView({
           <div className="callout">
             현재 리비전 {data.revision} · 경기 {data.games.length}개 · 이벤트 {data.events.length}개
             <br />
-            정정 이력과 평가 정책도 백업에 포함됩니다. v1·v2·v3·v4 백업을 읽을 수 있고 내보내기는
-            v4입니다. v4 백업은 구버전 앱에서 열 수 없습니다. 이전 팀워크{' '}
+            정정 이력과 평가 정책도 백업에 포함됩니다. v1·v2·v3·v4·v5 백업을 읽을 수 있고 내보내기는
+            v5입니다. v5 백업은 구버전 앱에서 열 수 없습니다. 이전 팀워크{' '}
             {data.legacyTeamwork.length}건을 보존하고 있습니다.
           </div>
         </Panel>
@@ -100,6 +101,7 @@ export function SettingsView({
           <Badge tone="amber">서버 동기화 · 로그인 TODO</Badge>
         </Panel>
       </div>
+      <PhotoBackupPanel data={data} onSave={onSave} onNotify={onNotify} />
       <BattingAssessmentSettings data={data} onSave={onSave} />
       <Panel
         title="평가 정책 초안"

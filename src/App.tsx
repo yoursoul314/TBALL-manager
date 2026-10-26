@@ -21,6 +21,7 @@ import {
   LEGACY_STORAGE_KEY,
   V2_STORAGE_KEY,
   V3_STORAGE_KEY,
+  V4_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
@@ -60,6 +61,7 @@ export default function App() {
   const [profile, setProfile] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ message: string; error: boolean } | null>(null);
   const [assessmentDirty, setAssessmentDirty] = useState(false);
+  const [matchDirty, setMatchDirty] = useState(false);
   const [menu, setMenu] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [stale, setStale] = useState(false);
@@ -71,7 +73,8 @@ export default function App() {
         (e.key === STORAGE_KEY ||
           e.key === LEGACY_STORAGE_KEY ||
           e.key === V2_STORAGE_KEY ||
-          e.key === V3_STORAGE_KEY)
+          e.key === V3_STORAGE_KEY ||
+          e.key === V4_STORAGE_KEY)
       )
         setStale(true);
     };
@@ -159,14 +162,15 @@ export default function App() {
     try {
       save({ ...data, games: [...data.games, g] });
       setGameId(g.id);
+      return true;
     } catch {
-      /* Notification shown. */
+      return false;
     }
   };
   const navigate = (next: View) => {
-    if (assessmentDirty && next !== view) {
+    if ((assessmentDirty || matchDirty) && next !== view) {
       setNotice({
-        message: '저장하지 않은 평가 입력이 있습니다. 먼저 저장하거나 입력을 되돌리세요.',
+        message: '저장하지 않은 입력이 있습니다. 먼저 기록을 확정하거나 입력을 되돌리세요.',
         error: true,
       });
       return;
@@ -244,7 +248,7 @@ export default function App() {
               {online ? <i /> : <WifiOff size={14} />}{' '}
               {previewMode ? '검증 탭 임시 저장' : online ? '기기 내 저장' : '오프라인'}
             </span>
-            <span className="version">BETA 0.4</span>
+            <span className="version">BETA 0.5</span>
             <div className="top-avatar">TB</div>
           </div>
         </header>
@@ -266,7 +270,7 @@ export default function App() {
             </div>
           )}
           {view === 'dashboard' && <Dashboard data={data} navigate={navigate} />}
-          {view === 'players' && <Players data={data} onSave={safelySave} onProfile={setProfile} />}
+          {view === 'players' && <Players data={data} onSave={save} onProfile={setProfile} />}
           {view === 'match' && (
             <MatchView
               data={data}
@@ -274,6 +278,15 @@ export default function App() {
               state={state}
               onEvent={record}
               onCreate={create}
+              onDirtyChange={setMatchDirty}
+              onUpdateGame={(g) => {
+                try {
+                  save({ ...data, games: data.games.map((old) => (old.id === g.id ? g : old)) });
+                  return true;
+                } catch {
+                  return false;
+                }
+              }}
               onSelect={setGameId}
               onProfile={setProfile}
             />

@@ -161,3 +161,14 @@ npm run check = 타입 검사 + Vitest + 프로덕션/PWA 빌드. RULE01~08, 가
 - 세부 관찰 없는 경기도 공식 결과·주자·득점 저장이 가능하다. 미관찰 수비 동작/능력은 success=null이며 성공률 분모/실패 수에 포함하지 않는다. 난도는 선택 관찰이며 점수 환산에 사용하지 않는다. PO/A/E와 능력 관찰을 혼합하지 않는다.
 - 선수 프로필의 기능평가/실전/통합 보기, 장타율 및 포지션별 능력 관찰 성공/기회를 추가했다. 통합 보기는 별도 원본의 비교이며 미확정 최종 점수나 승인된 엔트리가 아니다.
 - 데이터 계약은 MIGRATION의 v4 절, 현장 사용·검증 결과는 QUICK_UI 문서를 따른다.
+
+## 학생·엔트리·공수 통합 기록 v3 / 저장 v5
+
+- Player: 기존 id/teamId/name/number/active에 선택적 grade(1|2|3|null), classroom, studentNumber, primaryPosition, secondaryPosition, note를 추가한다. 사진은 Workspace와 분리한 IndexedDB PhotoRecord(playerId,blob,updatedAt)다.
+- Game: playedOn/dateStatus/startTime/note/formation과 entry를 추가한다. entry는 capturedAt/source/approvedBy, 당시 양 팀 정보·모든 선수의 경기 상태·초기 수비 배치를 보존한다. dateHistory는 경기일 정정 전후·시각·수정자를 기록한다. 기존 createdAt의 의미는 바꾸지 않는다.
+- 엔트리는 선발10명/교체 후보/미출전/결석/출전 불가를 구분한다. 동일 학생 중복과 수비 포지션 중복을 차단한다. 과거 경기 소속은 현재 Player.teamId와 달라도 스냅샷의 당시 팀으로 재생한다. 미출전자를 0점 선수로 생성하지 않는다.
+- DefenseStep: id/playerId/position/action/targetBase/runnerId/catchSkill/errorType/assistIds. 실제 수비 배치와 플레이 참가자 참조를 확인한다. projectDefenseSequence는 명시적 행동에서 능력 관찰, FIELDING_ACTION, DEFENSIVE_CREDIT, 명시적 DEFENSIVE_ERROR, FIELDERS_CHOICE와 아웃 제안을 생성한다. 결과·주자 확인·심판 타임 후 END_PLAY에 함께 저장한다.
+- 포구 실패는 공식 실책이 아니며, 포구만 관찰한 뜬공은 자동 아웃이 아니다. 선수·베이스를 확인한 아웃에만 PO/A를 연결한다. 안타 후 실책 진루와 RBI는 기존 상세 이벤트로 별도 저장한다. 마지막 타자 포스아웃의 득점/진루 복구는 기존 RULE02 엔진으로 적용한다.
+- 연결 행동을 취소하면 파생 관찰·크레딧·아웃도 다시 계산한다. 과거 플레이 수정은 원본 END_PLAY를 남기고 REVISE_PLAY를 추가하며 전체 경기/통계를 재생한다.
+- 사진 업로드는 MIME와 실제 헤더,8MB를 검증하고 EXIF 방향을 적용한 뒤320px JPEG로 재인코딩한다. 저장 용량200KB, 원본·메타데이터 미보존. 서버 업로드와 얼굴 인식 없음. 사진 포함 백업만 별도 암호화한다.
+- 최신 동작/변경 목록/검증 범위/남은 작업은 [ROSTER_DEFENSE_V3.md](ROSTER_DEFENSE_V3.md)에 기록한다. 이전 절은 해당 릴리스의 이력이며 최신 학생·엔트리 계약은 이 절을 따른다.

@@ -4,7 +4,8 @@ import { migrateWorkspace } from './migration';
 export const LEGACY_STORAGE_KEY = 'tb-manager.workspace.v1';
 export const V2_STORAGE_KEY = 'tb-manager.workspace.v2';
 export const V3_STORAGE_KEY = 'tb-manager.workspace.v3';
-export const STORAGE_KEY = 'tb-manager.workspace.v4';
+export const V4_STORAGE_KEY = 'tb-manager.workspace.v4';
+export const STORAGE_KEY = 'tb-manager.workspace.v5';
 export interface WorkspaceRepository {
   load(): Workspace | null;
   save(workspace: Workspace, expectedRevision: number): Workspace;
@@ -15,6 +16,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
   load(): Workspace | null {
     const raw = this.storage.getItem(STORAGE_KEY);
     const legacyRaw = this.storage.getItem(LEGACY_STORAGE_KEY);
+    const v4Raw = this.storage.getItem(V4_STORAGE_KEY);
     const v3Raw = this.storage.getItem(V3_STORAGE_KEY);
     const v2Raw = this.storage.getItem(V2_STORAGE_KEY);
     if (raw !== null) {
@@ -22,14 +24,15 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       if (
         ('_legacyBaseline' in input && input._legacyBaseline !== legacyRaw) ||
         ('_v2Baseline' in input && input._v2Baseline !== v2Raw) ||
-        ('_v3Baseline' in input && input._v3Baseline !== v3Raw)
+        ('_v3Baseline' in input && input._v3Baseline !== v3Raw) ||
+        ('_v4Baseline' in input && input._v4Baseline !== v4Raw)
       )
         throw new Error(
           '구버전 탭의 데이터 변경이 감지되었습니다. 두 원본을 백업한 뒤 복구하세요.',
         );
       return parseWorkspace(input);
     }
-    if (legacyRaw === null && v2Raw === null && v3Raw === null) return null;
+    if (legacyRaw === null && v2Raw === null && v3Raw === null && v4Raw === null) return null;
     if (v2Raw !== null) {
       const v2 = JSON.parse(v2Raw);
       if ('_legacyBaseline' in v2 && v2._legacyBaseline !== legacyRaw)
@@ -43,9 +46,18 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       )
         throw new Error('구버전 탭의 변경이 있습니다. 모든 원본을 복구하세요.');
     }
-    const source = v3Raw ?? v2Raw ?? legacyRaw!;
+    if (v4Raw !== null) {
+      const v4 = JSON.parse(v4Raw);
+      if (
+        ('_legacyBaseline' in v4 && v4._legacyBaseline !== legacyRaw) ||
+        ('_v2Baseline' in v4 && v4._v2Baseline !== v2Raw) ||
+        ('_v3Baseline' in v4 && v4._v3Baseline !== v3Raw)
+      )
+        throw new Error('구버전 탭의 변경이 있습니다. 모든 원본을 복구하세요.');
+    }
+    const source = v4Raw ?? v3Raw ?? v2Raw ?? legacyRaw!;
     const migrated = migrateWorkspace(JSON.parse(source), source);
-    // Atomic v4 write. Original v1/v2/v3 keys remain untouched on success or failure.
+    // Atomic v5 write. Original v1/v2/v3/v4 keys remain untouched on success or failure.
     this.storage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -53,6 +65,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         _legacyBaseline: legacyRaw,
         _v2Baseline: v2Raw,
         _v3Baseline: v3Raw,
+        _v4Baseline: v4Raw,
       }),
     );
     return migrated;
@@ -69,6 +82,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         _legacyBaseline: this.storage.getItem(LEGACY_STORAGE_KEY),
         _v2Baseline: this.storage.getItem(V2_STORAGE_KEY),
         _v3Baseline: this.storage.getItem(V3_STORAGE_KEY),
+        _v4Baseline: this.storage.getItem(V4_STORAGE_KEY),
       }),
     );
     return validated;
@@ -80,7 +94,8 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         v1: this.storage.getItem(LEGACY_STORAGE_KEY),
         v2: this.storage.getItem(V2_STORAGE_KEY),
         v3: this.storage.getItem(V3_STORAGE_KEY),
-        v4: this.storage.getItem(STORAGE_KEY),
+        v4: this.storage.getItem(V4_STORAGE_KEY),
+        v5: this.storage.getItem(STORAGE_KEY),
       },
       null,
       2,
@@ -100,7 +115,7 @@ export function serializeBackup(workspace: Workspace) {
   return JSON.stringify(
     {
       format: 'tb-manager-backup',
-      version: 4,
+      version: 5,
       exportedAt: new Date().toISOString(),
       workspace: parseWorkspace(workspace),
     },
@@ -113,7 +128,7 @@ export function readBackup(text: string) {
   const value = JSON.parse(text);
   if (
     value?.format !== 'tb-manager-backup' ||
-    ![1, 2, 3, 4].includes(value.version) ||
+    ![1, 2, 3, 4, 5].includes(value.version) ||
     value.workspace?.schemaVersion !== value.version
   )
     throw new Error('지원하지 않는 백업 형식');

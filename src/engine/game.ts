@@ -1,3 +1,5 @@
+import { validateDefenseSequence } from './defenseSequence';
+import { validateEntry } from '../domain/roster';
 import { validateDetails } from './details';
 import { POSITIONS } from '../config/positions';
 import { RULES_VERSION } from '../config/rules';
@@ -16,6 +18,7 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 export function initialState(game: Game): GameState {
+  validateEntry(game);
   assert(game.rulesVersion === RULES_VERSION, '지원하지 않는 경기 규칙 버전');
   assert(
     Number.isInteger(game.innings) && game.innings > 0 && game.innings <= 20,
@@ -47,7 +50,7 @@ export function initialState(game: Game): GameState {
     lineups: structuredClone(game.lineups),
     bases: { away: {}, home: {} },
     completed: { away: 0, home: 0 },
-    defense: { away: {}, home: {} },
+    defense: structuredClone(game.entry?.defense ?? { away: {}, home: {} }),
     plays: [],
   };
 }
@@ -211,6 +214,7 @@ function apply(state: GameState, game: Game, event: GameEvent) {
         '수비 기록의 선수가 상대 팀 명단에 없습니다',
       );
       validateDetails(p, before, batterId, game, side);
+      validateDefenseSequence(state, p);
       const rollback =
         state.live.lastBatter &&
         batterOutcome.to === 'out' &&

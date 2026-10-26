@@ -1,3 +1,6 @@
+import { PlayerEditor } from './PlayerEditor';
+import { PlayerAvatar } from './PlayerAvatar';
+import { gradeLabel } from '../domain/roster';
 import { summarizeBatting } from '../assessment/battingSummary';
 import { BattingAssessmentReport } from './BattingAssessmentReport';
 import {
@@ -23,12 +26,35 @@ export function Players({
   onSave: (d: Workspace) => void;
   onProfile: (id: string) => void;
 }) {
-  const [filter, setFilter] = useState('');
-  const [team, setTeam] = useState('all');
-  const [add, setAdd] = useState(false);
-  const [addTeam, setAddTeam] = useState(false);
+  const [filter, setFilter] = useState(''),
+    [team, setTeam] = useState('all'),
+    [grade, setGrade] = useState('all'),
+    [availability, setAvailability] = useState('all');
+  const [add, setAdd] = useState(false),
+    [editing, setEditing] = useState<Player | null>(null),
+    [addTeam, setAddTeam] = useState(false),
+    [error, setError] = useState('');
   const players = data.players.filter(
-    (p) => (team === 'all' || p.teamId === team) && p.name.includes(filter),
+    (p) =>
+      (team === 'all' || p.teamId === team) &&
+      (grade === 'all' || String(p.grade ?? 'unset') === grade) &&
+      (availability === 'all' || p.active === (availability === 'active')) &&
+      filter
+        .trim()
+        .toLocaleLowerCase()
+        .split(/\s+/)
+        .every((q) =>
+          [
+            p.name,
+            gradeLabel(p),
+            p.classroom ?? '',
+            String(p.number),
+            String(p.studentNumber ?? ''),
+          ]
+            .join(' ')
+            .toLocaleLowerCase()
+            .includes(q),
+        ),
   );
   return (
     <>
@@ -38,7 +64,7 @@ export function Players({
           <h1>
             선수 & 팀<span className="title-dot">.</span>
           </h1>
-          <p>숫자 너머, 선수 한 명 한 명의 가능성을 발견하세요.</p>
+          <p>학년과 팀을 독립적으로 관리하고, 경기마다 출전 명단을 정하세요.</p>
         </div>
         <div className="button-row">
           <button onClick={() => setAddTeam(true)}>팀 추가</button>
@@ -58,11 +84,47 @@ export function Players({
             <span className="team-dot" style={{ background: t.color }} />
             <div>
               <b>{t.name}</b>
-              <small>{data.players.filter((p) => p.teamId === t.id).length}명의 선수</small>
+              <small>
+                등록 {data.players.filter((p) => p.teamId === t.id).length}명 · 출전 가능{' '}
+                {data.players.filter((p) => p.teamId === t.id && p.active).length}명
+              </small>
             </div>
             <ArrowUpRight size={20} />
           </button>
         ))}
+      </div>
+      <div className="toolbar roster-filters">
+        <label>
+          학년 필터
+          <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+            <option value="all">전체 학년</option>
+            {[1, 2, 3].map((n) => (
+              <option key={n} value={n}>
+                {n}학년
+              </option>
+            ))}
+            <option value="unset">미설정</option>
+          </select>
+        </label>
+        <label>
+          팀 필터
+          <select value={team} onChange={(e) => setTeam(e.target.value)}>
+            <option value="all">전체 팀</option>
+            {data.teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          출전 가능 여부
+          <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
+            <option value="all">전체</option>
+            <option value="active">출전 가능 선수</option>
+            <option value="inactive">출전 불가 선수</option>
+          </select>
+        </label>
       </div>
       <Panel
         title="선수 명단"
@@ -71,7 +133,7 @@ export function Players({
             <Search size={17} />
             <input
               aria-label="선수 검색"
-              placeholder="선수 이름 검색"
+              placeholder="이름·학년·반·등번호 검색"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
@@ -87,66 +149,48 @@ export function Players({
                 )[0]
               : null;
             return (
-              <button key={p.id} className="player-card" onClick={() => onProfile(p.id)}>
-                <div className="player-card-top">
-                  <span className="avatar">{String(p.number).padStart(2, '0')}</span>
-                  <ArrowUpRight size={18} />
-                </div>
-                <h3>{p.name}</h3>
-                <p>{data.teams.find((t) => t.id === p.teamId)?.name}</p>
-                <div className="player-card-bottom">
-                  <small>{best?.score != null ? '추천 포지션' : '기능평가 대기'}</small>
-                  <b>{best?.score != null ? POSITION_LABELS[best.pos] : '미측정'}</b>
-                </div>
-              </button>
+              <div key={p.id} className="player-card-shell">
+                <button className="player-card" onClick={() => onProfile(p.id)}>
+                  <div className="player-card-top">
+                    <PlayerAvatar player={p} />
+                    <ArrowUpRight size={18} />
+                  </div>
+                  <h3>{p.name}</h3>
+                  <p>
+                    {gradeLabel(p)} · {data.teams.find((t) => t.id === p.teamId)?.name}
+                  </p>
+                  <p>
+                    {p.active ? '출전 가능' : '출전 불가'} · 주 포지션{' '}
+                    {p.primaryPosition ? POSITION_LABELS[p.primaryPosition] : '미설정'}
+                  </p>
+                  <div className="player-card-bottom">
+                    <small>{best?.score != null ? '수비 기능 추천' : '기능평가 대기'}</small>
+                    <b>{best?.score != null ? POSITION_LABELS[best.pos] : '미측정'}</b>
+                  </div>
+                </button>
+                <button
+                  className="text-button"
+                  aria-label={p.name + ' 정보 수정'}
+                  onClick={() => setEditing(p)}
+                >
+                  정보·사진 수정
+                </button>
+              </div>
             );
           })}
         </div>
-        {players.length === 0 && <Empty>검색 결과가 없습니다.</Empty>}
+        {!players.length && <Empty>검색 결과가 없습니다.</Empty>}
       </Panel>
-      {add && (
-        <Modal title="선수 등록" onClose={() => setAdd(false)}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              const player: Player = {
-                id: crypto.randomUUID(),
-                name: String(f.get('name')),
-                number: Number(f.get('number')),
-                teamId: String(f.get('team')),
-                active: true,
-              };
-              onSave({ ...data, players: [...data.players, player] });
-              setAdd(false);
-            }}
-          >
-            <label>
-              선수 이름
-              <input name="name" required maxLength={80} placeholder="이름 또는 수업용 별칭" />
-            </label>
-            <div className="form-row">
-              <label>
-                등번호
-                <input name="number" required type="number" min="0" max="999" defaultValue="1" />
-              </label>
-              <label>
-                팀
-                <select name="team">
-                  {data.teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <p className="hint">
-              새 선수는 이후 생성하는 경기 명단에 포함됩니다. 진행 중 경기의 명단은 고정됩니다.
-            </p>
-            <button className="primary wide">선수 저장</button>
-          </form>
-        </Modal>
+      {(add || editing) && (
+        <PlayerEditor
+          player={editing ?? undefined}
+          data={data}
+          onSave={onSave}
+          onClose={() => {
+            setAdd(false);
+            setEditing(null);
+          }}
+        />
       )}
       {addTeam && (
         <Modal title="새 팀 만들기" onClose={() => setAddTeam(false)}>
@@ -154,18 +198,22 @@ export function Players({
             onSubmit={(e) => {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
-              onSave({
-                ...data,
-                teams: [
-                  ...data.teams,
-                  {
-                    id: crypto.randomUUID(),
-                    name: String(f.get('name')),
-                    color: String(f.get('color')),
-                  },
-                ],
-              });
-              setAddTeam(false);
+              try {
+                onSave({
+                  ...data,
+                  teams: [
+                    ...data.teams,
+                    {
+                      id: crypto.randomUUID(),
+                      name: String(f.get('name')),
+                      color: String(f.get('color')),
+                    },
+                  ],
+                });
+                setAddTeam(false);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : '저장 실패');
+              }
             }}
           >
             <label>
@@ -176,6 +224,8 @@ export function Players({
               팀 색상
               <input name="color" type="color" defaultValue="#27795e" />
             </label>
+            {error && <p role="alert">{error}</p>}
+            <p className="hint">한 경기는 두 팀이 진행하고, 나머지 팀은 대기합니다.</p>
             <button className="primary wide">팀 저장</button>
           </form>
         </Modal>
@@ -275,10 +325,13 @@ export function Profile({
   return (
     <Modal title="스카우팅 프로필" onClose={onClose}>
       <div className="profile-hero">
-        <span className="jersey">{String(p.number).padStart(2, '0')}</span>
+        <PlayerAvatar player={p} className="jersey" />
         <div>
           <Badge>{data.teams.find((t) => t.id === p.teamId)?.name}</Badge>
           <h2>{p.name}</h2>
+          <p>
+            {gradeLabel(p)} · 등번호 {p.number} · {p.active ? '출전 가능' : '출전 불가'}
+          </p>
           <p>
             {a?.assessor === '가상 샘플 데이터'
               ? '가상 샘플 기능평가'

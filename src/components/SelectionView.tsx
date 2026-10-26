@@ -1,3 +1,4 @@
+import { PlayerAvatar } from './PlayerAvatar';
 import { useState } from 'react';
 import { WandSparkles, Check } from 'lucide-react';
 import type { Workspace } from '../domain/model';
@@ -114,6 +115,7 @@ export function SelectionView({
                   .map((a) => (
                     <button key={a.position} onClick={() => onProfile(a.playerId)}>
                       <span>{a.position}</span>
+                      <PlayerAvatar player={data.players.find((p) => p.id === a.playerId)} />
                       <div>
                         <b>{data.players.find((p) => p.id === a.playerId)?.name}</b>
                         <small>{POSITION_LABELS[a.position]}</small>

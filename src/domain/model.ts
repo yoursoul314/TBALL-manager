@@ -1,3 +1,4 @@
+import type { DefenseStep } from './defense';
 import type { BattingData } from './batting';
 import type { ErrorType, TeamworkCategory } from '../config/recording';
 import type { Ability, Position } from '../config/positions';
@@ -13,16 +14,41 @@ export interface Player {
   name: string;
   number: number;
   active: boolean;
+  grade?: 1 | 2 | 3 | null;
+  classroom?: string | null;
+  studentNumber?: number | null;
+  primaryPosition?: Position | null;
+  secondaryPosition?: Position | null;
+  note?: string;
 }
 export interface Team {
   id: Id;
   name: string;
   color: string;
 }
+export type EntryStatus = 'starter' | 'reserve' | 'not-playing' | 'absent' | 'unavailable';
+export interface EntryPlayer extends Player {
+  status: EntryStatus;
+}
+export interface GameEntry {
+  capturedAt: string;
+  source: 'manager' | 'legacy';
+  approvedBy: string | null;
+  teams: Record<Side, Team>;
+  players: Record<Side, EntryPlayer[]>;
+  defense: Record<Side, Partial<Record<Position, Id>>>;
+}
 export interface Game {
   id: Id;
   name: string;
   createdAt: string;
+  playedOn?: string | null;
+  dateStatus?: 'confirmed' | 'estimated' | 'unset';
+  startTime?: string | null;
+  note?: string;
+  formation?: 'TYPE1';
+  entry?: GameEntry;
+  dateHistory?: { before: string | null; after: string; changedAt: string; author: string }[];
   innings: number;
   rulesVersion: typeof RULES_VERSION;
   teamIds: Record<Side, Id>;
@@ -79,6 +105,7 @@ export type PlayDetail = { id: Id } & (
 );
 export interface EndPlayPayload {
   type: 'END_PLAY';
+  defenseSequence?: DefenseStep[];
   endedBy: 'umpire-time';
   result: BatResult;
   outcomes: RunnerOutcome[];
@@ -209,8 +236,8 @@ export interface Selection {
   approvedAt: string | null;
 }
 export interface Workspace extends BattingData {
-  schemaVersion: 4;
-  migrationSource?: { schemaVersion: 2 | 3; raw: string };
+  schemaVersion: 5;
+  migrationSource?: { schemaVersion: 2 | 3 | 4; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

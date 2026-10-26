@@ -1,3 +1,6 @@
+import { DefenseRecorder } from './DefenseRecorder';
+import type { DefenseStep } from '../domain/defense';
+import { projectDefenseSequence, validateDefenseSequence } from '../engine/defenseSequence';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import type {
@@ -33,6 +36,7 @@ export function PlayForm({
   initialResult,
   defaultDetailed = false,
   onModeChange,
+  onDirtyChange,
 }: {
   state: GameState;
   game: Game;
@@ -42,11 +46,24 @@ export function PlayForm({
   initialResult?: BatResult;
   defaultDetailed?: boolean;
   onModeChange?: (v: boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const anchor = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!initial) anchor.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
   }, [initial]);
+  useEffect(() => {
+    onDirtyChange?.(true);
+    return () => onDirtyChange?.(false);
+  }, [onDirtyChange]);
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, []);
   const participants = [...Object.values(state.live!.bases), state.live!.batterId];
   const [result, setResult] = useState<BatResult>(initial?.result ?? initialResult ?? 'single');
   const [direction, setDirection] = useState<Direction | null>(initial?.direction ?? null);
@@ -63,7 +80,7 @@ export function PlayForm({
     onModeChange?.(v);
   };
   const locked = useRef(false);
-  const validation = confirmationError(outcomes, participants, confirmed, time);
+  let validation = confirmationError(outcomes, participants, confirmed, time);
   const [distance, setDistance] = useState<Distance | null>(initial?.distance ?? null);
   const [strength, setStrength] = useState<Strength | null>(initial?.strength ?? null);
   const [fielding, setFielding] = useState<FieldingObservation[]>(initial?.fielding ?? []);
@@ -72,6 +89,73 @@ export function PlayForm({
   const [awardFrom, setAwardFrom] = useState<Record<string, 0 | 1 | 2 | 3>>(
     initial?.safetyAward?.positionsAtThrow ?? {},
   );
+  const [sequence, setSequence] = useState<DefenseStep[]>(initial?.defenseSequence ?? []);
+  const sequenceBase = useRef({
+    result: initial?.result ?? initialResult ?? 'single',
+    quality: initial?.quality ?? null,
+    outcomes: initial?.outcomes ?? suggestOutcomes(state, initialResult ?? 'single'),
+  });
+  const onSequence = (next: DefenseStep[]) => {
+    if (sequence.length === 0)
+      sequenceBase.current = { result, quality, outcomes: structuredClone(outcomes) };
+    const old = projectDefenseSequence(state, sequence),
+      projection = projectDefenseSequence(state, next);
+    const remaining = [...fielding];
+    for (const o of old.fielding) {
+      const i = remaining.findIndex(
+        (a) =>
+          a.playerId === o.playerId &&
+          a.skill === o.skill &&
+          a.position === o.position &&
+          a.success === o.success,
+      );
+      if (i >= 0) remaining.splice(i, 1);
+    }
+    setFielding([...remaining, ...projection.fielding]);
+    const ids = new Set(old.details.map((d) => d.id));
+    setDetails([...details.filter((d) => !ids.has(d.id)), ...projection.details]);
+    const restored = outcomes.map((o) =>
+      old.outcomes.some((old) => old.playerId === o.playerId)
+        ? (sequenceBase.current.outcomes.find((base) => base.playerId === o.playerId) ?? o)
+        : o,
+    );
+    setOutcomes(
+      restored.map((o) => projection.outcomes.find((p) => p.playerId === o.playerId) ?? o),
+    );
+    setResult(projection.result ?? (old.result ? sequenceBase.current.result : result));
+    setQuality(projection.quality ?? (old.quality ? sequenceBase.current.quality : quality));
+    setSequence(next);
+    setConfirmed([]);
+    setTime(false);
+  };
+  try {
+    validateDefenseSequence(state, {
+      type: 'END_PLAY',
+      endedBy: 'umpire-time',
+      result,
+      outcomes,
+      direction,
+      quality,
+      fielding,
+      details,
+      defenseSequence: sequence,
+    });
+  } catch (e) {
+    validation = e instanceof Error ? e.message : '수비 연결 확인 필요';
+  }
+  const generated = projectDefenseSequence(state, sequence);
+  const generatedIds = new Set(generated.details.map((d) => d.id));
+  const manualFielding = [...fielding];
+  for (const o of generated.fielding) {
+    const i = manualFielding.findIndex(
+      (a) =>
+        a.playerId === o.playerId &&
+        a.position === o.position &&
+        a.skill === o.skill &&
+        a.success === o.success,
+    );
+    if (i >= 0) manualFielding.splice(i, 1);
+  }
   const patch = (id: string, value: Partial<RunnerOutcome>) => {
     setOutcomes((old) => old.map((o) => (o.playerId === id ? { ...o, ...value } : o)));
     setConfirmed((ids) => ids.filter((v) => v !== id));
@@ -87,7 +171,7 @@ export function PlayForm({
           상세 모드
         </button>
       </div>
-      <div className="play-flow">
+      <div className="play-flow integrated-play-flow">
         <section className="play-result-step">
           <h3>1 · 타격 결과</h3>
           <div className="quick-results">
@@ -116,6 +200,7 @@ export function PlayForm({
               야수선택 대상 주자 · 필수
               <select
                 aria-label="야수선택 대상 주자"
+                disabled={generated.details.some((d) => d.type === 'FIELDERS_CHOICE')}
                 value={details.find((d) => d.type === 'FIELDERS_CHOICE')?.targetRunnerId ?? ''}
                 onChange={(e) =>
                   setDetails((ds) => [
@@ -255,17 +340,25 @@ export function PlayForm({
               side={state.side}
               participants={participants}
               details={details}
-              onChange={setDetails}
-              observations={fielding}
-              onObservations={setFielding}
+              onChange={(v) => {
+                setDetails(v);
+                setTime(false);
+              }}
+              lockedDetailIds={generatedIds}
+              observations={manualFielding}
+              onObservations={(v) => {
+                setFielding([...v, ...generated.fielding]);
+                setTime(false);
+              }}
             />
           </div>
           <p className="hint">
             선택 관찰을 생략하면 해당 분석은 미측정입니다. 수비 성공·실패는 자동 생성하지 않습니다.
           </p>
         </section>
+        <DefenseRecorder data={data} state={state} steps={sequence} onChange={onSequence} />
         <section className="play-runner-step">
-          <h3>2 · 주자 결과 확인</h3>
+          <h3>3 · 주자 결과 확인</h3>
           <p className="hint">
             아래 이동은 미확정 제안입니다. 각 주자의 실제 최종 결과를 확인하세요.
           </p>
@@ -460,7 +553,7 @@ export function PlayForm({
               </>
             )}
           </details>
-          <h3>3 · 심판 타임 후 확정</h3>
+          <h3>4 · 심판 타임 후 확정</h3>
           <label className="check umpire-confirm">
             <input type="checkbox" checked={time} onChange={(e) => setTime(e.target.checked)} />
             심판 타임 선언 확인
@@ -493,6 +586,7 @@ export function PlayForm({
                     strength,
                     fielding,
                     details,
+                    ...(sequence.length ? { defenseSequence: sequence } : {}),
                     ...(award ? { safetyAward: { positionsAtThrow: awardFrom } } : {}),
                   })
                 )

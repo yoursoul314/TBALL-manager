@@ -16,5 +16,5 @@ it('경기 기록실에서 세 번의 파울 입력이 실제 삼진과 다음 �
   await user.click(foul());
   expect(screen.getByText('삼진', { selector: 'b' })).toBeInTheDocument();
   expect(screen.getByText('2번 타자')).toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem('tb-manager.workspace.v4')!).events).toHaveLength(3);
+  expect(JSON.parse(localStorage.getItem('tb-manager.workspace.v5')!).events).toHaveLength(3);
 });

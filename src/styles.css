@@ -3186,3 +3186,346 @@ tr:last-child td {
     scroll-margin-top: 260px;
   }
 }
+
+/* v3 roster and integrated defense recording */
+.player-photo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.player-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.player-card-shell {
+  min-width: 0;
+  border: 1px solid #dbe4d8;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+.player-card-shell .player-card {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+}
+.player-card-shell > .text-button {
+  margin: 4px 14px;
+  min-height: 48px;
+}
+.plain-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.photo-editor {
+  padding: 16px;
+  border: 1px solid #dbe4d8;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+.photo-preview {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 12px;
+}
+.roster-filters label {
+  flex: 1;
+}
+.entry-summary {
+  padding: 12px;
+  background: #edf4df;
+  border-radius: 12px;
+  margin: 12px 0;
+  line-height: 1.8;
+}
+.entry-summary span {
+  display: inline-block;
+  margin-right: 10px;
+}
+.entry-candidates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.entry-player {
+  border: 2px solid #e0e7dc;
+  border-radius: 12px;
+  padding: 10px;
+  min-width: 0;
+}
+.entry-player.selected {
+  border-color: #245b43;
+  background: #f1f7e8;
+}
+.entry-player > button {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  align-items: center;
+  text-align: left;
+  min-height: 64px;
+  padding: 6px;
+}
+.entry-player > button > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.entry-player .avatar,
+.entry-order .avatar {
+  width: 44px;
+  height: 44px;
+  font-size: 17px;
+}
+.entry-player small {
+  font-size: 11px;
+  color: #4e6558;
+}
+.entry-player label {
+  margin: 8px 0 0;
+}
+.entry-order {
+  list-style: none;
+  padding: 0;
+}
+.entry-order li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.entry-order li b {
+  flex: 1;
+}
+.entry-order button {
+  min-width: 48px;
+  min-height: 48px;
+}
+.game-date-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.game-date-note button {
+  min-height: 48px;
+}
+.current-batter-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.current-batter-link .avatar,
+.lineup-player .avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+.field-player {
+  min-width: 66px;
+  min-height: 64px;
+  width: 90px;
+  padding: 4px;
+  border: 1px solid #dce9cc;
+  background: #f8fff0;
+  color: #123a2c;
+}
+.field-player b {
+  font-size: 10px;
+}
+.field-player span {
+  position: static;
+  transform: none;
+  font-size: 11px;
+  color: inherit;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.field-player .avatar {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  margin: 2px auto;
+  font-size: 12px;
+  background: #d5e4bd;
+}
+.field-player:disabled {
+  opacity: 0.65;
+}
+.field-player[aria-pressed='true'] {
+  border: 2px solid #b4d963;
+}
+.play-form .integrated-play-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr);
+  gap: 18px;
+}
+.play-form .integrated-play-flow .play-runner-step {
+  grid-column: 1 / -1;
+}
+.play-form .integrated-play-flow .quick-results {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.defense-recorder {
+  min-width: 0;
+  border: 1px solid #d7e1d1;
+  border-radius: 14px;
+  padding: 12px;
+  background: #f8fbf4;
+}
+.defense-recorder .field {
+  min-height: 340px;
+}
+.defense-recorder .field-player {
+  width: 80px;
+  min-width: 64px;
+  min-height: 64px;
+}
+.quick-defense-menu {
+  min-height: 340px;
+}
+.defense-menu-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.defense-menu-heading b {
+  flex: 1;
+}
+.defense-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.defense-action-buttons button {
+  min-height: 54px;
+  font-size: 12px;
+  padding: 8px;
+  justify-content: center;
+}
+.defense-action-parameters {
+  margin-top: 14px;
+}
+.defense-action-parameters label {
+  margin: 8px 0;
+}
+.defense-sequence {
+  border-top: 1px solid #cedcc5;
+  margin-top: 12px;
+  padding-top: 8px;
+}
+.defense-sequence ol {
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.integrated-match-grid.dead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 16px;
+}
+.integrated-match-grid.dead > .panel {
+  order: 0;
+}
+.integrated-match-grid.dead > .field-disclosure {
+  order: 1;
+}
+.integrated-match-grid.dead .quick-results {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.integrated-match-grid.live > .field-disclosure {
+  display: none;
+}
+.integrated-match-grid .field-footer {
+  display: none;
+}
+.integrated-match-grid.dead .field {
+  min-height: 360px;
+}
+.integrated-match-grid .panel {
+  min-width: 0;
+}
+@media (max-width: 1050px) {
+  .play-form .integrated-play-flow,
+  .integrated-match-grid.dead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .defense-recorder .field {
+    max-width: 600px;
+    margin: auto;
+  }
+}
+@media (max-width: 700px) {
+  .entry-candidates {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .defense-action-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .defense-recorder {
+    padding: 6px;
+  }
+  .defense-recorder .field-player,
+  .field-player {
+    width: 64px;
+    min-width: 48px;
+  }
+  .defense-recorder .field {
+    min-height: 340px;
+  }
+  .field-player .avatar {
+    width: 22px;
+    height: 22px;
+  }
+  .field-player span {
+    font-size: 10px;
+  }
+  .current-batter-link .avatar {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* Position names and photos must not inherit the old circular numeric marker. */
+.field-player b {
+  width: 100%;
+  height: auto;
+  min-height: 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  white-space: normal;
+}
+.field-player > span {
+  background: transparent;
+  padding: 0;
+}
+.field-player:hover {
+  background: #e6f2d9;
+}
+.field-player,
+.defense-recorder .field-player {
+  width: 18%;
+  max-width: 90px;
+  min-width: 48px;
+  gap: 2px;
+}
+.modal .play-form .integrated-play-flow {
+  grid-template-columns: minmax(0, 1fr);
+}

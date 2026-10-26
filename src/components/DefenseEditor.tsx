@@ -1,3 +1,4 @@
+import { Field } from './Field';
 import { useState } from 'react';
 import type { EventPayload, GameState, Workspace, Side } from '../domain/model';
 import { POSITIONS, POSITION_LABELS, type Position } from '../config/positions';
@@ -38,6 +39,15 @@ export function DefenseEditor({
           <option value="home">후공 팀</option>
         </select>
       </label>
+      <Field
+        players={data.players}
+        showEmpty
+        assignments={Object.entries(assignments).map(([position, playerId]) => ({
+          position: position as Position,
+          playerId,
+          score: 0,
+        }))}
+      />
       <div className="defense-grid">
         {POSITIONS.map((p) => (
           <label key={p}>

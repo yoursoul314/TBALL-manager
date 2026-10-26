@@ -1,3 +1,5 @@
+import { PlayerAvatar } from './PlayerAvatar';
+import { POSITIONS, POSITION_LABELS } from '../config/positions';
 import type { Bases, Player, Selection } from '../domain/model';
 import { type Position } from '../config/positions';
 const spots: Record<Position, [number, number]> = {
@@ -17,11 +19,13 @@ export function Field({
   players,
   assignments,
   onPlayer,
+  showEmpty = false,
 }: {
   bases?: Bases;
   players: Player[];
   assignments?: Selection['assignments'];
   onPlayer?: (id: string) => void;
+  showEmpty?: boolean;
 }) {
   const playerName = (id?: string) => players.find((p) => p.id === id)?.name || '비어 있음';
   return (
@@ -67,15 +71,30 @@ export function Field({
         ))}
       </svg>
       {assignments ? (
-        assignments.map((a) => (
+        (showEmpty
+          ? POSITIONS.map(
+              (position) =>
+                assignments.find((a) => a.position === position) ?? {
+                  position,
+                  playerId: '',
+                  score: 0,
+                },
+            )
+          : assignments
+        ).map((a) => (
           <button
             key={a.position}
             className="field-player"
             style={{ left: spots[a.position][0] + '%', top: spots[a.position][1] + '%' }}
+            disabled={!a.playerId}
+            aria-label={
+              POSITION_LABELS[a.position] + ' ' + (a.playerId ? playerName(a.playerId) : '미배치')
+            }
             onClick={() => onPlayer?.(a.playerId)}
           >
-            <b>{a.position}</b>
-            <span>{playerName(a.playerId)}</span>
+            <b>{POSITION_LABELS[a.position]}</b>
+            {a.playerId && <PlayerAvatar player={players.find((p) => p.id === a.playerId)} />}
+            <span>{a.playerId ? playerName(a.playerId) : '미배치'}</span>
           </button>
         ))
       ) : (
