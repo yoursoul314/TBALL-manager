@@ -248,7 +248,7 @@ export default function App() {
               {online ? <i /> : <WifiOff size={14} />}{' '}
               {previewMode ? '검증 탭 임시 저장' : online ? '기기 내 저장' : '오프라인'}
             </span>
-            <span className="version">BETA 0.5</span>
+            <span className="version">BETA 0.5.1</span>
             <div className="top-avatar">TB</div>
           </div>
         </header>

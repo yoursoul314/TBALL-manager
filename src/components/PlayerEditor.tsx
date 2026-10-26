@@ -48,6 +48,7 @@ export function PlayerEditor({
   const patch = (value: Partial<Player>) => setDraft((d) => ({ ...d, ...value }));
   return (
     <Modal
+      className="player-editor-modal"
       title={player ? '선수 정보 수정' : '선수 등록'}
       onClose={() => {
         if (!busy) onClose();
@@ -237,9 +238,11 @@ export function PlayerEditor({
           <p className="hint">
             소속 팀을 바꿔도 과거 경기의 팀·엔트리와 통계는 당시 기록으로 유지됩니다.
           </p>
-          <button className="primary wide" disabled={!draft.teamId}>
-            {busy ? '저장 중…' : '선수 저장'}
-          </button>
+          <div className="editor-save-bar">
+            <button className="primary wide" disabled={!draft.teamId}>
+              {busy ? '저장 중…' : '선수 저장'}
+            </button>
+          </div>
         </fieldset>
       </form>
     </Modal>

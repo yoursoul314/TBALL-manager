@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useId, type ReactNode } from 'react';
 export function Badge({ children, tone = 'green' }: { children: ReactNode; tone?: string }) {
   return <span className={'badge ' + tone}>{children}</span>;
 }
@@ -38,26 +38,30 @@ export function Modal({
   title,
   children,
   onClose,
+  className = '',
 }: {
   title: string;
+  className?: string;
   children: ReactNode;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     ref.current?.showModal();
   }, []);
   return (
     <dialog
       ref={ref}
-      className="modal"
+      className={'modal ' + className}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
     >
       <div className="modal-heading">
-        <h2>{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button className="icon-btn" aria-label="닫기" onClick={onClose}>
           <X size={20} />
         </button>

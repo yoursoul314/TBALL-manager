@@ -215,3 +215,24 @@ it('날짜 필터 중 새 추천 엔트리를 확인해 생성하면 새 경기 
   expect(screen.getByLabelText('경기 선택')).toHaveValue(saved().games[1].id);
   expect(screen.queryByText('선택한 날짜의 경기가 없습니다.')).not.toBeInTheDocument();
 });
+
+it('엔트리 단계 이동과 포지션 중복 선택 방지를 제공한다', () => {
+  const scroll = vi.fn();
+  Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: scroll });
+  const data = createDemoWorkspace();
+  render(<NewGame data={data} onCreate={() => {}} onClose={() => {}} />);
+  expect(screen.getByRole('dialog', { name: '새 경기 만들기' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '타순·수비' }));
+  expect(scroll).toHaveBeenCalledOnce();
+  expect(screen.getByText('타순 · 수비 포지션 편성 (0/10)').closest('details')).toHaveAttribute(
+    'open',
+  );
+  for (const n of [1, 2])
+    fireEvent.click(screen.getByRole('button', { name: '샘플 선수 0' + n + ' 선발 선택' }));
+  fireEvent.change(screen.getByLabelText('엔트리 유격수'), { target: { value: 'green-1' } });
+  const first = within(screen.getByLabelText('엔트리 1루수'));
+  expect(first.getByRole('option', { name: '샘플 선수 01' })).toBeDisabled();
+  expect(first.getByRole('option', { name: '샘플 선수 02' })).toBeEnabled();
+  fireEvent.change(screen.getByLabelText('엔트리 유격수'), { target: { value: '' } });
+  expect(first.getByRole('option', { name: '샘플 선수 01' })).toBeEnabled();
+});

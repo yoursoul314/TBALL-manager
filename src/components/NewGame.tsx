@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { EntryStatus, Game, Side, Workspace } from '../domain/model';
 import { localDate, gradeLabel, ENTRY_LABELS, validateEntry } from '../domain/roster';
 import { POSITIONS, POSITION_LABELS, type Position } from '../config/positions';
@@ -20,6 +20,9 @@ export function NewGame({
   onCreate: (g: Game) => boolean | void;
   onClose: () => void;
 }) {
+  const candidatesRef = useRef<HTMLDivElement>(null);
+  const orderRef = useRef<HTMLDetailsElement>(null);
+  const approvalRef = useRef<HTMLDivElement>(null);
   const [teams, setTeams] = useState({
     away: data.teams[0]?.id ?? '',
     home: data.teams[1]?.id ?? '',
@@ -102,7 +105,7 @@ export function NewGame({
     setError('수비 기능평가 기반 초안입니다. 선수·타순·포지션을 확인하고 감독 승인을 선택하세요');
   };
   return (
-    <Modal title="새 경기 만들기" onClose={onClose}>
+    <Modal title="새 경기 만들기" className="entry-modal" onClose={onClose}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -205,12 +208,37 @@ export function NewGame({
             .join(', ') || '없음'}{' '}
           · 한 경기는 두 팀만 진행합니다. TYPE1 기본 10포지션.
         </p>
-        <div className="tabs">
-          {(['away', 'home'] as const).map((s) => (
-            <button type="button" key={s} aria-pressed={side === s} onClick={() => setSide(s)}>
-              {s === 'away' ? '선공' : '후공'} 엔트리 · {entries[s].lineup.length}/10명
+        <div className="entry-navigation">
+          <div className="tabs">
+            {(['away', 'home'] as const).map((s) => (
+              <button type="button" key={s} aria-pressed={side === s} onClick={() => setSide(s)}>
+                {s === 'away' ? '선공' : '후공'} 엔트리 · {entries[s].lineup.length}/10명
+              </button>
+            ))}
+          </div>
+          <nav className="entry-shortcuts" aria-label="엔트리 편성 단계">
+            <button
+              type="button"
+              onClick={() => candidatesRef.current?.scrollIntoView({ block: 'start' })}
+            >
+              선수 선택
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => {
+                if (orderRef.current) orderRef.current.open = true;
+                orderRef.current?.scrollIntoView({ block: 'start' });
+              }}
+            >
+              타순·수비
+            </button>
+            <button
+              type="button"
+              onClick={() => approvalRef.current?.scrollIntoView({ block: 'start' })}
+            >
+              감독 확인
+            </button>
+          </nav>
         </div>
         <div className="entry-summary">
           등록 {players.length}명 ·{' '}
@@ -227,7 +255,7 @@ export function NewGame({
           추천은 TYPE1 v2.0 수비 기능 가중치만 사용합니다. 최종 종합 선발 점수가 아니며 감독이
           수정·확인합니다.
         </p>
-        <div className="entry-candidates">
+        <div className="entry-candidates" ref={candidatesRef}>
           {players.map((p) => {
             const a = data.assessments.filter((a) => a.playerId === p.id).at(-1);
             const scores = POSITIONS.map((pos) => positionScore(a?.abilities ?? {}, pos)).filter(
@@ -284,7 +312,7 @@ export function NewGame({
             );
           })}
         </div>
-        <details open={draft.lineup.length === 10}>
+        <details ref={orderRef} className="entry-arrangement" open={draft.lineup.length === 10}>
           <summary>타순 · 수비 포지션 편성 ({draft.lineup.length}/10)</summary>
           <ol className="entry-order">
             {draft.lineup.map((id, i) => {
@@ -336,7 +364,13 @@ export function NewGame({
                 >
                   <option value="">미배치 · 경기 전 확인</option>
                   {draft.lineup.map((id) => (
-                    <option key={id} value={id}>
+                    <option
+                      key={id}
+                      value={id}
+                      disabled={Object.entries(draft.defense).some(
+                        ([other, assigned]) => other !== pos && assigned === id,
+                      )}
+                    >
                       {players.find((p) => p.id === id)?.name}
                     </option>
                   ))}
@@ -345,45 +379,47 @@ export function NewGame({
             ))}
           </div>
         </details>
-        <label>
-          경기 메모
-          <textarea maxLength={2000} value={note} onChange={(e) => setNote(e.target.value)} />
-        </label>
-        <label>
-          엔트리 확인 감독
-          <input
-            value={manager}
-            maxLength={100}
-            required
-            onChange={(e) => setManager(e.target.value)}
-            placeholder="감독 별칭"
-          />
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={approved}
-            onChange={(e) => setApproved(e.target.checked)}
-          />
-          양 팀 선발 10명·교체 후보·타순·수비 배치를 감독이 확인했습니다
-        </label>
-        {error && (
-          <p role="alert" className="alert">
-            {error}
-          </p>
-        )}
-        <button
-          className="primary wide"
-          disabled={
-            teams.away === teams.home ||
-            entries.away.lineup.length !== 10 ||
-            entries.home.lineup.length !== 10 ||
-            !approved ||
-            !manager.trim()
-          }
-        >
-          경기 생성
-        </button>
+        <div className="entry-approval" ref={approvalRef}>
+          <label>
+            경기 메모
+            <textarea maxLength={2000} value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+          <label>
+            엔트리 확인 감독
+            <input
+              value={manager}
+              maxLength={100}
+              required
+              onChange={(e) => setManager(e.target.value)}
+              placeholder="감독 별칭"
+            />
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={approved}
+              onChange={(e) => setApproved(e.target.checked)}
+            />
+            양 팀 선발 10명·교체 후보·타순·수비 배치를 감독이 확인했습니다
+          </label>
+          {error && (
+            <p role="alert" className="alert">
+              {error}
+            </p>
+          )}
+          <button
+            className="primary wide"
+            disabled={
+              teams.away === teams.home ||
+              entries.away.lineup.length !== 10 ||
+              entries.home.lineup.length !== 10 ||
+              !approved ||
+              !manager.trim()
+            }
+          >
+            경기 생성
+          </button>
+        </div>
       </form>
     </Modal>
   );

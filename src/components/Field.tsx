@@ -3,11 +3,11 @@ import { POSITIONS, POSITION_LABELS } from '../config/positions';
 import type { Bases, Player, Selection } from '../domain/model';
 import { type Position } from '../config/positions';
 const spots: Record<Position, [number, number]> = {
-  '1B': [74, 64],
-  '2B': [62, 47],
-  SS: [38, 47],
-  '3B': [26, 64],
-  HP: [50, 89],
+  '1B': [74, 66],
+  '2B': [62, 44],
+  SS: [38, 44],
+  '3B': [26, 66],
+  HP: [50, 90],
   P: [50, 67],
   LF: [19, 31],
   CF1: [40, 21],
@@ -29,7 +29,7 @@ export function Field({
 }) {
   const playerName = (id?: string) => players.find((p) => p.id === id)?.name || '비어 있음';
   return (
-    <div className="field" aria-label="티볼 경기장">
+    <div className={'field' + (assignments ? ' has-players' : '')} aria-label="티볼 경기장">
       <svg viewBox="0 0 600 440" aria-hidden="true">
         <defs>
           <pattern

@@ -1,3 +1,4 @@
+import { encodePhoto, decodePhoto, type StoredPhoto } from './photoStorage';
 export const PHOTO_MAX_UPLOAD = 8_000_000;
 export const PHOTO_MAX_STORED = 200_000;
 export interface PhotoRecord {
@@ -33,13 +34,17 @@ export class IndexedPhotoRepository implements PhotoRepository {
     return new Promise<PhotoRecord[]>((resolve, reject) => {
       const tx = db.transaction('photos', 'readonly'),
         req = tx.objectStore('photos').getAll();
-      let rows: PhotoRecord[] = [];
+      let rows: (StoredPhoto | PhotoRecord)[] = [];
       req.onsuccess = () => {
         rows = req.result;
       };
       tx.oncomplete = () => {
         db.close();
-        resolve(rows);
+        try {
+          resolve(rows.map(decodePhoto));
+        } catch (error) {
+          reject(error);
+        }
       };
       tx.onabort = () => {
         db.close();
@@ -52,13 +57,17 @@ export class IndexedPhotoRepository implements PhotoRepository {
     return new Promise<PhotoRecord | null>((resolve, reject) => {
       const tx = db.transaction('photos', 'readonly'),
         req = tx.objectStore('photos').get(id);
-      let row: PhotoRecord | null = null;
+      let row: StoredPhoto | PhotoRecord | null = null;
       req.onsuccess = () => {
         row = req.result ?? null;
       };
       tx.oncomplete = () => {
         db.close();
-        resolve(row);
+        try {
+          resolve(row ? decodePhoto(row) : null);
+        } catch (error) {
+          reject(error);
+        }
       };
       tx.onabort = () => {
         db.close();
@@ -67,12 +76,13 @@ export class IndexedPhotoRepository implements PhotoRepository {
     });
   }
   async update(records: PhotoRecord[], removeIds: string[] = []) {
+    // Convert before opening the transaction: WebKit auto-commits idle transactions.
+    const stored = await Promise.all(records.map(encodePhoto));
     const db = await this.open();
     return new Promise<void>((resolve, reject) => {
       const tx = db.transaction('photos', 'readwrite'),
         store = tx.objectStore('photos');
-      for (const id of removeIds) store.delete(id);
-      for (const record of records) store.put(record);
+      let failure: unknown;
       tx.oncomplete = () => {
         db.close();
         changed();
@@ -80,8 +90,15 @@ export class IndexedPhotoRepository implements PhotoRepository {
       };
       tx.onabort = () => {
         db.close();
-        reject(tx.error ?? new Error('사진 저장 실패'));
+        reject(failure ?? tx.error ?? new Error('사진 저장 실패'));
       };
+      try {
+        for (const id of removeIds) store.delete(id);
+        for (const record of stored) store.put(record);
+      } catch (error) {
+        failure = error;
+        tx.abort();
+      }
     });
   }
 }

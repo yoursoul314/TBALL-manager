@@ -3529,3 +3529,114 @@ tr:last-child td {
 .modal .play-form .integrated-play-flow {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* Field QA: reachable controls, persistent form navigation, separate touch targets. */
+.icon-btn,
+.toast button {
+  min-width: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
+}
+.search input {
+  min-height: 48px;
+  font-size: 14px;
+}
+.modal {
+  --modal-pad: 25px;
+  scroll-padding-top: 80px;
+  overscroll-behavior: contain;
+}
+.modal-heading {
+  position: sticky;
+  top: calc(-1 * var(--modal-pad));
+  z-index: 5;
+  margin: calc(-1 * var(--modal-pad)) calc(-1 * var(--modal-pad)) 18px;
+  padding: 12px var(--modal-pad);
+  background: #fff;
+  border-bottom: 1px solid #e0e7dc;
+}
+.modal .hint {
+  overflow-wrap: anywhere;
+}
+.editor-save-bar {
+  position: sticky;
+  bottom: calc(-1 * var(--modal-pad));
+  z-index: 4;
+  background: #fff;
+  padding: 12px 0;
+  border-top: 1px solid #e0e7dc;
+}
+.editor-save-bar button {
+  min-height: 56px;
+}
+.entry-modal {
+  width: min(960px, 94vw);
+  scroll-padding-top: 198px;
+}
+.entry-navigation {
+  position: sticky;
+  top: calc(73px - var(--modal-pad));
+  z-index: 4;
+  background: #fff;
+  padding: 8px 0;
+  border-bottom: 1px solid #d7e1d1;
+}
+.entry-navigation .tabs {
+  margin: 0 0 6px;
+}
+.entry-navigation .tabs button {
+  flex: 1;
+  min-height: 48px;
+}
+.entry-shortcuts {
+  display: flex;
+  gap: 6px;
+}
+.entry-shortcuts button {
+  flex: 1;
+  justify-content: center;
+  min-height: 48px;
+}
+.entry-order li b,
+.entry-player b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.entry-player .avatar,
+.entry-order .avatar {
+  flex-shrink: 0;
+}
+.entry-order li button {
+  flex-shrink: 0;
+}
+.field.has-players,
+.defense-recorder .field.has-players,
+.integrated-match-grid.dead .field.has-players {
+  min-height: 400px;
+}
+@media (max-width: 700px) {
+  .modal {
+    --modal-pad: 16px;
+    padding: var(--modal-pad);
+  }
+  .entry-shortcuts button {
+    padding: 8px 4px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1050px) and (orientation: landscape) {
+  .play-form .integrated-play-flow {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr);
+  }
+  .integrated-match-grid.dead {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+}
+
+/* Definite width prevents aspect-ratio + min-height from widening narrow fields. */
+.field.has-players {
+  width: 100%;
+  min-width: 0;
+  height: 400px;
+  aspect-ratio: auto;
+}
