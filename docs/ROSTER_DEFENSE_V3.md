@@ -36,8 +36,8 @@ Workspace v5, Player 선택적 학적/포지션, Game.entry 당시 팀·선수·
 
 ## 검증
 
-- npm run check 성공: TypeScript,20개 파일140개 테스트,Vite/PWA 빌드. 기존114개 + 신규26개.
-- 신규26개: 마이그레이션·엔트리6개,수비 연결/재계산10개,사진 검증/암호화/복구5개,화면 통합5개.
+- npm run check 성공: TypeScript,20개 파일141개 테스트,Vite/PWA 빌드. 기존114개 + 신규27개.
+- 신규27개: 마이그레이션·엔트리6개,수비 연결/재계산10개,사진 검증/암호화/복구5개,화면 통합6개.
 - 검증한 핵심 시나리오: v4 원문·평가 보존,쓰기 실패·구버전 탭 충돌,팀 이동 후 과거 엔트리 유지,선발10명/후보/결석/3팀,날짜 전용 값,포구→송구→아웃과 PO/A/관찰 집계,미관찰/공식 실책 분리,FC,마지막 타자1루 포스아웃 복구,안타 후 실책 진루,과거 정정 및 백업 왕복,사진 삭제/실패 복구,암호 오류/변조 거절,앱 재마운트 저장 유지.
 - RULE01~08 및 TYPE1 v2.0 설정 SHA256가 기준본과 동일하다. 날짜별 평가 가중 평균·기존 스카우팅·RULE08/중복 타격 회귀도 통과했다.
 - 빌드는 성공했으며 기존 Zod 주석 경고2개와 새 주번들500KB 초과 안내가 있다(압축 전 약525KB,gzip 약158KB). 분할 로딩은 후속 최적화 후보다.
@@ -111,3 +111,7 @@ Workspace v5, Player 선택적 학적/포지션, Game.entry 당시 팀·선수·
 - [createImageBitmap EXIF 방향](https://developer.mozilla.org/en-US/docs/Web/API/Window/createImageBitmap)
 - [IndexedDB 트랜잭션](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB)
 - [Web Crypto 암호화](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt)
+
+### 원격 반영 상태
+
+2026-10-26: 네트워크 권한 허용 후 git fetch origin main은 성공했다. 최신 main과 기준 소스가 동일함을 확인한 뒤 작업 브랜치를 최신 main 위로 재배치했다. GitHub 연결 도구의 쓰기는403 Resource not accessible by integration,git push는 Windows Git credential-manager 실행 실패(NtCreateDirectoryObject 0xC0000022 / terminal prompts disabled)로 완료하지 못했다. 공개 GitHub Pages에 이번 변경이 배포되었다고 표시하지 않는다. 로컬 코드·커밋·반영용 패치는 보존한다.

@@ -91,8 +91,12 @@
 
 ## 학생·엔트리·공수 통합 기록 v3 / 앱 v0.5 (2026-10-26)
 
-- 변경 전16파일114개,변경 후20파일140개 테스트 통과. npm run check 타입 검사·테스트·Vite/PWA 빌드 성공. 신규26개 세부 범위는 [ROSTER_DEFENSE_V3.md](ROSTER_DEFENSE_V3.md) 참조.
+- 변경 전16파일114개,변경 후20파일141개 테스트 통과. npm run check 타입 검사·테스트·Vite/PWA 빌드 성공. 신규27개 세부 범위는 [ROSTER_DEFENSE_V3.md](ROSTER_DEFENSE_V3.md) 참조.
 - rules.ts SHA256 3978DAB7888DEBD1BB2D133C2279718BF537089FF1143C91DE195FFD79A3461A 및 positions.ts SHA256 7D76E170493A626BED6A93E75597D758EF8E82E2251F0DC60DC31BE91EF20BA3 유지.
 - 실제 학생 자료 없이 가상 데이터만 사용. 기존 v4 원본·평가·이력과 JSON 복원 호환 검증. 사진 암호화 왕복/변조/복구는 메모리 저장소와 Web Crypto를 이용한 자동 테스트다.
 - 브라우저 조작 도구가 현재 URL을 확인하지 못해 정책 오류로 중단했다. 이번 릴리스의 실제 화면/사진 IndexedDB 지속성/실제 iPad/전후 스크린샷 검증은 미실시. 이전 v0.4 화면 결과를 v0.5 결과로 간주하지 않는다.
 - GitHub 연결 도구의 branch 생성은403 Resource not accessible by integration으로 실패했다. 로컬 변경의 원격 반영 여부는 별도 배포 결과를 확인해야 한다.
+
+### 원격 반영 상태
+
+2026-10-26: 네트워크 권한 허용 후 git fetch origin main은 성공했다. 최신 main과 기준 소스가 동일함을 확인한 뒤 작업 브랜치를 최신 main 위로 재배치했다. GitHub 연결 도구의 쓰기는403 Resource not accessible by integration,git push는 Windows Git credential-manager 실행 실패(NtCreateDirectoryObject 0xC0000022 / terminal prompts disabled)로 완료하지 못했다. 공개 GitHub Pages에 이번 변경이 배포되었다고 표시하지 않는다. 로컬 코드·커밋·반영용 패치는 보존한다.

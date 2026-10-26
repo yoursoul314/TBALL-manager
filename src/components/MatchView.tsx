@@ -502,7 +502,15 @@ export function MatchView({
         />
       )}
       {creating && (
-        <NewGame data={currentData} onClose={() => setCreating(false)} onCreate={onCreate} />
+        <NewGame
+          data={currentData}
+          onClose={() => setCreating(false)}
+          onCreate={(g) => {
+            const saved = onCreate(g);
+            if (saved !== false) setDateFilter('');
+            return saved;
+          }}
+        />
       )}
       {editingDate && onUpdateGame && (
         <Modal title="경기 날짜 확인·수정" onClose={() => setEditingDate(false)}>
@@ -527,8 +535,10 @@ export function MatchView({
                     },
                   ],
                 })
-              )
+              ) {
                 setEditingDate(false);
+                setDateFilter('');
+              }
             }}
           >
             <p>생성 시각 {game.createdAt}은 변경하지 않습니다.</p>

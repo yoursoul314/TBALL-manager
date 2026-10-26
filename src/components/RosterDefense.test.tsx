@@ -190,3 +190,28 @@ it('연결 수비 저장 실패와 취소는 입력·원본을 보존하며 미�
   expect(commit).toBeEnabled();
   expect(screen.getByLabelText('green-1 최종 위치')).toHaveValue('1');
 });
+
+it('날짜 필터 중 새 추천 엔트리를 확인해 생성하면 새 경기 화면을 표시한다', () => {
+  const data = createDemoWorkspace();
+  data.games[0].playedOn = '2026-10-25';
+  data.games[0].dateStatus = 'confirmed';
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  render(<App />);
+  fireEvent.click(screen.getByRole('button', { name: /경기 기록하기/ }));
+  fireEvent.change(screen.getByLabelText('경기 날짜 필터'), { target: { value: '2026-10-26' } });
+  expect(screen.getByText('선택한 날짜의 경기가 없습니다.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '새 경기' }));
+  fireEvent.click(screen.getByRole('button', { name: '수비 기능 추천 적용 · 초안' }));
+  fireEvent.click(screen.getByRole('button', { name: '후공 엔트리 · 0/10명' }));
+  fireEvent.click(screen.getByRole('button', { name: '수비 기능 추천 적용 · 초안' }));
+  expect(screen.getByRole('button', { name: '경기 생성' })).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('경기 날짜'), { target: { value: '2026-10-27' } });
+  fireEvent.change(screen.getByLabelText('엔트리 확인 감독'), { target: { value: '가상 감독' } });
+  fireEvent.click(screen.getByLabelText(/양 팀 선발 10명/));
+  fireEvent.click(screen.getByRole('button', { name: '경기 생성' }));
+  expect(saved().games).toHaveLength(2);
+  expect(saved().games[1].entry).toMatchObject({ source: 'manager', approvedBy: '가상 감독' });
+  expect(screen.getByLabelText('경기 날짜 필터')).toHaveValue('');
+  expect(screen.getByLabelText('경기 선택')).toHaveValue(saved().games[1].id);
+  expect(screen.queryByText('선택한 날짜의 경기가 없습니다.')).not.toBeInTheDocument();
+});
