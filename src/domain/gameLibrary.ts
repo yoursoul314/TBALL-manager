@@ -72,3 +72,42 @@ export function setTeamArchived(
     ),
   };
 }
+
+export const activePlayers = (data: Workspace) => data.players.filter((p) => !p.archivedAt);
+export function setPlayerArchived(
+  data: Workspace,
+  id: string,
+  archived: boolean,
+  at: string,
+): Workspace {
+  const player = data.players.find((p) => p.id === id);
+  if (!player) throw new Error('선수를 찾을 수 없습니다');
+  if (Boolean(player.archivedAt) === archived) return data;
+  if (
+    archived &&
+    data.games.some(
+      (g) =>
+        Object.values(g.rosters).some((ids) => ids.includes(id)) &&
+        replayGame(
+          g,
+          data.events.filter((e) => e.gameId === g.id),
+        ).ball === 'live',
+    )
+  )
+    throw new Error('진행 중인 플레이를 먼저 확정하세요');
+  return {
+    ...data,
+    players: data.players.map((p) =>
+      p.id === id
+        ? {
+            ...p,
+            archivedAt: archived ? at : null,
+            archiveHistory: [
+              ...(p.archiveHistory ?? []),
+              { action: archived ? 'archive' : 'restore', at },
+            ],
+          }
+        : p,
+    ),
+  };
+}

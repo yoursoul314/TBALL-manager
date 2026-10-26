@@ -25,7 +25,7 @@ export function SelectionView({
   const fresh = selection?.sourceRevision === data.revision;
   const generate = () => {
     const candidates = data.players
-      .filter((p) => p.teamId === team && p.active)
+      .filter((p) => p.active && !p.archivedAt)
       .map((p) => ({
         playerId: p.id,
         abilities: data.assessments.filter((a) => a.playerId === p.id).at(-1)?.abilities || {},
@@ -33,7 +33,7 @@ export function SelectionView({
     const result = recommendPositions(candidates);
     if (!result) {
       setMessage(
-        '10개 포지션을 모두 배정할 수 없습니다. 최소 10명의 필요한 기능평가를 입력하세요.',
+        '10개 포지션을 모두 배정할 수 없습니다. 등록 명단 중 최소 10명의 필요한 기능평가를 입력하세요.',
       );
       return;
     }

@@ -16,19 +16,19 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY)!) as Workspace;
-it('선수 학년·반·팀 수정은 기존 경기 스냅샷을 보존하고 필터·새로고침에 반영한다', async () => {
+it('선수 학년·반 수정은 기존 경기 스냅샷을 보존하고 필터·새로고침에 반영한다', async () => {
   const user = userEvent.setup();
   const app = render(<App />);
   await user.click(screen.getByRole('button', { name: '선수 & 팀' }));
   await user.click(screen.getByRole('button', { name: '샘플 선수 01 정보 수정' }));
   fireEvent.change(screen.getByLabelText('학년'), { target: { value: '3' } });
   fireEvent.change(screen.getByLabelText('반'), { target: { value: '2' } });
-  fireEvent.change(screen.getByLabelText('소속 팀'), { target: { value: 'orange' } });
+  expect(screen.queryByLabelText('소속 팀')).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '선수 저장' }));
   await waitFor(() =>
     expect(saved().players[0]).toMatchObject({
       id: 'green-1',
-      teamId: 'orange',
+      teamId: 'green',
       grade: 3,
       classroom: '2',
     }),
@@ -71,6 +71,7 @@ it('3팀 중 두 팀의 선발10명·후보·결석과 날짜·타순을 감독 
   );
   expect(screen.getByRole('button', { name: '경기 생성' })).toBeDisabled();
   expect(screen.getByText(/대기 팀: 가상 대기 팀/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '등록 선수 불러오기' }));
   for (const n of Array.from({ length: 10 }, (_, i) => i + 1))
     fireEvent.click(
       screen.getByRole('button', {
@@ -86,6 +87,7 @@ it('3팀 중 두 팀의 선발10명·후보·결석과 날짜·타순을 감독 
   fireEvent.click(screen.getByRole('button', { name: '샘플 선수 02 타순 위로' }));
   fireEvent.change(screen.getByLabelText('엔트리 유격수'), { target: { value: 'green-2' } });
   fireEvent.click(screen.getByRole('button', { name: '후공 엔트리 · 0/10명' }));
+  fireEvent.click(screen.getByRole('button', { name: '등록 선수 불러오기' }));
   for (const n of Array.from({ length: 10 }, (_, i) => i + 13))
     fireEvent.click(screen.getByRole('button', { name: '샘플 선수 ' + n + ' 선발 선택' }));
   fireEvent.change(screen.getByLabelText('경기 날짜'), { target: { value: '2026-11-03' } });
@@ -230,6 +232,7 @@ it('엔트리 단계 이동과 포지션 중복 선택 방지를 제공한다', 
   expect(screen.getByText('타순 · 수비 포지션 편성 (0/10)').closest('details')).toHaveAttribute(
     'open',
   );
+  fireEvent.click(screen.getByRole('button', { name: '등록 선수 불러오기' }));
   for (const n of [1, 2])
     fireEvent.click(screen.getByRole('button', { name: '샘플 선수 0' + n + ' 선발 선택' }));
   fireEvent.change(screen.getByLabelText('엔트리 유격수'), { target: { value: 'green-1' } });
@@ -238,4 +241,43 @@ it('엔트리 단계 이동과 포지션 중복 선택 방지를 제공한다', 
   expect(first.getByRole('option', { name: '샘플 선수 02' })).toBeEnabled();
   fireEvent.change(screen.getByLabelText('엔트리 유격수'), { target: { value: '' } });
   expect(first.getByRole('option', { name: '샘플 선수 01' })).toBeEnabled();
+});
+
+it('팀 없는 공통 등록 학생을 양 팀에 배정하고 학생 원본 소속을 변경하지 않는다', () => {
+  const data = createDemoWorkspace();
+  data.games = [];
+  data.players = data.players.map((p) => ({ ...p, teamId: null }));
+  let created: Game | undefined;
+  render(
+    <NewGame
+      data={data}
+      onCreate={(g) => {
+        created = g;
+        return true;
+      }}
+      onClose={() => {}}
+    />,
+  );
+  expect(screen.queryByRole('button', { name: '샘플 선수 01 선발 선택' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '등록 선수 불러오기' }));
+  for (let n = 1; n <= 10; n++)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '샘플 선수 ' + String(n).padStart(2, '0') + ' 선발 선택',
+      }),
+    );
+  fireEvent.click(screen.getByRole('button', { name: '후공 엔트리 · 0/10명' }));
+  fireEvent.click(screen.getByRole('button', { name: '등록 선수 불러오기' }));
+  expect(screen.queryByRole('button', { name: '샘플 선수 01 선발 선택' })).not.toBeInTheDocument();
+  for (let n = 11; n <= 20; n++)
+    fireEvent.click(screen.getByRole('button', { name: '샘플 선수 ' + n + ' 선발 선택' }));
+  fireEvent.change(screen.getByLabelText('엔트리 확인 감독'), { target: { value: 'QA' } });
+  fireEvent.click(screen.getByLabelText(/양 팀 선발 10명/));
+  fireEvent.click(screen.getByRole('button', { name: '경기 생성' }));
+  expect(created).toBeDefined();
+  expect(new Set([...created!.rosters.away, ...created!.rosters.home]).size).toBe(20);
+  expect(created!.entry!.players.away.every((p) => p.teamId === 'green')).toBe(true);
+  expect(created!.entry!.players.home.every((p) => p.teamId === 'orange')).toBe(true);
+  expect(data.players.every((p) => p.teamId === null)).toBe(true);
+  expect(readBackup(serializeBackup({ ...data, games: [created!] })).games[0]).toEqual(created);
 });

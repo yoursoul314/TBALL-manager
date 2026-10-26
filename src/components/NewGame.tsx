@@ -8,6 +8,8 @@ import { RULES_VERSION } from '../config/rules';
 import { PlayerAvatar } from './PlayerAvatar';
 import { Modal } from './ui';
 interface Draft {
+  loaded: boolean;
+  assigned: string[];
   status: Record<string, EntryStatus>;
   lineup: string[];
   defense: Partial<Record<Position, string>>;
@@ -28,18 +30,10 @@ export function NewGame({
     away: activeTeams(data)[0]?.id ?? '',
     home: activeTeams(data)[1]?.id ?? '',
   });
-  const empty = (teamId: string): Draft => ({
-    status: Object.fromEntries(
-      data.players
-        .filter((p) => p.teamId === teamId)
-        .map((p) => [p.id, p.active ? 'not-playing' : 'unavailable']),
-    ),
-    lineup: [],
-    defense: {},
-  });
+  const empty = (): Draft => ({ loaded: false, assigned: [], status: {}, lineup: [], defense: {} });
   const [entries, setEntries] = useState<Record<Side, Draft>>(() => ({
-    away: empty(teams.away),
-    home: empty(teams.home),
+    away: empty(),
+    home: empty(),
   }));
   const [side, setSide] = useState<Side>('away'),
     [name, setName] = useState('티볼 수업 경기'),
@@ -50,13 +44,21 @@ export function NewGame({
     [manager, setManager] = useState(''),
     [approved, setApproved] = useState(false),
     [error, setError] = useState('');
-  const draft = entries[side],
-    players = data.players.filter((p) => p.teamId === teams[side]);
+  const draft = entries[side];
+  const other = side === 'away' ? 'home' : 'away';
+  const candidates = data.players.filter(
+    (p) => !p.archivedAt && !entries[other].assigned.includes(p.id),
+  );
+  const players = draft.loaded ? candidates : [];
   const change = (next: Draft) => {
     setEntries((old) => ({ ...old, [side]: next }));
     setApproved(false);
   };
   const status = (id: string, value: EntryStatus) => {
+    if (entries[other].assigned.includes(id)) {
+      setError('이미 상대 팀에 편성된 학생입니다');
+      return;
+    }
     if (value === 'starter' && !draft.lineup.includes(id) && draft.lineup.length >= 10) {
       setError('선발은 10명입니다. 먼저 다른 선수를 제외하세요');
       return;
@@ -67,6 +69,7 @@ export function NewGame({
         : draft.lineup.filter((p) => p !== id);
     change({
       ...draft,
+      assigned: [...new Set([...draft.assigned, id])],
       status: { ...draft.status, [id]: value },
       lineup,
       defense: Object.fromEntries(
@@ -77,7 +80,7 @@ export function NewGame({
   };
   const recommend = () => {
     const result = recommendPositions(
-      players
+      candidates
         .filter((p) => p.active && !['absent', 'unavailable'].includes(draft.status[p.id]))
         .map((p) => ({
           playerId: p.id,
@@ -90,14 +93,16 @@ export function NewGame({
     }
     const ids = result.assignments.map((a) => a.playerId);
     change({
+      loaded: true,
+      assigned: [...new Set([...draft.assigned, ...ids])],
       status: Object.fromEntries(
-        players.map((p) => [
+        candidates.map((p) => [
           p.id,
           ids.includes(p.id)
             ? 'starter'
             : draft.status[p.id] === 'starter'
               ? 'not-playing'
-              : draft.status[p.id],
+              : (draft.status[p.id] ?? 'not-playing'),
         ]),
       ),
       lineup: ids,
@@ -111,6 +116,12 @@ export function NewGame({
         onSubmit={(e) => {
           e.preventDefault();
           try {
+            if (
+              teams.away === teams.home ||
+              !activeTeams(data).some((t) => t.id === teams.away) ||
+              !activeTeams(data).some((t) => t.id === teams.home)
+            )
+              throw new Error('서로 다른 두 운영 팀을 선택하세요');
             if (!approved || !manager.trim()) throw new Error('감독의 엔트리 확인이 필요합니다');
             const now = new Date().toISOString();
             const game: Game = {
@@ -141,8 +152,12 @@ export function NewGame({
             };
             for (const s of ['away', 'home'] as const) {
               game.entry!.players[s] = data.players
-                .filter((p) => p.teamId === teams[s])
-                .map((p) => ({ ...p, status: entries[s].status[p.id] ?? 'not-playing' }));
+                .filter((p) => entries[s].assigned.includes(p.id))
+                .map((p) => ({
+                  ...p,
+                  teamId: teams[s],
+                  status: entries[s].status[p.id] ?? 'not-playing',
+                }));
               game.rosters[s] = game
                 .entry!.players[s].filter((p) => p.status === 'starter' || p.status === 'reserve')
                 .map((p) => p.id);
@@ -188,7 +203,7 @@ export function NewGame({
                 onChange={(e) => {
                   const id = e.target.value;
                   setTeams((old) => ({ ...old, [s]: id }));
-                  setEntries((old) => ({ ...old, [s]: empty(id) }));
+                  setEntries((old) => ({ ...old, [s]: empty() }));
                   setApproved(false);
                 }}
               >
@@ -241,11 +256,34 @@ export function NewGame({
             </button>
           </nav>
         </div>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            change({
+              ...draft,
+              loaded: true,
+              status: Object.fromEntries(
+                candidates.map((p) => [
+                  p.id,
+                  draft.status[p.id] ?? (p.active ? 'not-playing' : 'unavailable'),
+                ]),
+              ),
+            });
+            setError('');
+          }}
+        >
+          등록 선수 불러오기
+        </button>
+        <p className="callout">
+          공통 등록 명단에서 이 경기의 선수를 선택하세요. 상대 팀에 이미 편성된 학생은 제외됩니다.
+          팀 배정은 이 경기에만 적용됩니다.
+        </p>
         <div className="entry-summary">
-          등록 {players.length}명 ·{' '}
+          불러온 선수 {players.length}명 · 팀 편성 {draft.assigned.length}명 ·{' '}
           {Object.entries(ENTRY_LABELS).map(([key, label]) => (
             <span key={key}>
-              {label} {Object.values(draft.status).filter((v) => v === key).length}명{' '}
+              {label} {draft.assigned.filter((id) => draft.status[id] === key).length}명{' '}
             </span>
           ))}
         </div>
@@ -295,9 +333,22 @@ export function NewGame({
                   경기 상태
                   <select
                     aria-label={p.name + ' 경기 상태'}
-                    value={draft.status[p.id]}
-                    onChange={(e) => status(p.id, e.target.value as EntryStatus)}
+                    value={draft.assigned.includes(p.id) ? draft.status[p.id] : ''}
+                    onChange={(e) => {
+                      if (!e.target.value) {
+                        change({
+                          ...draft,
+                          assigned: draft.assigned.filter((id) => id !== p.id),
+                          lineup: draft.lineup.filter((id) => id !== p.id),
+                          status: { ...draft.status, [p.id]: 'not-playing' },
+                          defense: Object.fromEntries(
+                            Object.entries(draft.defense).filter(([, id]) => id !== p.id),
+                          ),
+                        });
+                      } else status(p.id, e.target.value as EntryStatus);
+                    }}
                   >
+                    <option value="">미편성 · 팀 배정 해제</option>
                     {Object.entries(ENTRY_LABELS).map(([v, label]) => (
                       <option
                         key={v}

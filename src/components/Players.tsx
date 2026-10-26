@@ -1,4 +1,4 @@
-import { setTeamArchived } from '../domain/gameLibrary';
+import { setTeamArchived, setPlayerArchived } from '../domain/gameLibrary';
 import type { Team } from '../domain/model';
 import { PlayerEditor } from './PlayerEditor';
 import { PlayerAvatar } from './PlayerAvatar';
@@ -28,6 +28,8 @@ export function Players({
   onSave: (d: Workspace) => void;
   onProfile: (id: string) => void;
 }) {
+  const [playerTrash, setPlayerTrash] = useState(false);
+  const [deletingPlayer, setDeletingPlayer] = useState<Player | null>(null);
   const [teamTrash, setTeamTrash] = useState(false);
   const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
   const [filter, setFilter] = useState(''),
@@ -40,6 +42,7 @@ export function Players({
     [error, setError] = useState('');
   const players = data.players.filter(
     (p) =>
+      Boolean(p.archivedAt) === playerTrash &&
       (team === 'all' || p.teamId === team) &&
       (grade === 'all' || String(p.grade ?? 'unset') === grade) &&
       (availability === 'all' || p.active === (availability === 'active')) &&
@@ -62,7 +65,7 @@ export function Players({
   );
   return (
     <>
-      <div className="page-title">
+      <div className="page-title management-heading">
         <div>
           <div className="eyebrow">OUR PLAYERS</div>
           <h1>
@@ -70,7 +73,7 @@ export function Players({
           </h1>
           <p>학년과 팀을 독립적으로 관리하고, 경기마다 출전 명단을 정하세요.</p>
         </div>
-        <div className="button-row">
+        <div className="button-row management-actions">
           <button
             onClick={() => {
               setError('');
@@ -79,13 +82,23 @@ export function Players({
           >
             팀 추가
           </button>
-          <button className="primary" onClick={() => setAdd(true)}>
+          <button
+            className="primary"
+            onClick={() => {
+              setError('');
+              setAdd(true);
+            }}
+          >
             <Plus size={18} />
             선수 등록
           </button>
         </div>
       </div>
-      <div className="tabs">
+      <p className="management-help">
+        학생은 팀 선택 없이 등록합니다. 새 경기에서 등록 선수를 불러와 팀에 배정하세요.
+      </p>
+
+      <div className="tabs" aria-label="팀 목록 구분">
         <button aria-pressed={!teamTrash} onClick={() => setTeamTrash(false)}>
           운영 팀
         </button>
@@ -113,8 +126,14 @@ export function Players({
                 <div>
                   <b>{t.name}</b>
                   <small>
-                    등록 {data.players.filter((p) => p.teamId === t.id).length}명 · 출전 가능{' '}
-                    {data.players.filter((p) => p.teamId === t.id && p.active).length}명
+                    이전 소속{' '}
+                    {data.players.filter((p) => p.teamId === t.id && !p.archivedAt).length}명 · 출전
+                    가능{' '}
+                    {
+                      data.players.filter((p) => p.teamId === t.id && p.active && !p.archivedAt)
+                        .length
+                    }
+                    명
                   </small>
                 </div>
                 <ArrowUpRight size={20} />
@@ -147,6 +166,32 @@ export function Players({
             </div>
           ))}
       </div>
+      <div className="tabs player-list-tabs" aria-label="선수 목록 구분">
+        <button
+          aria-pressed={!playerTrash}
+          onClick={() => {
+            setPlayerTrash(false);
+            setFilter('');
+          }}
+        >
+          등록 선수 · {data.players.filter((p) => !p.archivedAt).length}
+        </button>
+        <button
+          aria-pressed={playerTrash}
+          onClick={() => {
+            setPlayerTrash(true);
+            setFilter('');
+          }}
+        >
+          삭제된 선수 · {data.players.filter((p) => p.archivedAt).length}
+        </button>
+      </div>
+      {playerTrash && (
+        <p className="callout">
+          삭제된 선수의 사진·평가·과거 경기는 보존됩니다. 복원하면 평가와 새 경기 명단에 다시
+          표시됩니다.
+        </p>
+      )}
       <div className="toolbar roster-filters">
         <label>
           학년 필터
@@ -212,7 +257,8 @@ export function Players({
                   </div>
                   <h3>{p.name}</h3>
                   <p>
-                    {gradeLabel(p)} · {data.teams.find((t) => t.id === p.teamId)?.name}
+                    {gradeLabel(p)} ·{' '}
+                    {data.teams.find((t) => t.id === p.teamId)?.name ?? '경기에서 팀 배정'}
                     {data.teams.find((t) => t.id === p.teamId)?.archivedAt ? ' · 삭제된 팀' : ''}
                   </p>
                   <p>
@@ -224,13 +270,40 @@ export function Players({
                     <b>{best?.score != null ? POSITION_LABELS[best.pos] : '미측정'}</b>
                   </div>
                 </button>
-                <button
-                  className="text-button"
-                  aria-label={p.name + ' 정보 수정'}
-                  onClick={() => setEditing(p)}
-                >
-                  정보·사진 수정
-                </button>
+                <div className="player-management-buttons">
+                  <button
+                    className="text-button"
+                    aria-label={p.name + ' 정보 수정'}
+                    onClick={() => setEditing(p)}
+                  >
+                    정보·사진 수정
+                  </button>
+                  {p.archivedAt ? (
+                    <button
+                      aria-label={p.name + ' 선수 복원'}
+                      onClick={() => {
+                        try {
+                          onSave(setPlayerArchived(data, p.id, false, new Date().toISOString()));
+                          setError('');
+                        } catch (e) {
+                          setError(e instanceof Error ? e.message : '복원 실패');
+                        }
+                      }}
+                    >
+                      선수 복원
+                    </button>
+                  ) : (
+                    <button
+                      aria-label={p.name + ' 선수 삭제'}
+                      onClick={() => {
+                        setError('');
+                        setDeletingPlayer(p);
+                      }}
+                    >
+                      선수 삭제
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -247,6 +320,30 @@ export function Players({
             setEditing(null);
           }}
         />
+      )}
+      {deletingPlayer && (
+        <Modal title="선수 삭제" onClose={() => setDeletingPlayer(null)}>
+          <p>
+            <b>{deletingPlayer.name}</b> 선수를 등록 명단과 새 경기·평가 대상에서 제외합니다.
+            사진·평가·과거 경기 기록은 보존하며 삭제된 선수에서 복원할 수 있습니다. 기존 경기
+            엔트리는 바뀌지 않습니다.
+          </p>
+          {error && <p role="alert">{error}</p>}
+          <button
+            className="primary"
+            onClick={() => {
+              try {
+                onSave(setPlayerArchived(data, deletingPlayer.id, true, new Date().toISOString()));
+                setDeletingPlayer(null);
+                setError('');
+              } catch (e) {
+                setError(e instanceof Error ? e.message : '삭제 실패');
+              }
+            }}
+          >
+            선수 삭제 확정
+          </button>
+        </Modal>
       )}
       {deletingTeam && (
         <Modal title="팀 삭제" onClose={() => setDeletingTeam(null)}>
@@ -273,7 +370,7 @@ export function Players({
           </button>
         </Modal>
       )}
-      {!deletingTeam && error && <p role="alert">{error}</p>}
+      {!deletingTeam && !deletingPlayer && error && <p role="alert">{error}</p>}
       {addTeam && (
         <Modal title="새 팀 만들기" onClose={() => setAddTeam(false)}>
           <form
@@ -412,7 +509,7 @@ export function Profile({
       <div className="profile-hero">
         <PlayerAvatar player={p} className="jersey" />
         <div>
-          <Badge>{data.teams.find((t) => t.id === p.teamId)?.name}</Badge>
+          <Badge>{data.teams.find((t) => t.id === p.teamId)?.name ?? '공통 명단'}</Badge>
           <h2>{p.name}</h2>
           <p>
             {gradeLabel(p)} · 등번호 {p.number} · {p.active ? '출전 가능' : '출전 불가'}

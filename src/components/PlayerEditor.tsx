@@ -1,4 +1,3 @@
-import { activeTeams } from '../domain/gameLibrary';
 import { useEffect, useRef, useState } from 'react';
 import type { Player, Workspace } from '../domain/model';
 import { captureLegacyEntry } from '../domain/roster';
@@ -22,7 +21,7 @@ export function PlayerEditor({
     () =>
       player ?? {
         id: crypto.randomUUID(),
-        teamId: activeTeams(data)[0]?.id ?? '',
+        teamId: null,
         name: '',
         number: 1,
         active: true,
@@ -100,6 +99,7 @@ export function PlayerEditor({
             <label>
               학년
               <select
+                aria-label="학년"
                 value={draft.grade ?? ''}
                 onChange={(e) =>
                   patch({ grade: e.target.value ? (Number(e.target.value) as 1 | 2 | 3) : null })
@@ -146,19 +146,10 @@ export function PlayerEditor({
                 onChange={(e) => patch({ number: Number(e.target.value) })}
               />
             </label>
-            <label>
-              소속 팀
-              <select value={draft.teamId} onChange={(e) => patch({ teamId: e.target.value })}>
-                {data.teams
-                  .filter((t) => !t.archivedAt || t.id === draft.teamId)
-                  .map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                      {t.archivedAt ? ' (삭제된 팀)' : ''}
-                    </option>
-                  ))}
-              </select>
-            </label>
+            <p className="hint">
+              학생은 공통 명단에 등록합니다. 팀은 새 경기의 등록 선수 불러오기에서 배정하세요. 기존
+              경기의 팀 정보는 유지됩니다.
+            </p>
           </div>
           <div className="form-row">
             {(['primaryPosition', 'secondaryPosition'] as const).map((key, i) => (
@@ -240,12 +231,10 @@ export function PlayerEditor({
             </p>
           )}
           <p className="hint">
-            소속 팀을 바꿔도 과거 경기의 팀·엔트리와 통계는 당시 기록으로 유지됩니다.
+            팀은 경기별로 편성합니다. 과거 경기의 팀·엔트리와 통계는 당시 기록으로 유지됩니다.
           </p>
           <div className="editor-save-bar">
-            <button className="primary wide" disabled={!draft.teamId}>
-              {busy ? '저장 중…' : '선수 저장'}
-            </button>
+            <button className="primary wide">{busy ? '저장 중…' : '선수 저장'}</button>
           </div>
         </fieldset>
       </form>

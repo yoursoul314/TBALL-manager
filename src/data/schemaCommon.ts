@@ -160,7 +160,7 @@ const workspaceSchema = z.object({
     .array(
       z.object({
         id,
-        teamId: id,
+        teamId: id.nullable(),
         name: text.min(1),
         number: z.number().int().min(0).max(999),
         active: z.boolean(),
@@ -180,7 +180,6 @@ const workspaceSchema = z.object({
         lineups: z.object({ away: z.array(id), home: z.array(id) }),
       }),
     )
-    .min(1)
     .max(1000),
   events: z
     .array(
@@ -265,11 +264,16 @@ const workspaceSchema = z.object({
   ),
   policy,
 });
-export function parseCurrentCommon(input: unknown, historicalMembership = false): WorkspaceV2 {
+export function parseCurrentCommon(
+  input: unknown,
+  historicalMembership = false,
+  allowEmptyGames = false,
+): WorkspaceV2 {
   const data: WorkspaceV2 = workspaceSchema.parse(input);
   const require = (value: unknown, message: string) => {
     if (!value) throw new Error(message);
   };
+  require(allowEmptyGames || data.games.length > 0, '경기가 없습니다');
   for (const collection of [
     data.players,
     data.teams,
@@ -285,7 +289,9 @@ export function parseCurrentCommon(input: unknown, historicalMembership = false)
   const player = new Map(data.players.map((p) => [p.id, p]));
   const teams = new Set(data.teams.map((t) => t.id));
   const games = new Set(data.games.map((g) => g.id));
-  for (const p of data.players) require(teams.has(p.teamId), '선수의 소속 팀이 없습니다');
+  for (const p of data.players)
+    require((historicalMembership && p.teamId === null) ||
+      (p.teamId !== null && teams.has(p.teamId)), '선수의 소속 팀이 없습니다');
   for (const g of data.games) {
     for (const s of ['away', 'home'] as const) {
       require(teams.has(g.teamIds[s]), '경기의 팀이 없습니다');

@@ -115,7 +115,7 @@ async function download(button, filename) {
   return path.join(out, filename);
 }
 async function workspace() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v6')));
+  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v7')));
 }
 async function photoInfo() {
   return page.evaluate(
@@ -249,7 +249,7 @@ async function photoInfo() {
         Storage.prototype.setItem = original;
       };
       Storage.prototype.setItem = function (k, v) {
-        if (k === 'tb-manager.workspace.v6')
+        if (k === 'tb-manager.workspace.v7')
           throw new DOMException('QA storage full', 'QuotaExceededError');
         return original.call(this, k, v);
       };
@@ -279,6 +279,7 @@ async function photoInfo() {
   log('양 팀 선발10명·후보·결석·타순·수비 직접 편성');
   await nav('경기 기록실');
   await page.getByRole('button', { name: '새 경기', exact: true }).tap();
+  await page.getByRole('button', { name: '등록 선수 불러오기', exact: true }).tap();
   await page.getByLabel('경기 이름', { exact: true }).fill('QA 통합 수비 검증 경기');
   await page.getByLabel('경기 날짜', { exact: true }).fill('2026-10-26');
   await page.getByLabel('시작 시간 · 선택', { exact: true }).fill('10:00');
@@ -338,6 +339,7 @@ async function photoInfo() {
   await shot('04-entry-portrait');
   await page.setViewportSize({ width: 1180, height: 820 });
   await page.getByRole('button', { name: '후공 엔트리 · 0/10명', exact: true }).tap();
+  await page.getByRole('button', { name: '등록 선수 불러오기', exact: true }).tap();
   for (let n = 13; n <= 22; n++)
     await page.getByRole('button', { name: '샘플 선수 ' + n + ' 선발 선택', exact: true }).tap();
   for (let n = 0; n < 10; n++)

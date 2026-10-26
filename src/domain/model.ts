@@ -9,8 +9,10 @@ export type Side = 'away' | 'home';
 export type Base = 1 | 2 | 3;
 export type Bases = Partial<Record<Base, Id>>;
 export interface Player {
+  archivedAt?: string | null;
+  archiveHistory?: { action: 'archive' | 'restore'; at: string }[];
   id: Id;
-  teamId: Id;
+  teamId: Id | null;
   name: string;
   number: number;
   active: boolean;
@@ -240,8 +242,9 @@ export interface Selection {
   approvedAt: string | null;
 }
 export interface Workspace extends BattingData {
-  schemaVersion: 6;
-  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5; raw: string };
+  lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
+  schemaVersion: 7;
+  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

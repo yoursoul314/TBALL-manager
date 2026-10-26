@@ -42,7 +42,7 @@ it('v3 원문·수동 평가·세션·회차·감사 이력을 변경 없이 보
   localStorage.setItem(V3_STORAGE_KEY, raw);
   const repo = new LocalWorkspaceRepository(localStorage),
     d = repo.load()!;
-  expect(d.schemaVersion).toBe(6);
+  expect(d.schemaVersion).toBe(7);
   expect(d.migrationSource?.raw).toBe(raw);
   expect(localStorage.getItem(V3_STORAGE_KEY)).toBe(raw);
   expect(d.assessments).toEqual(source.assessments);
@@ -85,5 +85,5 @@ it('v4 이전 후 구버전 탭이 v3를 변경하면 저장 차단·복구 스�
   expect(localStorage.getItem(STORAGE_KEY)).toBe(before);
   const snapshot = JSON.parse(repo.recoverySnapshot());
   expect(snapshot.v3).toBe(localStorage.getItem(V3_STORAGE_KEY));
-  expect(snapshot.v6).toBe(before);
+  expect(snapshot.v7).toBe(before);
 });

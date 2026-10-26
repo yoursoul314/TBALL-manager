@@ -1,3 +1,6 @@
+import { ResetPanel } from './ResetPanel';
+import type { ResetScope } from '../domain/reset';
+import { APP_VERSION } from '../config/version';
 import { PhotoBackupPanel } from './PhotoBackupPanel';
 import { BattingAssessmentSettings } from './BattingAssessmentSettings';
 import { useState } from 'react';
@@ -11,10 +14,16 @@ export function SettingsView({
   data,
   onSave,
   onNotify,
+  onReset,
+  onCheckUpdate,
+  updateChecking,
 }: {
   data: Workspace;
   onSave: (d: Workspace) => void;
   onNotify: (m: string, error?: boolean) => void;
+  onReset: (scope: ResetScope) => Promise<void>;
+  onCheckUpdate: () => void;
+  updateChecking: boolean;
 }) {
   const [restoring, setRestoring] = useState<Workspace | null>(null);
   const backup = () =>
@@ -33,8 +42,19 @@ export function SettingsView({
           </h1>
           <p>확정 규칙은 그대로, 결정이 필요한 항목은 명확하게.</p>
         </div>
-        <Badge tone="neutral">v0.3.0</Badge>
+        <Badge tone="neutral">BETA {APP_VERSION}</Badge>
       </div>
+      <Panel title="앱 버전 · 업데이트">
+        <p>현재 BETA {APP_VERSION}. 입력한 선수와 사진은 업데이트 후에도 유지됩니다.</p>
+        <button disabled={updateChecking} onClick={onCheckUpdate}>
+          {updateChecking ? '업데이트 확인 중…' : '앱 업데이트 확인'}
+        </button>
+        <p className="hint">
+          아이패드에 예전 버전이 남아 있으면 기록 저장 후 앱을 다시 여세요. 브라우저 데이터 삭제는
+          필요하지 않습니다.
+        </p>
+      </Panel>
+      <ResetPanel data={data} onReset={onReset} onNotify={onNotify} />
       <div className="two-col">
         <Panel title="저장과 백업" eyebrow="YOUR DATA">
           <div className="storage-status">
@@ -77,8 +97,8 @@ export function SettingsView({
           <div className="callout">
             현재 리비전 {data.revision} · 경기 {data.games.length}개 · 이벤트 {data.events.length}개
             <br />
-            정정 이력과 평가 정책도 백업에 포함됩니다. v1·v2·v3·v4·v5 백업을 읽을 수 있고 내보내기는
-            v5입니다. v5 백업은 구버전 앱에서 열 수 없습니다. 이전 팀워크{' '}
+            정정 이력과 평가 정책도 백업에 포함됩니다. v1~v7 백업을 읽을 수 있고 내보내기는
+            v7입니다. v7 백업은 구버전 앱에서 열 수 없습니다. 이전 팀워크{' '}
             {data.legacyTeamwork.length}건을 보존하고 있습니다.
           </div>
         </Panel>

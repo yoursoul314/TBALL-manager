@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Check, ClipboardCheck } from 'lucide-react';
 import { ABILITIES, ABILITY_LABELS } from '../config/positions';
 import type { Workspace } from '../domain/model';
-import { Panel, Badge } from './ui';
+import { activePlayers } from '../domain/gameLibrary';
+import { Panel, Badge, Empty } from './ui';
 export function AssessmentView({
   data,
   onSave,
@@ -14,7 +15,9 @@ export function AssessmentView({
   onSave: (data: Workspace) => void;
   onDirtyChange?: (v: boolean) => void;
 }) {
-  const [playerId, setPlayerId] = useState(data.players[0].id);
+  const players = activePlayers(data);
+  const [selectedId, setPlayerId] = useState(players[0]?.id ?? '');
+  const playerId = players.some((p) => p.id === selectedId) ? selectedId : (players[0]?.id ?? '');
   const [tab, setTab] = useState<'batting' | 'skill' | 'teamwork'>('batting');
   const [dirty, setDirty] = useState(false);
   const [warning, setWarning] = useState('');
@@ -34,7 +37,11 @@ export function AssessmentView({
     setTab(next);
   };
   const latest = data.assessments.filter((a) => a.playerId === playerId).at(-1);
-  const current = data.players.find((p) => p.id === playerId)!;
+  const current = players.find((p) => p.id === playerId);
+  if (!current)
+    return (
+      <Empty>등록된 선수가 없습니다. 선수 & 팀에서 선수를 등록하거나 복원한 뒤 평가하세요.</Empty>
+    );
   return (
     <>
       <div className="page-title">
@@ -65,27 +72,27 @@ export function AssessmentView({
         <Panel title="평가 대상">
           <label>
             선수 선택
-            <select value={playerId} onChange={(e) => changePlayer(e.target.value)}>
-              {data.players.map((p) => (
+            <select aria-label="선수 선택" value={playerId} onChange={(e) => changePlayer(e.target.value)}>
+              {players.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} · {data.teams.find((t) => t.id === p.teamId)?.name}
+                  {p.name} · {data.teams.find((t) => t.id === p.teamId)?.name ?? '공통 명단'}
                 </option>
               ))}
             </select>
           </label>
           <div className="button-row">
             <button
-              disabled={data.players[0].id === playerId}
+              disabled={players[0].id === playerId}
               onClick={() =>
-                changePlayer(data.players[data.players.findIndex((p) => p.id === playerId) - 1].id)
+                changePlayer(players[players.findIndex((p) => p.id === playerId) - 1].id)
               }
             >
               이전 선수
             </button>
             <button
-              disabled={data.players.at(-1)!.id === playerId}
+              disabled={players.at(-1)!.id === playerId}
               onClick={() =>
-                changePlayer(data.players[data.players.findIndex((p) => p.id === playerId) + 1].id)
+                changePlayer(players[players.findIndex((p) => p.id === playerId) + 1].id)
               }
             >
               다음 선수
@@ -95,7 +102,7 @@ export function AssessmentView({
           <div className="assessment-person">
             <span className="avatar large">{String(current.number).padStart(2, '0')}</span>
             <h2>{current.name}</h2>
-            <p>{data.teams.find((t) => t.id === current.teamId)?.name}</p>
+            <p>{data.teams.find((t) => t.id === current.teamId)?.name ?? '공통 명단'}</p>
           </div>
           <div className="callout">
             <ClipboardCheck size={20} />

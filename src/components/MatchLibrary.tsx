@@ -3,6 +3,7 @@ import { Plus, ArrowRight, Trash2, RotateCcw } from 'lucide-react';
 import type { Game, Workspace } from '../domain/model';
 import { replayGame, scoreboard } from '../engine/game';
 import { gameTeamName } from '../domain/roster';
+import { activeTeams } from '../domain/gameLibrary';
 import { NewGame } from './NewGame';
 import { Badge, Empty, Modal } from './ui';
 export function MatchLibrary({
@@ -54,10 +55,19 @@ export function MatchLibrary({
           <h1>경기 기록실</h1>
           <p>경기를 선택하면 기록과 상세 내용을 확인할 수 있습니다.</p>
         </div>
-        <button className="primary" onClick={() => setCreating(true)}>
+        <button
+          className="primary"
+          disabled={activeTeams(data).length < 2}
+          onClick={() => setCreating(true)}
+        >
           <Plus size={18} />새 경기
         </button>
       </div>
+      {activeTeams(data).length < 2 && (
+        <p className="callout">
+          새 경기를 만들려면 운영 팀이 두 개 필요합니다. 선수 & 팀에서 팀을 추가하거나 복원하세요.
+        </p>
+      )}
       <div className="library-filters">
         <div className="tabs">
           <button aria-pressed={!trash} onClick={() => setTrash(false)}>

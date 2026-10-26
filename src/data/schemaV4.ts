@@ -121,13 +121,14 @@ export function parseWorkspaceV4(
   input: unknown,
   legacyV3 = false,
   historicalMembership = false,
+  allowEmptyGames = false,
 ): Workspace {
   const batting = battingSchema.parse(input);
   if (batting.schemaVersion !== (legacyV3 ? 3 : 4)) throw new Error('스키마 이전이 필요합니다');
   const baseInput = { ...(input as object), schemaVersion: 2 };
   const common = legacyV3
     ? parseWorkspaceV2(baseInput)
-    : parseCurrentCommon(baseInput, historicalMembership);
+    : parseCurrentCommon(baseInput, historicalMembership, allowEmptyGames);
   const data: Workspace = { ...common, ...batting, schemaVersion: 4 };
   const players = new Set(data.players.map((p) => p.id));
   const sessions = new Map(data.battingSessions.map((s) => [s.id, s]));

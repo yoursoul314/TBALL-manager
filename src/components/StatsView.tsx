@@ -13,7 +13,7 @@ export function StatsView({
   data: Workspace;
   onProfile: (id: string) => void;
 }) {
-  const [gameId, setGameId] = useState(data.games[0].id);
+  const [gameId, setGameId] = useState(data.games[0]?.id ?? '');
   const [scope, setScope] = useState<'record' | 'selection'>('record');
   const [dateFilter, setDateFilter] = useState('');
   const active = data.games.filter((g) => !g.archivedAt);

@@ -23,13 +23,14 @@ import {
   V3_STORAGE_KEY,
   V4_STORAGE_KEY,
   V5_STORAGE_KEY,
+  V6_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
 import { replayGame } from './engine/game';
 import { Players, Profile } from './components/Players';
 import { MatchLibrary } from './components/MatchLibrary';
-import { activeGames, setGameArchived } from './domain/gameLibrary';
+import { activeGames, activePlayers, activeTeams, setGameArchived } from './domain/gameLibrary';
 import { MatchView } from './components/MatchView';
 import { AssessmentView } from './components/AssessmentView';
 import { SelectionView } from './components/SelectionView';
@@ -37,6 +38,11 @@ import { SettingsView } from './components/SettingsView';
 import { StatsView } from './components/StatsView';
 import { Badge, Panel } from './components/ui';
 import { Field } from './components/Field';
+import { APP_VERSION } from './config/version';
+import { useAppUpdate } from './hooks/useAppUpdate';
+import { resetWorkspace, type ResetScope } from './domain/reset';
+import { photoRepository } from './data/photos';
+import { restorePhotosAndWorkspace } from './data/photoBackup';
 const previewMode = new URLSearchParams(location.search).get('preview') === '1';
 const repository = new LocalWorkspaceRepository(previewMode ? sessionStorage : localStorage);
 const navigation = [
@@ -66,6 +72,7 @@ export default function App() {
   const [notice, setNotice] = useState<{ message: string; error: boolean } | null>(null);
   const [assessmentDirty, setAssessmentDirty] = useState(false);
   const [matchDirty, setMatchDirty] = useState(false);
+  const update = useAppUpdate(assessmentDirty || matchDirty);
   const [menu, setMenu] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [stale, setStale] = useState(false);
@@ -79,7 +86,8 @@ export default function App() {
           e.key === V2_STORAGE_KEY ||
           e.key === V3_STORAGE_KEY ||
           e.key === V4_STORAGE_KEY ||
-          e.key === V5_STORAGE_KEY)
+          e.key === V5_STORAGE_KEY ||
+          e.key === V6_STORAGE_KEY)
       )
         setStale(true);
     };
@@ -139,10 +147,11 @@ export default function App() {
     }
   };
   const game = data.games.find((g) => g.id === gameId) ?? data.games[0];
-  const events = data.events.filter((e) => e.gameId === game.id);
-  const state = replayGame(game, events);
+  const events = game ? data.events.filter((e) => e.gameId === game.id) : [];
+  const state = game ? replayGame(game, events) : null;
   const record = (payload: EventPayload) => {
     try {
+      if (!game) throw new Error('경기를 먼저 생성하세요');
       if (game.archivedAt) throw new Error('삭제된 경기를 먼저 복원하세요');
       save({
         ...data,
@@ -261,11 +270,32 @@ export default function App() {
               {online ? <i /> : <WifiOff size={14} />}{' '}
               {previewMode ? '검증 탭 임시 저장' : online ? '기기 내 저장' : '오프라인'}
             </span>
-            <span className="version">BETA 0.6.0</span>
+            <button
+              className="version"
+              title="앱 업데이트 확인"
+              onClick={() => void update.check()}
+              disabled={update.checking}
+            >
+              BETA {APP_VERSION}
+            </button>
             <div className="top-avatar">TB</div>
           </div>
         </header>
         <main>
+          {(update.available || update.message) && (
+            <div className="update-banner" role="status">
+              <b>{update.message || '새 버전이 준비되었습니다. 기록을 저장한 뒤 적용하세요.'}</b>
+              {update.available && (
+                <button
+                  disabled={update.checking || assessmentDirty || matchDirty}
+                  onClick={() => void update.apply()}
+                >
+                  새 버전 적용
+                </button>
+              )}
+              {!update.available && <button onClick={update.dismiss}>업데이트 안내 닫기</button>}
+            </div>
+          )}
           {previewMode && (
             <div className="callout">
               검증 모드 · 이 탭의 가상 기록만 임시 저장합니다. 실제 브라우저 기록과 분리됩니다.
@@ -295,7 +325,7 @@ export default function App() {
             />
           )}
           {view === 'players' && <Players data={data} onSave={save} onProfile={setProfile} />}
-          {view === 'match' && !matchOpened && (
+          {view === 'match' && (!matchOpened || !game) && (
             <MatchLibrary
               data={data}
               onOpen={(id) => {
@@ -314,7 +344,7 @@ export default function App() {
               }}
             />
           )}
-          {view === 'match' && matchOpened && (
+          {view === 'match' && matchOpened && game && state && (
             <MatchView
               data={data}
               game={game}
@@ -345,7 +375,27 @@ export default function App() {
             <SelectionView data={data} onSave={safelySave} onProfile={setProfile} />
           )}
           {view === 'settings' && (
-            <SettingsView key={data.policy.version} data={data} onSave={save} onNotify={notify} />
+            <SettingsView
+              key={data.policy.version}
+              data={data}
+              onSave={save}
+              onNotify={notify}
+              onCheckUpdate={() => void update.check()}
+              updateChecking={update.checking}
+              onReset={async (scope: ResetScope) => {
+                if (stale || assessmentDirty || matchDirty)
+                  throw new Error('미저장 입력 또는 다른 탭의 변경을 먼저 확인하세요');
+                const next = resetWorkspace(data, scope, new Date().toISOString());
+                if (scope === 'all')
+                  await restorePhotosAndWorkspace(photoRepository, [], next, (empty) =>
+                    setData(repository.resetAll(empty, data.revision)),
+                  );
+                else save(next);
+                setGameId('');
+                setMatchOpened(false);
+                setProfile(null);
+              }}
+            />
           )}
           <footer>
             <span>
@@ -424,7 +474,7 @@ function Dashboard({
           <small>TEAM BALL · TEAM GROWTH</small>
         </div>
         <div className="hero-field">
-          <Field players={data.players} />
+          <Field players={activePlayers(data)} />
           <div className="hero-field-note">
             <span>10</span>
             <p>
@@ -439,9 +489,9 @@ function Dashboard({
         {[
           {
             label: '함께하는 선수',
-            value: data.players.length,
+            value: activePlayers(data).length,
             unit: '명',
-            detail: data.teams.length + '개 팀',
+            detail: activeTeams(data).length + '개 팀',
             icon: Users,
           },
           {

@@ -10,6 +10,11 @@ export { battingSessionSchema, battingAttemptSchema, battingSettingsSchema } fro
 const id = z.string().min(1).max(120);
 const note = z.string().max(2000);
 const extras = z.object({
+  archivedAt: z.iso.datetime().nullable().optional(),
+  archiveHistory: z
+    .array(z.object({ action: z.enum(['archive', 'restore']), at: z.iso.datetime() }))
+    .max(10000)
+    .optional(),
   grade: z
     .union([z.literal(1), z.literal(2), z.literal(3)])
     .nullable()
@@ -22,7 +27,7 @@ const extras = z.object({
 });
 export const playerSchema = extras.extend({
   id,
-  teamId: id,
+  teamId: id.nullable(),
   name: z.string().trim().min(1).max(200),
   number: z.number().int().min(0).max(999),
   active: z.boolean(),
@@ -100,10 +105,19 @@ export const defenseSequenceSchema = z
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(6),
+      schemaVersion: z.literal(7),
+      lastReset: z
+        .object({ at: z.iso.datetime(), scope: z.enum(['games', 'evaluations', 'records', 'all']) })
+        .optional(),
       migrationSource: z
         .object({
-          schemaVersion: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+          schemaVersion: z.union([
+            z.literal(2),
+            z.literal(3),
+            z.literal(4),
+            z.literal(5),
+            z.literal(6),
+          ]),
           raw: z.string(),
         })
         .optional(),
@@ -116,6 +130,7 @@ export function parseWorkspace(input: unknown): Workspace {
   const base = parseWorkspaceV4(
     { ...(input as object), schemaVersion: 4, migrationSource: undefined },
     false,
+    true,
     true,
   );
   const players = header.players.map((p) => playerSchema.parse(p));
@@ -176,7 +191,8 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 6,
+    schemaVersion: 7,
+    lastReset: header.lastReset,
     migrationSource: header.migrationSource,
     teams: header.teams.map((t) => team.parse(t)),
     players,
