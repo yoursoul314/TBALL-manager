@@ -83,7 +83,10 @@ it('경기/평가/전체 기록 초기화 범위가 분리되고 빈 경기 백�
   expect(evaluation.games).toEqual(data.games);
   expect(evaluation.assessments).toEqual([]);
   expect(evaluation.teamwork).toEqual([]);
+  data.migrationSource = { schemaVersion: 6, raw: JSON.stringify({ ...data, schemaVersion: 6 }) };
   const records = resetWorkspace(data, 'records', at);
+  expect(records.migrationSource).toEqual(data.migrationSource);
+  expect(resetWorkspace(data, 'all', at).migrationSource).toBeUndefined();
   expect(records.players).toBe(data.players);
   expect(records.teams).toBe(data.teams);
   expect(readBackup(serializeBackup(records))).toEqual(records);

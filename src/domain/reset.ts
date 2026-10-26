@@ -25,8 +25,6 @@ export function resetWorkspace(data: Workspace, scope: ResetScope, at: string): 
   const next: Workspace = {
     ...data,
     lastReset: { at, scope },
-    migrationSource: undefined,
-    legacySource: undefined,
   };
   if (games) {
     next.games = [];
@@ -44,6 +42,8 @@ export function resetWorkspace(data: Workspace, scope: ResetScope, at: string): 
     next.selections = [];
   }
   if (scope === 'all') {
+    next.migrationSource = undefined;
+    next.legacySource = undefined;
     next.players = [];
     next.teams = [];
     next.policy = structuredClone(DEFAULT_POLICY);

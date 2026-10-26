@@ -128,3 +128,9 @@ WebKit은 실제 백업 파일 다운로드까지 통과했다. Chromium headles
 pwa-upgrade-qa는 실제 로컬 HTTP 서버에서 구버전0.5의 캐시된 화면을 재현하고 새 서비스 워커 활성화→0.7 재열기→기존 v5 원문/선수/경기 보존 및 미저장 평가의 업데이트 적용 차단을 Chromium과 WebKit에서 모두 확인했다. 실제 구버전 사용자 기기의 자료를 사용하거나 수정하지 않았다.
 
 모든 브라우저 테스트는 새 비영구 컨텍스트와 가상 학생/도형 사진으로 실행했다. 실제 iPad와 공개 앱 최종 배포 결과는 별도 기록한다. 세부 변경 파일·초기화 한계·조작 단계는 MANAGEMENT_V7.md 참조.
+
+### 공개 앱 검증과 원문 보존 보완
+
+소스00b1002의 [Verify](https://github.com/yoursoul314/TBALL-manager/actions/runs/40274739687)와 [Pages 배포](https://github.com/yoursoul314/TBALL-manager/actions/runs/40274739710)가 성공했다. 공개 주소의 version.json 0.7.0 및 BETA0.7.0을 확인했고 QA_DIST를 해제한 새 비영구 WebKit/Chromium에서 browser-qa 전체가 통과했다. 사진/선수/엔트리/수비 연결/과거 정정/통계/암호화 백업·복원·새로고침과 콘솔 오류0을 확인했다.
+
+후속 보완으로 기록만 초기화할 때 migrationSource/legacySource도 보존하도록 했다. 명시적 전체 초기화만 출처를 제거한다. 이에 대한 검증을 기존 초기화 테스트에 추가했다. 브라우저 검증과 병행한 검사에서 기존 팀 UI 테스트가5초 타임아웃으로1건 실패했으나, 다른 브라우저 작업 종료 후 조건·시간 제한을 변경하지 않은 단독 npm run check에서26파일170개 및 빌드가 모두 통과했다.
