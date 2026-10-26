@@ -97,6 +97,10 @@
 - 브라우저 조작 도구가 현재 URL을 확인하지 못해 정책 오류로 중단했다. 이번 릴리스의 실제 화면/사진 IndexedDB 지속성/실제 iPad/전후 스크린샷 검증은 미실시. 이전 v0.4 화면 결과를 v0.5 결과로 간주하지 않는다.
 - GitHub 연결 도구의 branch 생성은403 Resource not accessible by integration으로 실패했다. 로컬 변경의 원격 반영 여부는 별도 배포 결과를 확인해야 한다.
 
-### 원격 반영 상태
+### 직전 작업의 원격 반영 이력
 
 2026-10-26: 네트워크 권한 허용 후 git fetch origin main은 성공했다. 최신 main과 기준 소스가 동일함을 확인한 뒤 작업 브랜치를 최신 main 위로 재배치했다. GitHub 연결 도구의 쓰기는403 Resource not accessible by integration,git push는 Windows Git credential-manager 실행 실패(NtCreateDirectoryObject 0xC0000022 / terminal prompts disabled)로 완료하지 못했다. 공개 GitHub Pages에 이번 변경이 배포되었다고 표시하지 않는다. 로컬 코드·커밋·반영용 패치는 보존한다.
+
+### 인증 경로 복구 및 배포 진행 (2026-10-26)
+
+GitHub 계정의 저장소 관리자·쓰기 권한을 확인했다. 연결 도구의403과 자동 실행 환경의 Windows 자격 증명 접근 오류는 별도 문제였다. 설치된 GitHub Desktop에 이 로컬 저장소를 등록하고 기존 로그인으로 feat/roster-defense-v3 게시에 성공했으며,원격 fd6eebc0b931e279bd57ac1c66177d583aa15667과 로컬 수정본의 일치를 확인했다. 토큰을 추출하거나 권한을 확대하지 않았다. 이후 main 반영은 GitHub Desktop의 Push origin으로 진행하고 GitHub Actions의 Verify/Pages 결과를 확인한다. 이전의 배포 실패 기록은 이력으로 보존한다.

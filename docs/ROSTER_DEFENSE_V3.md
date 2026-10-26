@@ -112,6 +112,10 @@ Workspace v5, Player 선택적 학적/포지션, Game.entry 당시 팀·선수·
 - [IndexedDB 트랜잭션](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB)
 - [Web Crypto 암호화](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt)
 
-### 원격 반영 상태
+### 직전 작업의 원격 반영 이력
 
 2026-10-26: 네트워크 권한 허용 후 git fetch origin main은 성공했다. 최신 main과 기준 소스가 동일함을 확인한 뒤 작업 브랜치를 최신 main 위로 재배치했다. GitHub 연결 도구의 쓰기는403 Resource not accessible by integration,git push는 Windows Git credential-manager 실행 실패(NtCreateDirectoryObject 0xC0000022 / terminal prompts disabled)로 완료하지 못했다. 공개 GitHub Pages에 이번 변경이 배포되었다고 표시하지 않는다. 로컬 코드·커밋·반영용 패치는 보존한다.
+
+### 인증 경로 복구 및 배포 진행 (2026-10-26)
+
+GitHub 계정의 저장소 관리자·쓰기 권한을 확인했다. 연결 도구의403과 자동 실행 환경의 Windows 자격 증명 접근 오류는 별도 문제였다. 설치된 GitHub Desktop에 이 로컬 저장소를 등록하고 기존 로그인으로 feat/roster-defense-v3 게시에 성공했으며,원격 fd6eebc0b931e279bd57ac1c66177d583aa15667과 로컬 수정본의 일치를 확인했다. 토큰을 추출하거나 권한을 확대하지 않았다. 이후 main 반영은 GitHub Desktop의 Push origin으로 진행하고 GitHub Actions의 Verify/Pages 결과를 확인한다. 이전의 배포 실패 기록은 이력으로 보존한다.
