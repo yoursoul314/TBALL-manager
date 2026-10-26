@@ -1,3 +1,4 @@
+import { activeTeams } from '../domain/gameLibrary';
 import { useEffect, useRef, useState } from 'react';
 import type { Player, Workspace } from '../domain/model';
 import { captureLegacyEntry } from '../domain/roster';
@@ -21,7 +22,7 @@ export function PlayerEditor({
     () =>
       player ?? {
         id: crypto.randomUUID(),
-        teamId: data.teams[0]?.id ?? '',
+        teamId: activeTeams(data)[0]?.id ?? '',
         name: '',
         number: 1,
         active: true,
@@ -148,11 +149,14 @@ export function PlayerEditor({
             <label>
               소속 팀
               <select value={draft.teamId} onChange={(e) => patch({ teamId: e.target.value })}>
-                {data.teams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
+                {data.teams
+                  .filter((t) => !t.archivedAt || t.id === draft.teamId)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                      {t.archivedAt ? ' (삭제된 팀)' : ''}
+                    </option>
+                  ))}
               </select>
             </label>
           </div>

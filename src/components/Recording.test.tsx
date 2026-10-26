@@ -17,6 +17,7 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
   render(<App />);
   expect(screen.getByText(/서버 인증·접근 권한/)).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /경기 기록하기/ }));
+  await user.click(screen.getByRole('button', { name: '2학년 티볼 연습 경기 경기 열기' }));
   await user.click(screen.getByRole('button', { name: '1루타' }));
   await user.click(screen.getByRole('button', { name: '상세 모드' }));
   const commit = screen.getByRole('button', { name: /심판 타임 · 플레이 확정/ });
@@ -39,6 +40,7 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
     strength: 'strong',
     quality: 'ground',
   });
+  await user.click(screen.getByText(/타순·플레이 기록 보기/));
   await user.click(screen.getByRole('button', { name: '플레이 수정 · 이력' }));
   const dialog = within(screen.getByRole('dialog'));
   await user.type(dialog.getByLabelText('수정자 별칭'), '테스트 기록원');
@@ -59,6 +61,7 @@ it('볼 데드 수비 포지션 변경 화면을 저장하고 라이브에서는
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: /경기 기록하기/ }));
+  await user.click(screen.getByRole('button', { name: '2학년 티볼 연습 경기 경기 열기' }));
   await user.click(screen.getByRole('button', { name: '수비 포지션 변경' }));
   await user.selectOptions(screen.getByLabelText('1루수 배치'), 'orange-1');
   await user.selectOptions(screen.getByLabelText('유격수 배치'), 'orange-2');

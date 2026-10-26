@@ -22,11 +22,14 @@ import {
   V2_STORAGE_KEY,
   V3_STORAGE_KEY,
   V4_STORAGE_KEY,
+  V5_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
 import { replayGame } from './engine/game';
 import { Players, Profile } from './components/Players';
+import { MatchLibrary } from './components/MatchLibrary';
+import { activeGames, setGameArchived } from './domain/gameLibrary';
 import { MatchView } from './components/MatchView';
 import { AssessmentView } from './components/AssessmentView';
 import { SelectionView } from './components/SelectionView';
@@ -56,6 +59,7 @@ export default function App() {
   });
   const [data, setData] = useState<Workspace | null>(loaded.data);
   const [view, setView] = useState<View>('dashboard');
+  const [matchOpened, setMatchOpened] = useState(false);
   const [gameId, setGameId] = useState(loaded.data?.games[0]?.id || '');
   const [deviceId] = useState(() => crypto.randomUUID());
   const [profile, setProfile] = useState<string | null>(null);
@@ -74,7 +78,8 @@ export default function App() {
           e.key === LEGACY_STORAGE_KEY ||
           e.key === V2_STORAGE_KEY ||
           e.key === V3_STORAGE_KEY ||
-          e.key === V4_STORAGE_KEY)
+          e.key === V4_STORAGE_KEY ||
+          e.key === V5_STORAGE_KEY)
       )
         setStale(true);
     };
@@ -138,6 +143,7 @@ export default function App() {
   const state = replayGame(game, events);
   const record = (payload: EventPayload) => {
     try {
+      if (game.archivedAt) throw new Error('삭제된 경기를 먼저 복원하세요');
       save({
         ...data,
         events: [
@@ -162,25 +168,27 @@ export default function App() {
     try {
       save({ ...data, games: [...data.games, g] });
       setGameId(g.id);
+      setMatchOpened(true);
       return true;
     } catch {
       return false;
     }
   };
   const navigate = (next: View) => {
-    if ((assessmentDirty || matchDirty) && next !== view) {
+    if ((assessmentDirty || matchDirty) && (next !== view || next === 'match')) {
       setNotice({
         message: '저장하지 않은 입력이 있습니다. 먼저 기록을 확정하거나 입력을 되돌리세요.',
         error: true,
       });
       return;
     }
+    if (next === 'match') setMatchOpened(false);
     setView(next);
     setMenu(false);
     window.scrollTo({ top: 0 });
   };
   return (
-    <div className="app-shell">
+    <div className={'app-shell' + (view === 'match' && matchOpened ? ' match-recording' : '')}>
       <aside className={'sidebar ' + (menu ? 'open' : '')}>
         <a
           className="brand"
@@ -201,7 +209,12 @@ export default function App() {
         <div className="workspace-label">COACH WORKSPACE</div>
         <nav>
           {navigation.map(({ id, name, icon: Icon }) => (
-            <button key={id} className={view === id ? 'active' : ''} onClick={() => navigate(id)}>
+            <button
+              key={id}
+              aria-label={name}
+              className={view === id ? 'active' : ''}
+              onClick={() => navigate(id)}
+            >
               <Icon size={19} />
               <span>{name}</span>
               {id === 'match' && <i className="nav-dot" />}
@@ -248,7 +261,7 @@ export default function App() {
               {online ? <i /> : <WifiOff size={14} />}{' '}
               {previewMode ? '검증 탭 임시 저장' : online ? '기기 내 저장' : '오프라인'}
             </span>
-            <span className="version">BETA 0.5.1</span>
+            <span className="version">BETA 0.6.0</span>
             <div className="top-avatar">TB</div>
           </div>
         </header>
@@ -269,15 +282,49 @@ export default function App() {
               <button onClick={() => location.reload()}>새로고침</button>하세요.
             </div>
           )}
-          {view === 'dashboard' && <Dashboard data={data} navigate={navigate} />}
+          {view === 'dashboard' && (
+            <Dashboard
+              data={data}
+              navigate={navigate}
+              onOpen={(id) => {
+                setGameId(id);
+                setMatchOpened(true);
+                setView('match');
+                window.scrollTo({ top: 0 });
+              }}
+            />
+          )}
           {view === 'players' && <Players data={data} onSave={save} onProfile={setProfile} />}
-          {view === 'match' && (
+          {view === 'match' && !matchOpened && (
+            <MatchLibrary
+              data={data}
+              onOpen={(id) => {
+                setGameId(id);
+                setMatchOpened(true);
+                window.scrollTo({ top: 0 });
+              }}
+              onCreate={create}
+              onArchive={(id, archived) => {
+                try {
+                  save(setGameArchived(data, id, archived, new Date().toISOString()));
+                  return true;
+                } catch {
+                  return false;
+                }
+              }}
+            />
+          )}
+          {view === 'match' && matchOpened && (
             <MatchView
               data={data}
               game={game}
               state={state}
               onEvent={record}
-              onCreate={create}
+              onBack={() => {
+                if (state.ball === 'live' || matchDirty) return;
+                setMatchOpened(false);
+                window.scrollTo({ top: 0 });
+              }}
               onDirtyChange={setMatchDirty}
               onUpdateGame={(g) => {
                 try {
@@ -287,7 +334,6 @@ export default function App() {
                   return false;
                 }
               }}
-              onSelect={setGameId}
               onProfile={setProfile}
             />
           )}
@@ -325,8 +371,16 @@ export default function App() {
     </div>
   );
 }
-function Dashboard({ data, navigate }: { data: Workspace; navigate: (view: View) => void }) {
-  const played = data.games.reduce(
+function Dashboard({
+  data,
+  navigate,
+  onOpen,
+}: {
+  data: Workspace;
+  navigate: (view: View) => void;
+  onOpen: (id: string) => void;
+}) {
+  const played = activeGames(data).reduce(
     (sum, g) =>
       sum +
       replayGame(
@@ -392,7 +446,7 @@ function Dashboard({ data, navigate }: { data: Workspace; navigate: (view: View)
           },
           {
             label: '등록된 경기',
-            value: data.games.length,
+            value: activeGames(data).length,
             unit: '경기',
             detail: '수업별 경기 기록',
             icon: CircleDot,
@@ -431,11 +485,11 @@ function Dashboard({ data, navigate }: { data: Workspace; navigate: (view: View)
           eyebrow="ON DECK"
           action={
             <button className="text-button" onClick={() => navigate('match')}>
-              경기 기록실 <ArrowRight size={15} />
+              경기 목록 보기 <ArrowRight size={15} />
             </button>
           }
         >
-          {data.games
+          {activeGames(data)
             .slice(-2)
             .reverse()
             .map((g) => {
@@ -444,7 +498,7 @@ function Dashboard({ data, navigate }: { data: Workspace; navigate: (view: View)
                 data.events.filter((e) => e.gameId === g.id),
               );
               return (
-                <button className="game-tile" key={g.id} onClick={() => navigate('match')}>
+                <button className="game-tile" key={g.id} onClick={() => onOpen(g.id)}>
                   <div className="game-icon">
                     <CircleDot size={27} />
                   </div>

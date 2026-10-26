@@ -1,3 +1,4 @@
+import { activeTeams } from '../domain/gameLibrary';
 import { useState, useRef } from 'react';
 import type { EntryStatus, Game, Side, Workspace } from '../domain/model';
 import { localDate, gradeLabel, ENTRY_LABELS, validateEntry } from '../domain/roster';
@@ -24,8 +25,8 @@ export function NewGame({
   const orderRef = useRef<HTMLDetailsElement>(null);
   const approvalRef = useRef<HTMLDivElement>(null);
   const [teams, setTeams] = useState({
-    away: data.teams[0]?.id ?? '',
-    home: data.teams[1]?.id ?? '',
+    away: activeTeams(data)[0]?.id ?? '',
+    home: activeTeams(data)[1]?.id ?? '',
   });
   const empty = (teamId: string): Draft => ({
     status: Object.fromEntries(
@@ -191,7 +192,7 @@ export function NewGame({
                   setApproved(false);
                 }}
               >
-                {data.teams.map((t) => (
+                {activeTeams(data).map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>
@@ -202,7 +203,7 @@ export function NewGame({
         </div>
         <p className="hint">
           대기 팀:{' '}
-          {data.teams
+          {activeTeams(data)
             .filter((t) => t.id !== teams.away && t.id !== teams.home)
             .map((t) => t.name)
             .join(', ') || '없음'}{' '}

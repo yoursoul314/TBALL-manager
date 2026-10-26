@@ -125,6 +125,7 @@ it('필드 터치 수비 연결→주자 확인→심판 타임으로 저장하�
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: /경기 기록하기/ }));
+  await user.click(screen.getByRole('button', { name: '2학년 티볼 연습 경기 경기 열기' }));
   await user.click(screen.getByRole('button', { name: '아웃' }));
   const defense = within(screen.getByRole('region', { name: '상대 팀 수비 터치 기록' }));
   const action = (player: string, name: string) => {
@@ -211,8 +212,10 @@ it('날짜 필터 중 새 추천 엔트리를 확인해 생성하면 새 경기 
   fireEvent.click(screen.getByRole('button', { name: '경기 생성' }));
   expect(saved().games).toHaveLength(2);
   expect(saved().games[1].entry).toMatchObject({ source: 'manager', approvedBy: '가상 감독' });
-  expect(screen.getByLabelText('경기 날짜 필터')).toHaveValue('');
-  expect(screen.getByLabelText('경기 선택')).toHaveValue(saved().games[1].id);
+  expect(
+    screen.getByRole('heading', { name: saved().games[1].name, level: 1 }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '← 경기 목록' })).toBeInTheDocument();
   expect(screen.queryByText('선택한 날짜의 경기가 없습니다.')).not.toBeInTheDocument();
 });
 

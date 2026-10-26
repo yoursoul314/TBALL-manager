@@ -16,8 +16,11 @@ export function StatsView({
   const [gameId, setGameId] = useState(data.games[0].id);
   const [scope, setScope] = useState<'record' | 'selection'>('record');
   const [dateFilter, setDateFilter] = useState('');
-  const filteredGames = data.games.filter((g) => !dateFilter || g.playedOn === dateFilter);
-  const game = filteredGames.find((g) => g.id === gameId) ?? filteredGames[0] ?? data.games[0];
+  const active = data.games.filter((g) => !g.archivedAt);
+  const filteredGames = active.filter((g) => !dateFilter || g.playedOn === dateFilter);
+  const game = filteredGames.find((g) => g.id === gameId) ?? filteredGames[0] ?? active[0];
+  if (!game)
+    return <Empty>표시할 경기가 없습니다. 경기 목록에서 추가하거나 휴지통에서 복원하세요.</Empty>;
   const players = gamePlayers(game, data);
   const report = calculateStats(
     game,

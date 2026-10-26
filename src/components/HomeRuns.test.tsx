@@ -16,6 +16,7 @@ it.each([
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: /경기 기록하기/ }));
+  await user.click(screen.getByRole('button', { name: '2학년 티볼 연습 경기 경기 열기' }));
   await user.click(screen.getByRole('button', { name: '홈런' }));
   await user.click(screen.getByRole('button', { name: '상세 모드' }));
   await user.click(screen.getByRole('button', { name: '우 원거리' }));
@@ -31,6 +32,7 @@ it.each([
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as Workspace;
   expect(saved.events[1].payload).toMatchObject({ result: 'home-run', quality, strength });
   expect(readBackup(serializeBackup(saved)).events).toEqual(saved.events);
+  await user.click(screen.getByText(/타순·플레이 기록 보기/));
   await user.click(screen.getByRole('button', { name: '플레이 수정 · 이력' }));
   const dialog = within(screen.getByRole('dialog'));
   await user.click(dialog.getByRole('button', { name: '상세 모드' }));

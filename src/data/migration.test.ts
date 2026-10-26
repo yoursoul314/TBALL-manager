@@ -61,7 +61,7 @@ it('v1 원문·이벤트·책임감·존중을 보존하고 v2 이전은 반복�
   expect(next.events).toEqual(old.events);
   expect(next.legacyTeamwork).toEqual(old.teamwork);
   expect(next.teamwork).toEqual([]);
-  expect(next.schemaVersion).toBe(5);
+  expect(next.schemaVersion).toBe(6);
   expect(migrateWorkspace(next)).toEqual(next);
   expect(repo.load()).toEqual(next);
   expect(readBackup(serializeBackup(next))).toEqual(next);

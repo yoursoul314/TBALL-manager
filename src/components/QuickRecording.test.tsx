@@ -115,6 +115,7 @@ it('경기 간편 결과는 주자 확인·심판 타임 전에 확정 불가, �
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: '경기 기록하기' }));
+  await user.click(screen.getByRole('button', { name: '2학년 티볼 연습 경기 경기 열기' }));
   await user.click(screen.getByRole('button', { name: '2루타' }));
   const save = screen.getByRole('button', { name: '심판 타임 · 플레이 확정' });
   expect(save).toBeDisabled();
@@ -147,6 +148,7 @@ it('아웃 종류·위치 누락은 확인 차단, 확인 후 주자 변경은 �
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: '경기 기록하기' }));
+  await user.click(screen.getByRole('button', { name: '2학년 티볼 연습 경기 경기 열기' }));
   await user.click(screen.getByRole('button', { name: '아웃' }));
   const confirm = screen.getByRole('button', { name: '샘플 선수 01 결과 확인' });
   expect(confirm).toBeDisabled();
@@ -162,6 +164,7 @@ it('수비 관찰 추가 시 미관찰을 기본으로 저장하며 실패로 �
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: '경기 기록하기' }));
+  await user.click(screen.getByRole('button', { name: '2학년 티볼 연습 경기 경기 열기' }));
   await user.click(screen.getByRole('button', { name: '1루타' }));
   await user.click(screen.getByRole('button', { name: '상세 모드' }));
   await user.click(screen.getByRole('button', { name: '+ 수비 능력 관찰' }));
@@ -202,4 +205,20 @@ it('선수 프로필 모드는 분리되며 통합 보기에서도 공식 타석
   expect(screen.getByTestId('batting-score')).toHaveTextContent('80.0');
   expect(screen.queryByRole('heading', { name: '실전 경기 기록' })).toBeNull();
   expect(within(screen.getByRole('dialog')).getByText('0타석 · 0안타')).not.toBeVisible();
+});
+
+it('상세평가 전체 화면 닫기·다시 열기는 회차 초안을 보존한다', async () => {
+  const user = await openAssessment();
+  await user.click(screen.getByRole('button', { name: '상세 모드' }));
+  expect(screen.getByRole('complementary', { name: '회차 기록지' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '정상 타격' }));
+  await user.click(screen.getByRole('button', { name: '평가 8점' }));
+  await user.click(screen.getByRole('button', { name: '좌 원거리' }));
+  await user.click(screen.getByRole('button', { name: '전체 화면 닫기' }));
+  expect(screen.getByRole('button', { name: '평가 8점' })).toHaveAttribute('aria-pressed', 'true');
+  await user.click(screen.getByRole('button', { name: '상세 모드' }));
+  expect(screen.getByRole('button', { name: '좌 원거리' })).toHaveAttribute('aria-pressed', 'true');
+  await user.click(screen.getByRole('button', { name: '기록 저장 · 다음 회차' }));
+  expect(saved().battingAttempts[0]).toMatchObject({ score: 8, directionZone: 'left-far' });
+  expect(saved().events).toEqual([]);
 });

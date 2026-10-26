@@ -22,6 +22,8 @@ export interface Player {
   note?: string;
 }
 export interface Team {
+  archivedAt?: string | null;
+  archiveHistory?: { action: 'archive' | 'restore'; at: string }[];
   id: Id;
   name: string;
   color: string;
@@ -48,6 +50,8 @@ export interface Game {
   note?: string;
   formation?: 'TYPE1';
   entry?: GameEntry;
+  archivedAt?: string | null;
+  archiveHistory?: { action: 'archive' | 'restore'; at: string }[];
   dateHistory?: { before: string | null; after: string; changedAt: string; author: string }[];
   innings: number;
   rulesVersion: typeof RULES_VERSION;
@@ -236,8 +240,8 @@ export interface Selection {
   approvedAt: string | null;
 }
 export interface Workspace extends BattingData {
-  schemaVersion: 5;
-  migrationSource?: { schemaVersion: 2 | 3 | 4; raw: string };
+  schemaVersion: 6;
+  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

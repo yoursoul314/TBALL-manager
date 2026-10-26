@@ -1,3 +1,4 @@
+import { activeTeams } from '../domain/gameLibrary';
 import { PlayerAvatar } from './PlayerAvatar';
 import { useState } from 'react';
 import { WandSparkles, Check } from 'lucide-react';
@@ -15,9 +16,11 @@ export function SelectionView({
   onSave: (d: Workspace) => void;
   onProfile: (id: string) => void;
 }) {
-  const [team, setTeam] = useState(data.teams[0].id);
+  const [team, setTeam] = useState(activeTeams(data)[0]?.id ?? '');
   const [message, setMessage] = useState('');
   const [approving, setApproving] = useState(false);
+  if (!team || !activeTeams(data).some((t) => t.id === team))
+    return <Empty>선발할 운영 팀이 없습니다. 선수 & 팀에서 팀을 추가하거나 복원하세요.</Empty>;
   const selection = data.selections.filter((s) => s.teamId === team).at(-1);
   const fresh = selection?.sourceRevision === data.revision;
   const generate = () => {
@@ -70,7 +73,7 @@ export function SelectionView({
       </div>
       <div className="toolbar">
         <select aria-label="시뮬레이션 팀" value={team} onChange={(e) => setTeam(e.target.value)}>
-          {data.teams.map((t) => (
+          {activeTeams(data).map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>

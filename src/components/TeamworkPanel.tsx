@@ -63,11 +63,13 @@ export function TeamworkPanel({
           관찰 경기
           <select name="game">
             <option value="">경기 외 관찰</option>
-            {data.games.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
+            {data.games
+              .filter((g) => !g.archivedAt)
+              .map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
           </select>
         </label>
         <label>

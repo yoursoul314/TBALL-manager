@@ -115,7 +115,7 @@ async function download(button, filename) {
   return path.join(out, filename);
 }
 async function workspace() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v5')));
+  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v6')));
 }
 async function photoInfo() {
   return page.evaluate(
@@ -249,7 +249,7 @@ async function photoInfo() {
         Storage.prototype.setItem = original;
       };
       Storage.prototype.setItem = function (k, v) {
-        if (k === 'tb-manager.workspace.v5')
+        if (k === 'tb-manager.workspace.v6')
           throw new DOMException('QA storage full', 'QuotaExceededError');
         return original.call(this, k, v);
       };
@@ -481,6 +481,7 @@ async function photoInfo() {
     const original = after.events.find(
       (e) => e.gameId === game.id && e.payload.type === 'END_PLAY',
     );
+    await page.getByText(/타순·플레이 기록 보기/).tap();
     await page.getByRole('button', { name: '플레이 수정 · 이력', exact: true }).last().tap();
     const correction = page.getByRole('dialog', { name: '과거 플레이 수정' });
     await correction.getByLabel('수정자 별칭', { exact: true }).fill('QA 감독');

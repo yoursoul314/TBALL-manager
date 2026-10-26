@@ -78,6 +78,7 @@ export function BattingAssessmentPanel({
     ? data.battingAttempts.find((a) => a.sessionId === session.id && a.attemptNumber === round)
     : undefined;
   const daily = summarizeBatting(data, playerId, { from: date, to: date });
+  const cumulative = summarizeBatting(data, playerId);
   const execute = (fn: () => Workspace) => {
     try {
       const next = fn();
@@ -100,7 +101,7 @@ export function BattingAssessmentPanel({
     .sort()
     .reverse();
   return (
-    <div className="batting-workspace">
+    <div className={'batting-workspace' + (detailMode ? ' assessment-detailed' : '')}>
       <div className="assessment-summary" aria-label="현재 평가 요약">
         <b>
           {current.name} · {current.number}번
@@ -280,150 +281,180 @@ export function BattingAssessmentPanel({
       </Panel>
       {session && (
         <div ref={inputAnchor} className="record-input-anchor">
+          {detailMode && error && (
+            <p role="alert" className="alert">
+              {error}
+            </p>
+          )}
+          {detailMode && (
+            <header className="assessment-fullscreen-heading">
+              <div>
+                <b>
+                  {current.name} · {current.number}번
+                </b>
+                <span>
+                  {date} · {session.sessionNumber}차 · {round}/{session.targetAttempts}회차 · 오늘
+                  평균 {battingNumber(daily.average)} · 누적{' '}
+                  {cumulative.score === null
+                    ? '평가 기록 없음'
+                    : battingNumber(cumulative.score) + '점'}
+                </span>
+              </div>
+              <button type="button" onClick={() => setDetailMode(false)}>
+                전체 화면 닫기
+              </button>
+            </header>
+          )}
           <Panel
             title={`${round}회차 기록`}
             eyebrow={`${SESSION_LABELS[session.status]} · ${session.targetAttempts}회 중`}
           >
-            <AttemptEditor
-              key={`${session.id}/${round}/${attempt?.updatedAt ?? ''}/${attempt?.status ?? ''}`}
-              defaultDetailed={detailMode}
-              onModeChange={setDetailMode}
-              attempt={attempt}
-              session={session}
-              onDirty={setDirty}
-              onCommit={(input, actor, reason) => {
-                const next = execute(() =>
-                  attempt
-                    ? reviseBattingAttempt(data, attempt.id, input, changeMeta(actor, reason))
-                    : recordBattingAttempt(
-                        data,
-                        session.id,
-                        round,
-                        input,
-                        changeMeta(actor, reason),
-                      ),
-                );
-                if (next) {
-                  setDirty(false);
-                  setLastSaved(
-                    next.battingAttempts.find(
-                      (a) => a.sessionId === session.id && a.attemptNumber === round,
-                    )!.id,
-                  );
-                  setFeedback(
-                    round +
-                      '회차 저장 완료' +
-                      (round < session.targetAttempts
-                        ? ' · 다음 회차'
-                        : ' · 마지막 회차입니다. 세션 상태에서 완료 처리하세요.'),
-                  );
-                  if (round < session.targetAttempts) setRound(round + 1);
-                  return true;
-                }
-                return false;
-              }}
-            />
-            <div role="status" className="save-feedback">
-              {feedback}
-            </div>
-            <button
-              type="button"
-              disabled={
-                !lastSaved ||
-                dirty ||
-                !records.some((a) => a.id === lastSaved) ||
-                session.status === 'cancelled'
-              }
-              onClick={() => {
-                const a = data.battingAttempts.find((a) => a.id === lastSaved);
-                if (!a) return;
-                if (
-                  execute(() =>
-                    reviseBattingAttempt(
-                      data,
-                      a.id,
-                      { ...a, status: 'cancelled' },
-                      changeMeta(session.assessor, '저장 직후 마지막 기록 취소'),
-                    ),
-                  )
-                ) {
-                  setLastSaved('');
-                  setRound(a.attemptNumber);
-                  setFeedback(a.attemptNumber + '회차 취소 · 원본과 수정 이력 보존');
-                }
-              }}
-            >
-              마지막 기록 취소
-            </button>
-            <div className="button-row">
-              <button
-                type="button"
-                disabled={round === 1 || dirty}
-                onClick={() => setRound(round - 1)}
-              >
-                이전 회차
-              </button>
-              <span>
-                {round} / {session.targetAttempts}
-              </span>
-              <button
-                type="button"
-                disabled={round === session.targetAttempts || !attempt || dirty}
-                onClick={() => setRound(round + 1)}
-              >
-                다음 회차
-              </button>
-            </div>
-            {dirty && (
-              <p className="hint">
-                저장하지 않은 입력이 있습니다. 기록 저장 또는 입력 되돌리기 후 회차·세션을
-                이동하세요.
-              </p>
-            )}
-            <h3>타격 평가 기록지</h3>
-            <div className="attempt-sheet" role="list" aria-label="회차별 타격 기록">
-              {Array.from({ length: session.targetAttempts }, (_, i) => i + 1).map((n) => {
-                const a = records.find((r) => r.attemptNumber === n);
-                return (
+            <div className="attempt-workbench">
+              <div className="attempt-editor-pane">
+                <AttemptEditor
+                  key={`${session.id}/${round}/${attempt?.updatedAt ?? ''}/${attempt?.status ?? ''}`}
+                  defaultDetailed={detailMode}
+                  onModeChange={setDetailMode}
+                  attempt={attempt}
+                  session={session}
+                  onDirty={setDirty}
+                  onCommit={(input, actor, reason) => {
+                    const next = execute(() =>
+                      attempt
+                        ? reviseBattingAttempt(data, attempt.id, input, changeMeta(actor, reason))
+                        : recordBattingAttempt(
+                            data,
+                            session.id,
+                            round,
+                            input,
+                            changeMeta(actor, reason),
+                          ),
+                    );
+                    if (next) {
+                      setDirty(false);
+                      setLastSaved(
+                        next.battingAttempts.find(
+                          (a) => a.sessionId === session.id && a.attemptNumber === round,
+                        )!.id,
+                      );
+                      setFeedback(
+                        round +
+                          '회차 저장 완료' +
+                          (round < session.targetAttempts
+                            ? ' · 다음 회차'
+                            : ' · 마지막 회차입니다. 세션 상태에서 완료 처리하세요.'),
+                      );
+                      if (round < session.targetAttempts) setRound(round + 1);
+                      return true;
+                    }
+                    return false;
+                  }}
+                />
+                <div role="status" className="save-feedback">
+                  {feedback}
+                </div>
+                <button
+                  type="button"
+                  disabled={
+                    !lastSaved ||
+                    dirty ||
+                    !records.some((a) => a.id === lastSaved) ||
+                    session.status === 'cancelled'
+                  }
+                  onClick={() => {
+                    const a = data.battingAttempts.find((a) => a.id === lastSaved);
+                    if (!a) return;
+                    if (
+                      execute(() =>
+                        reviseBattingAttempt(
+                          data,
+                          a.id,
+                          { ...a, status: 'cancelled' },
+                          changeMeta(session.assessor, '저장 직후 마지막 기록 취소'),
+                        ),
+                      )
+                    ) {
+                      setLastSaved('');
+                      setRound(a.attemptNumber);
+                      setFeedback(a.attemptNumber + '회차 취소 · 원본과 수정 이력 보존');
+                    }
+                  }}
+                >
+                  마지막 기록 취소
+                </button>
+                <div className="button-row">
                   <button
                     type="button"
-                    role="listitem"
-                    key={n}
-                    disabled={
-                      dirty || (!a && n > 1 && !records.some((r) => r.attemptNumber === n - 1))
-                    }
-                    className={n === round ? 'selected' : ''}
-                    aria-label={`${n}회차 ${a?.status === 'cancelled' ? '취소' : a?.score !== null && a?.score !== undefined ? `${a.score}점` : '미평가'}`}
-                    onClick={() => setRound(n)}
+                    disabled={round === 1 || dirty}
+                    onClick={() => setRound(round - 1)}
                   >
-                    <b>
-                      {n}회차 {a?.status === 'cancelled' ? '· 취소' : ''}
-                    </b>
-                    <span>
-                      방향{' '}
-                      {a?.directionZone
-                        ? zoneLabel(a.directionZone)
-                        : a?.direction
-                          ? DIRECTION_LABELS[a.direction] + ' · 거리 미관찰'
-                          : '미관찰'}
-                    </span>
-                    <span>
-                      유형 {a?.trajectory ? TRAJECTORY_LABELS[a.trajectory] : '—'} / 강도{' '}
-                      {a?.intensity ? STRENGTH_LABELS[a.intensity] : '—'}
-                    </span>
-                    <span>
-                      정확성 {a?.contactQuality ? CONTACT_LABELS[a.contactQuality] : '—'} / 결과{' '}
-                      {a?.result ? RESULT_LABELS[a.result] : '미측정'}
-                    </span>
-                    <strong>
-                      {a?.score ?? '미평가'}
-                      {a?.score !== null && a?.score !== undefined ? '점' : ''}
-                    </strong>
+                    이전 회차
                   </button>
-                );
-              })}
+                  <span>
+                    {round} / {session.targetAttempts}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={round === session.targetAttempts || !attempt || dirty}
+                    onClick={() => setRound(round + 1)}
+                  >
+                    다음 회차
+                  </button>
+                </div>
+                {dirty && (
+                  <p className="hint">
+                    저장하지 않은 입력이 있습니다. 기록 저장 또는 입력 되돌리기 후 회차·세션을
+                    이동하세요.
+                  </p>
+                )}
+              </div>
+              <aside className="attempt-sheet-pane" aria-label="회차 기록지">
+                <h3>타격 평가 기록지</h3>
+                <div className="attempt-sheet" role="list" aria-label="회차별 타격 기록">
+                  {Array.from({ length: session.targetAttempts }, (_, i) => i + 1).map((n) => {
+                    const a = records.find((r) => r.attemptNumber === n);
+                    return (
+                      <button
+                        type="button"
+                        role="listitem"
+                        key={n}
+                        disabled={
+                          dirty || (!a && n > 1 && !records.some((r) => r.attemptNumber === n - 1))
+                        }
+                        className={n === round ? 'selected' : ''}
+                        aria-label={`${n}회차 ${a?.status === 'cancelled' ? '취소' : a?.score !== null && a?.score !== undefined ? `${a.score}점` : '미평가'}`}
+                        onClick={() => setRound(n)}
+                      >
+                        <b>
+                          {n}회차 {a?.status === 'cancelled' ? '· 취소' : ''}
+                        </b>
+                        <span>
+                          방향{' '}
+                          {a?.directionZone
+                            ? zoneLabel(a.directionZone)
+                            : a?.direction
+                              ? DIRECTION_LABELS[a.direction] + ' · 거리 미관찰'
+                              : '미관찰'}
+                        </span>
+                        <span>
+                          유형 {a?.trajectory ? TRAJECTORY_LABELS[a.trajectory] : '—'} / 강도{' '}
+                          {a?.intensity ? STRENGTH_LABELS[a.intensity] : '—'}
+                        </span>
+                        <span>
+                          정확성 {a?.contactQuality ? CONTACT_LABELS[a.contactQuality] : '—'} / 결과{' '}
+                          {a?.result ? RESULT_LABELS[a.result] : '미측정'}
+                        </span>
+                        <strong>
+                          {a?.score ?? '미평가'}
+                          {a?.score !== null && a?.score !== undefined ? '점' : ''}
+                        </strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
             </div>
-            <details>
+            <details className="assessment-audit">
               <summary>
                 원본 및 정정 이력 (
                 {
@@ -585,6 +616,7 @@ function Choices<T extends string>({
           <button
             type="button"
             key={v}
+            aria-label={l}
             aria-pressed={value === v}
             className={value === v ? 'selected' : ''}
             onClick={() => onChange(v as T)}
@@ -622,6 +654,7 @@ function AttemptEditor({
   const [draft, setDraft] = useState<AttemptInput>(attempt ?? blankAttempt());
   const [dirty, setDirty] = useState(false);
   const [detailed, setDetailedState] = useState(defaultDetailed);
+  useEffect(() => setDetailedState(defaultDetailed), [defaultDetailed]);
   const setDetailed = (v: boolean) => {
     setDetailedState(v);
     onModeChange(v);
@@ -654,7 +687,7 @@ function AttemptEditor({
     });
   return (
     <form
-      className="quick-assessment"
+      className={'quick-assessment' + (detailed ? ' detailed-editor' : '')}
       onSubmit={(e) => {
         e.preventDefault();
         if (
@@ -694,6 +727,7 @@ function AttemptEditor({
                   <button
                     type="button"
                     key={v}
+                    aria-label={l}
                     aria-pressed={draft.result === v}
                     onClick={() => {
                       if (v === draft.result) return;
@@ -756,6 +790,44 @@ function AttemptEditor({
             </div>
             <p className="hint">1~10점 직접 판정 · 자동 추정 없음</p>
           </fieldset>
+          <details className="attempt-note" hidden={!detailed}>
+            <summary>평가 메모</summary>
+            <label>
+              회차 메모
+              <textarea
+                maxLength={2000}
+                value={draft.note}
+                onChange={(e) => patch({ note: e.target.value })}
+              />
+            </label>
+          </details>
+          {attempt && (
+            <div className="form-row">
+              <label>
+                기록·수정자
+                <input name="actor" required defaultValue={session.assessor} maxLength={200} />
+              </label>
+              <label>
+                회차 수정 사유
+                <input
+                  name="reason"
+                  required
+                  maxLength={2000}
+                  placeholder="점수 정정, 취소 복원 등"
+                />
+              </label>
+              <label>
+                회차 상태
+                <select
+                  value={draft.status}
+                  onChange={(e) => patch({ status: e.target.value as Attempt['status'] })}
+                >
+                  <option value="active">유효</option>
+                  <option value="cancelled">취소 (원본 보존)</option>
+                </select>
+              </label>
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -790,42 +862,7 @@ function AttemptEditor({
               onChange={(contactQuality) => patch({ contactQuality })}
             />
           </fieldset>
-          <label>
-            회차 메모
-            <textarea
-              maxLength={2000}
-              value={draft.note}
-              onChange={(e) => patch({ note: e.target.value })}
-            />
-          </label>
         </div>
-        {attempt && (
-          <div className="form-row">
-            <label>
-              기록·수정자
-              <input name="actor" required defaultValue={session.assessor} maxLength={200} />
-            </label>
-            <label>
-              회차 수정 사유
-              <input
-                name="reason"
-                required
-                maxLength={2000}
-                placeholder="점수 정정, 취소 복원 등"
-              />
-            </label>
-            <label>
-              회차 상태
-              <select
-                value={draft.status}
-                onChange={(e) => patch({ status: e.target.value as Attempt['status'] })}
-              >
-                <option value="active">유효</option>
-                <option value="cancelled">취소 (원본 보존)</option>
-              </select>
-            </label>
-          </div>
-        )}
         <div className="record-save-bar">
           <button
             type="submit"

@@ -16,7 +16,9 @@ export function DefenseRecorder({
   state,
   steps,
   onChange,
+  teamName,
 }: {
+  teamName?: string;
   data: Workspace;
   state: GameState;
   steps: DefenseStep[];
@@ -73,7 +75,7 @@ export function DefenseRecorder({
   };
   return (
     <section className="defense-recorder" aria-label="상대 팀 수비 터치 기록">
-      <h3>2 · 상대 수비 · TYPE1</h3>
+      <h3>수비 · {teamName ?? '상대 팀'} · TYPE1</h3>
       {Object.keys(assignments).length < 10 && (
         <p className="callout amber">
           수비 {Object.keys(assignments).length}/10명 배치. 미배치 자리는 추정하지 않습니다. 볼
@@ -247,19 +249,26 @@ export function DefenseRecorder({
       )}
       {steps.length > 0 && (
         <div className="defense-sequence">
-          <ol>
-            {steps.map((s, i) => (
-              <li key={s.id}>
-                <b>
-                  {i + 1}. {names(s.playerId)}
-                </b>{' '}
-                {DEFENSE_LABELS[s.action]}
-                {s.targetBase ? ' → ' + (s.targetBase === 'home' ? '홈' : s.targetBase + '루') : ''}
-                {s.runnerId ? ' · ' + names(s.runnerId) : ''}
-                {s.errorType ? ' · 실책 ' + ERROR_LABELS[s.errorType] : ''}
-              </li>
-            ))}
-          </ol>
+          <details>
+            <summary>
+              연결된 수비 {steps.length}개 · {DEFENSE_LABELS[steps.at(-1)!.action]}
+            </summary>
+            <ol>
+              {steps.map((s, i) => (
+                <li key={s.id}>
+                  <b>
+                    {i + 1}. {names(s.playerId)}
+                  </b>{' '}
+                  {DEFENSE_LABELS[s.action]}
+                  {s.targetBase
+                    ? ' → ' + (s.targetBase === 'home' ? '홈' : s.targetBase + '루')
+                    : ''}
+                  {s.runnerId ? ' · ' + names(s.runnerId) : ''}
+                  {s.errorType ? ' · 실책 ' + ERROR_LABELS[s.errorType] : ''}
+                </li>
+              ))}
+            </ol>
+          </details>
           <button
             type="button"
             onClick={() => {

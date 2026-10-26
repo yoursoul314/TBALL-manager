@@ -1,4 +1,3 @@
-import { NewGame } from './NewGame';
 import { PlayerAvatar } from './PlayerAvatar';
 import { gamePlayers, gameTeamName } from '../domain/roster';
 import { HistoryEditor } from './HistoryEditor';
@@ -6,7 +5,7 @@ import { DefenseEditor } from './DefenseEditor';
 import { PlayForm } from './PlayForm';
 import { playResultLabel, resultLabels } from './playLabels';
 import { useState } from 'react';
-import { ArrowRight, CircleDot, Flag, RotateCcw, Plus } from 'lucide-react';
+import { ArrowRight, CircleDot, Flag, RotateCcw } from 'lucide-react';
 import type {
   BatResult,
   EventPayload,
@@ -24,10 +23,9 @@ interface Props {
   game: Game;
   state: GameState;
   onEvent: (p: EventPayload) => boolean;
-  onCreate: (g: Game) => boolean | void;
+  onBack: () => void;
   onUpdateGame?: (g: Game) => boolean;
   onDirtyChange?: (dirty: boolean) => void;
-  onSelect: (id: Id) => void;
   onProfile: (id: Id) => void;
 }
 export function MatchView({
@@ -35,20 +33,15 @@ export function MatchView({
   game,
   state,
   onEvent,
-  onCreate,
-  onSelect,
+  onBack,
   onProfile,
   onUpdateGame,
   onDirtyChange,
 }: Props) {
   const data = { ...currentData, players: gamePlayers(game, currentData) };
-  const [dateFilter, setDateFilter] = useState('');
-  const filteredGames = currentData.games.filter((g) => !dateFilter || g.playedOn === dateFilter);
-  const visibleGame = filteredGames.some((g) => g.id === game.id);
   const [editingDate, setEditingDate] = useState(false);
   const [detailMode, setDetailMode] = useState(false);
   const [quickResult, setQuickResult] = useState<BatResult>('single');
-  const [creating, setCreating] = useState(false);
   const [temp, setTemp] = useState('');
   const [manager, setManager] = useState('');
   const [swap, setSwap] = useState(false);
@@ -62,68 +55,27 @@ export function MatchView({
   const last = effectiveEvents(data.events.filter((e) => e.gameId === game.id)).at(-1);
   return (
     <>
-      <div className="page-title">
-        <div>
-          <div className="eyebrow">LIVE SCOREBOOK</div>
-          <h1>
-            경기 기록실<span className="title-dot">.</span>
-          </h1>
-          <p>한 번의 플레이도 놓치지 않도록, 차근차근 기록하세요.</p>
-        </div>
-        <button
-          className="primary"
-          disabled={state.ball === 'live'}
-          onClick={() => setCreating(true)}
-        >
-          <Plus size={18} />새 경기
-        </button>
-      </div>
-      <div className="toolbar">
-        <label>
-          경기 날짜 필터
-          <input
-            type="date"
-            disabled={state.ball === 'live'}
-            value={dateFilter}
-            onChange={(e) => {
-              const date = e.target.value;
-              setDateFilter(date);
-              const found = currentData.games.find((g) => !date || g.playedOn === date);
-              if (found) onSelect(found.id);
-            }}
-          />
-        </label>
-        {dateFilter && <button onClick={() => setDateFilter('')}>전체 날짜</button>}
-        <select
-          disabled={state.ball === 'live'}
-          aria-label="경기 선택"
-          value={game.id}
-          onChange={(e) => onSelect(e.target.value)}
-        >
-          {filteredGames.map((g) => (
-            <option value={g.id} key={g.id}>
-              {g.playedOn ?? '날짜 미설정'}
-              {g.dateStatus === 'estimated' ? ' (추정)' : ''} · {g.name}
-            </option>
-          ))}
-        </select>
-        <Badge tone={state.status === 'finished' ? 'neutral' : 'green'}>
-          {state.status === 'finished'
-            ? '경기 종료'
-            : state.ball === 'live'
-              ? '플레이 중'
-              : '볼 데드'}
-        </Badge>
-        <span className="muted">{game.innings}이닝 경기 · 전원 타격제</span>
-      </div>
-      {!visibleGame && <Empty>선택한 날짜의 경기가 없습니다.</Empty>}
-      <div hidden={!visibleGame}>
-        <div className="game-date-note">
-          경기일 {game.playedOn ?? '미설정'}{' '}
-          {game.dateStatus !== 'confirmed' && <b>· 실제 경기일 확인 필요 (생성일 기준 추정)</b>}{' '}
-          {game.startTime ?? ''}{' '}
-          {onUpdateGame && <button onClick={() => setEditingDate(true)}>경기일 확인·수정</button>}
-        </div>
+      <section className={'match-detail ' + (state.ball === 'live' ? 'live' : 'dead')}>
+        <header className="match-detail-heading">
+          <button onClick={onBack} disabled={state.ball === 'live'}>
+            ← 경기 목록
+          </button>
+          <div>
+            <h1>{game.name}</h1>
+            <span>
+              {game.playedOn ?? '경기일 미설정'} · {game.innings}이닝
+              {game.dateStatus === 'estimated' ? ' · 날짜 확인 필요' : ''}
+            </span>
+          </div>
+          {onUpdateGame && (
+            <button disabled={state.ball === 'live'} onClick={() => setEditingDate(true)}>
+              경기일 수정
+            </button>
+          )}
+          <Badge>
+            {state.status === 'finished' ? '종료' : state.ball === 'live' ? '플레이 중' : '볼 데드'}
+          </Badge>
+        </header>
         <div className="match-status">
           <div className="scoreboard">
             <div className="team-score">
@@ -203,7 +155,7 @@ export function MatchView({
           <details className="field-disclosure" open={state.ball === 'dead'}>
             <summary>경기장 · 수비 배치 보기 (TYPE 1)</summary>
             <Panel
-              title="그라운드"
+              title={'수비 · ' + teamName(state.side === 'away' ? 'home' : 'away')}
               eyebrow="ON THE FIELD"
               action={<Badge tone="neutral">TYPE 1</Badge>}
             >
@@ -248,7 +200,10 @@ export function MatchView({
             </Panel>
           </details>
           <Panel
-            title={state.status === 'finished' ? '경기 기록 완료' : '지금 타석에'}
+            className="attack-panel"
+            title={
+              state.status === 'finished' ? '경기 기록 완료' : '공격 · ' + teamName(state.side)
+            }
             eyebrow="AT BAT"
           >
             {state.status === 'finished' ? (
@@ -378,7 +333,7 @@ export function MatchView({
                 )}
               </>
             )}
-            <div className="button-row separated">
+            <div className="button-row separated record-tools">
               <button
                 className="subtle"
                 disabled={!last}
@@ -414,76 +369,79 @@ export function MatchView({
             </div>
           </Panel>
         </div>
-        <div className="two-col">
-          <Panel title="공격 라인업" eyebrow="BATTING ORDER">
-            <div className="lineup-list">
-              {state.lineups[state.side].map((id, i) => (
-                <button
-                  className={'lineup-player ' + (i === state.appearances ? 'current' : '')}
-                  key={i}
-                  onClick={() => onProfile(id)}
-                >
-                  <span>{String(i + 1).padStart(2, '0')}</span>
-                  <PlayerAvatar player={data.players.find((p) => p.id === id)} />
-                  <b>{names(id)}</b>
-                  <small>
-                    {i < state.appearances
-                      ? '타격 완료'
-                      : i === state.appearances
-                        ? '현재 타석'
-                        : '대기'}
-                  </small>
-                  {i === state.appearances && <ArrowRight size={16} />}
-                </button>
-              ))}
-            </div>
-          </Panel>
-          <Panel
-            title="플레이 타임라인"
-            eyebrow="PLAY BY PLAY"
-            action={<Badge tone="neutral">{state.plays.length} 타석</Badge>}
-          >
-            <div className="timeline">
-              {state.plays.length === 0 ? (
-                <Empty>
-                  첫 플레이를 기다리고 있어요.
-                  <br />
-                  스트라이크 또는 타구 발생을 기록해 보세요.
-                </Empty>
-              ) : (
-                [...state.plays].reverse().map((p) => (
-                  <div className="timeline-row" key={p.eventId}>
-                    <span className="timeline-dot" />
-                    <div>
-                      <small>
-                        {p.inning}회 {p.side === 'away' ? '초' : '말'} · {names(p.batterId)}
-                      </small>
-                      <b>
-                        {playResultLabel(p)}
-                        {p.runs.length > 0 ? ' · ' + p.runs.length + '득점' : ''}
-                      </b>
-                      {p.result !== 'strikeout' && (
-                        <button
-                          className="text-button"
-                          disabled={state.ball === 'live'}
-                          onClick={() => setHistory(p.eventId)}
-                        >
-                          플레이 수정 · 이력
-                        </button>
-                      )}
-                      {p.cancelledAdvances && (
-                        <span className="warning-text">
-                          RULE02 적용 · 진루·득점 취소, 잔루 복구
-                        </span>
-                      )}
+        <details className="match-history">
+          <summary>타순·플레이 기록 보기 ({state.plays.length}타석)</summary>
+          <div className="two-col">
+            <Panel title="공격 라인업" eyebrow="BATTING ORDER">
+              <div className="lineup-list">
+                {state.lineups[state.side].map((id, i) => (
+                  <button
+                    className={'lineup-player ' + (i === state.appearances ? 'current' : '')}
+                    key={i}
+                    onClick={() => onProfile(id)}
+                  >
+                    <span>{String(i + 1).padStart(2, '0')}</span>
+                    <PlayerAvatar player={data.players.find((p) => p.id === id)} />
+                    <b>{names(id)}</b>
+                    <small>
+                      {i < state.appearances
+                        ? '타격 완료'
+                        : i === state.appearances
+                          ? '현재 타석'
+                          : '대기'}
+                    </small>
+                    {i === state.appearances && <ArrowRight size={16} />}
+                  </button>
+                ))}
+              </div>
+            </Panel>
+            <Panel
+              title="플레이 타임라인"
+              eyebrow="PLAY BY PLAY"
+              action={<Badge tone="neutral">{state.plays.length} 타석</Badge>}
+            >
+              <div className="timeline">
+                {state.plays.length === 0 ? (
+                  <Empty>
+                    첫 플레이를 기다리고 있어요.
+                    <br />
+                    스트라이크 또는 타구 발생을 기록해 보세요.
+                  </Empty>
+                ) : (
+                  [...state.plays].reverse().map((p) => (
+                    <div className="timeline-row" key={p.eventId}>
+                      <span className="timeline-dot" />
+                      <div>
+                        <small>
+                          {p.inning}회 {p.side === 'away' ? '초' : '말'} · {names(p.batterId)}
+                        </small>
+                        <b>
+                          {playResultLabel(p)}
+                          {p.runs.length > 0 ? ' · ' + p.runs.length + '득점' : ''}
+                        </b>
+                        {p.result !== 'strikeout' && (
+                          <button
+                            className="text-button"
+                            disabled={state.ball === 'live'}
+                            onClick={() => setHistory(p.eventId)}
+                          >
+                            플레이 수정 · 이력
+                          </button>
+                        )}
+                        {p.cancelledAdvances && (
+                          <span className="warning-text">
+                            RULE02 적용 · 진루·득점 취소, 잔루 복구
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </Panel>
-        </div>
-      </div>
+                  ))
+                )}
+              </div>
+            </Panel>
+          </div>
+        </details>
+      </section>
       {history && (
         <HistoryEditor
           data={data}
@@ -499,17 +457,6 @@ export function MatchView({
           state={state}
           onEvent={onEvent}
           onClose={() => setDefense(false)}
-        />
-      )}
-      {creating && (
-        <NewGame
-          data={currentData}
-          onClose={() => setCreating(false)}
-          onCreate={(g) => {
-            const saved = onCreate(g);
-            if (saved !== false) setDateFilter('');
-            return saved;
-          }}
         />
       )}
       {editingDate && onUpdateGame && (
@@ -537,7 +484,6 @@ export function MatchView({
                 })
               ) {
                 setEditingDate(false);
-                setDateFilter('');
               }
             }}
           >

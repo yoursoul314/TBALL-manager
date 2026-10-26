@@ -1,3 +1,4 @@
+import { gameTeamName } from '../domain/roster';
 import { DefenseRecorder } from './DefenseRecorder';
 import type { DefenseStep } from '../domain/defense';
 import { projectDefenseSequence, validateDefenseSequence } from '../engine/defenseSequence';
@@ -50,7 +51,8 @@ export function PlayForm({
 }) {
   const anchor = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!initial) anchor.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    if (!initial && !anchor.current?.closest('.match-detail'))
+      anchor.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
   }, [initial]);
   useEffect(() => {
     onDirtyChange?.(true);
@@ -173,7 +175,7 @@ export function PlayForm({
       </div>
       <div className="play-flow integrated-play-flow">
         <section className="play-result-step">
-          <h3>1 · 타격 결과</h3>
+          <h3>공격 · {gameTeamName(game, data, state.side)}</h3>
           <div className="quick-results">
             {Object.entries(resultLabels)
               .filter(([key]) => key !== 'strikeout' && key !== 'sacrifice-fly')
@@ -356,7 +358,13 @@ export function PlayForm({
             선택 관찰을 생략하면 해당 분석은 미측정입니다. 수비 성공·실패는 자동 생성하지 않습니다.
           </p>
         </section>
-        <DefenseRecorder data={data} state={state} steps={sequence} onChange={onSequence} />
+        <DefenseRecorder
+          teamName={gameTeamName(game, data, state.side === 'away' ? 'home' : 'away')}
+          data={data}
+          state={state}
+          steps={sequence}
+          onChange={onSequence}
+        />
         <section className="play-runner-step">
           <h3>3 · 주자 결과 확인</h3>
           <p className="hint">
@@ -553,49 +561,51 @@ export function PlayForm({
               </>
             )}
           </details>
-          <h3>4 · 심판 타임 후 확정</h3>
-          <label className="check umpire-confirm">
-            <input type="checkbox" checked={time} onChange={(e) => setTime(e.target.checked)} />
-            심판 타임 선언 확인
-          </label>
-          {validation && (
-            <p className="hint" role="status">
-              {validation}
-            </p>
-          )}
-          <div className="record-save-bar">
-            <button
-              className="primary wide"
-              disabled={
-                Boolean(validation) ||
-                (result === 'fielders-choice' &&
-                  !details.some((d) => d.type === 'FIELDERS_CHOICE' && d.targetRunnerId))
-              }
-              onClick={() => {
-                if (validation || locked.current) return;
-                locked.current = true;
-                if (
-                  !onEvent({
-                    type: 'END_PLAY',
-                    endedBy: 'umpire-time',
-                    result,
-                    outcomes,
-                    direction,
-                    quality,
-                    distance,
-                    strength,
-                    fielding,
-                    details,
-                    ...(sequence.length ? { defenseSequence: sequence } : {}),
-                    ...(award ? { safetyAward: { positionsAtThrow: awardFrom } } : {}),
-                  })
-                )
-                  locked.current = false;
-              }}
-            >
-              {initial ? '수정 이력 저장 · 전체 경기 재계산' : '심판 타임 · 플레이 확정'}{' '}
-              <ArrowRight size={16} />
-            </button>
+          <div className="play-confirmation">
+            <h3>4 · 심판 타임 후 확정</h3>
+            <label className="check umpire-confirm">
+              <input type="checkbox" checked={time} onChange={(e) => setTime(e.target.checked)} />
+              심판 타임 선언 확인
+            </label>
+            {validation && (
+              <p className="hint" role="status">
+                {validation}
+              </p>
+            )}
+            <div className="record-save-bar">
+              <button
+                className="primary wide"
+                disabled={
+                  Boolean(validation) ||
+                  (result === 'fielders-choice' &&
+                    !details.some((d) => d.type === 'FIELDERS_CHOICE' && d.targetRunnerId))
+                }
+                onClick={() => {
+                  if (validation || locked.current) return;
+                  locked.current = true;
+                  if (
+                    !onEvent({
+                      type: 'END_PLAY',
+                      endedBy: 'umpire-time',
+                      result,
+                      outcomes,
+                      direction,
+                      quality,
+                      distance,
+                      strength,
+                      fielding,
+                      details,
+                      ...(sequence.length ? { defenseSequence: sequence } : {}),
+                      ...(award ? { safetyAward: { positionsAtThrow: awardFrom } } : {}),
+                    })
+                  )
+                    locked.current = false;
+                }}
+              >
+                {initial ? '수정 이력 저장 · 전체 경기 재계산' : '심판 타임 · 플레이 확정'}{' '}
+                <ArrowRight size={16} />
+              </button>
+            </div>
           </div>
         </section>
       </div>

@@ -1,3 +1,5 @@
+import { setTeamArchived } from '../domain/gameLibrary';
+import type { Team } from '../domain/model';
 import { PlayerEditor } from './PlayerEditor';
 import { PlayerAvatar } from './PlayerAvatar';
 import { gradeLabel } from '../domain/roster';
@@ -26,6 +28,8 @@ export function Players({
   onSave: (d: Workspace) => void;
   onProfile: (id: string) => void;
 }) {
+  const [teamTrash, setTeamTrash] = useState(false);
+  const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
   const [filter, setFilter] = useState(''),
     [team, setTeam] = useState('all'),
     [grade, setGrade] = useState('all'),
@@ -67,31 +71,81 @@ export function Players({
           <p>학년과 팀을 독립적으로 관리하고, 경기마다 출전 명단을 정하세요.</p>
         </div>
         <div className="button-row">
-          <button onClick={() => setAddTeam(true)}>팀 추가</button>
+          <button
+            onClick={() => {
+              setError('');
+              setAddTeam(true);
+            }}
+          >
+            팀 추가
+          </button>
           <button className="primary" onClick={() => setAdd(true)}>
             <Plus size={18} />
             선수 등록
           </button>
         </div>
       </div>
+      <div className="tabs">
+        <button aria-pressed={!teamTrash} onClick={() => setTeamTrash(false)}>
+          운영 팀
+        </button>
+        <button aria-pressed={teamTrash} onClick={() => setTeamTrash(true)}>
+          삭제된 팀 · {data.teams.filter((t) => t.archivedAt).length}
+        </button>
+      </div>
+      {teamTrash && (
+        <p className="callout">
+          소속 선수·사진·평가·과거 경기는 그대로 보존됩니다. 팀을 복원하거나 선수 정보에서 소속을
+          변경할 수 있습니다.
+        </p>
+      )}
       <div className="team-cards">
-        {data.teams.map((t) => (
-          <button
-            key={t.id}
-            className={'team-card ' + (team === t.id ? 'selected' : '')}
-            onClick={() => setTeam(team === t.id ? 'all' : t.id)}
-          >
-            <span className="team-dot" style={{ background: t.color }} />
-            <div>
-              <b>{t.name}</b>
-              <small>
-                등록 {data.players.filter((p) => p.teamId === t.id).length}명 · 출전 가능{' '}
-                {data.players.filter((p) => p.teamId === t.id && p.active).length}명
-              </small>
+        {data.teams
+          .filter((t) => Boolean(t.archivedAt) === teamTrash)
+          .map((t) => (
+            <div className="team-card-shell" key={t.id}>
+              <button
+                key={t.id}
+                className={'team-card ' + (team === t.id ? 'selected' : '')}
+                onClick={() => setTeam(team === t.id ? 'all' : t.id)}
+              >
+                <span className="team-dot" style={{ background: t.color }} />
+                <div>
+                  <b>{t.name}</b>
+                  <small>
+                    등록 {data.players.filter((p) => p.teamId === t.id).length}명 · 출전 가능{' '}
+                    {data.players.filter((p) => p.teamId === t.id && p.active).length}명
+                  </small>
+                </div>
+                <ArrowUpRight size={20} />
+              </button>
+              {t.archivedAt ? (
+                <button
+                  aria-label={t.name + ' 팀 복원'}
+                  onClick={() => {
+                    try {
+                      onSave(setTeamArchived(data, t.id, false, new Date().toISOString()));
+                      setError('');
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : '복원 실패');
+                    }
+                  }}
+                >
+                  팀 복원
+                </button>
+              ) : (
+                <button
+                  aria-label={t.name + ' 팀 삭제'}
+                  onClick={() => {
+                    setError('');
+                    setDeletingTeam(t);
+                  }}
+                >
+                  팀 삭제
+                </button>
+              )}
             </div>
-            <ArrowUpRight size={20} />
-          </button>
-        ))}
+          ))}
       </div>
       <div className="toolbar roster-filters">
         <label>
@@ -113,6 +167,7 @@ export function Players({
             {data.teams.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
+                {t.archivedAt ? ' (삭제된 팀)' : ''}
               </option>
             ))}
           </select>
@@ -158,6 +213,7 @@ export function Players({
                   <h3>{p.name}</h3>
                   <p>
                     {gradeLabel(p)} · {data.teams.find((t) => t.id === p.teamId)?.name}
+                    {data.teams.find((t) => t.id === p.teamId)?.archivedAt ? ' · 삭제된 팀' : ''}
                   </p>
                   <p>
                     {p.active ? '출전 가능' : '출전 불가'} · 주 포지션{' '}
@@ -192,6 +248,32 @@ export function Players({
           }}
         />
       )}
+      {deletingTeam && (
+        <Modal title="팀 삭제" onClose={() => setDeletingTeam(null)}>
+          <p>
+            <b>{deletingTeam.name}</b> 팀을 운영 목록에서 삭제합니다. 소속 선수{' '}
+            {data.players.filter((p) => p.teamId === deletingTeam.id).length}명과 과거
+            경기·사진·평가는 보존됩니다. 새 경기에는 선택할 수 없으며 언제든 복원할 수 있습니다.
+          </p>
+          {error && <p role="alert">{error}</p>}
+          <button
+            className="primary"
+            onClick={() => {
+              try {
+                onSave(setTeamArchived(data, deletingTeam.id, true, new Date().toISOString()));
+                setDeletingTeam(null);
+                setError('');
+                setTeam('all');
+              } catch (e) {
+                setError(e instanceof Error ? e.message : '삭제 실패');
+              }
+            }}
+          >
+            팀 삭제 확정
+          </button>
+        </Modal>
+      )}
+      {!deletingTeam && error && <p role="alert">{error}</p>}
       {addTeam && (
         <Modal title="새 팀 만들기" onClose={() => setAddTeam(false)}>
           <form
@@ -205,12 +287,14 @@ export function Players({
                     ...data.teams,
                     {
                       id: crypto.randomUUID(),
-                      name: String(f.get('name')),
+                      name: String(f.get('name')).trim(),
                       color: String(f.get('color')),
                     },
                   ],
                 });
                 setAddTeam(false);
+                setTeamTrash(false);
+                setError('');
               } catch (err) {
                 setError(err instanceof Error ? err.message : '저장 실패');
               }
@@ -247,6 +331,7 @@ export function Profile({
   const a = data.assessments.filter((a) => a.playerId === id).at(-1);
   const batting = summarizeBatting(data, id);
   const stats = data.games
+    .filter((g) => !g.archivedAt)
     .flatMap(
       (game) =>
         calculateStats(
