@@ -108,3 +108,11 @@ GitHub 계정의 저장소 관리자·쓰기 권한을 확인했다. 연결 도�
 ## v0.6 경기·팀 목록 및 상세 평가 화면
 
 로컬 npm run check 23파일156테스트/타입 검사/빌드 통과. 신규 데이터 보존·휴지통·팀 관리·평가 초안 유지 및 브라우저 치수/터치 검증 절차는 [MATCH_UI.md](MATCH_UI.md)에 기록한다. 실제 iPad 하드웨어 확인과 브라우저 엔진 에뮬레이션을 구분한다. 이전 배포 차단 기록은 당시 이력으로 남긴다.
+
+### v0.6 공개 앱 배포 검증 완료 (2026-10-26)
+
+소스 커밋 3cbcfaf72e2052f410e1f8ecfcd78da03d82e52b를 GitHub Desktop으로 main에 전송했다. [Verify](https://github.com/yoursoul314/TBALL-manager/actions/runs/40271235557)와 [GitHub Pages](https://github.com/yoursoul314/TBALL-manager/actions/runs/40271235533)가 모두 성공했다. 공개 주소에서 HTTP200, BETA0.6.0, index-BW3g4fBs.js/index-CMm5I77t.css를 확인했다.
+
+QA_DIST를 해제한 실제 공개 앱을 새 비영구 Chromium151/WebKit26.5 컨텍스트에서 시험했다. browser-qa 및 classroom-qa 모두 통과했다. 팀/경기 추가·삭제·복원·새로고침, 평가 상세화면의 9구역/점수/회차 기록지 동시 노출·초안 유지·다음 회차 저장, 사진 및 엔트리·수비 연결·정정·백업/복원까지 검증했다. 콘솔 오류0. 기존 사용자 브라우저 저장소는 열거나 수정하지 않았다.
+
+WebKit은 실제 백업 파일 다운로드까지 통과했다. Chromium headless는 다운로드 canceled 제한으로 생성된 Blob 내용과 복원 흐름을 검증했다. iPad 크기 화면 에뮬레이션이며 물리 iPad의 사진 선택기·가상 키보드·홈 화면 PWA 갱신은 별도 실기 확인이 필요하다. 기존 화면이 남으면 기록 저장 후 앱의 모든 창을 닫고 다시 열어 BETA0.6.0을 확인한다. 브라우저 저장 데이터 삭제는 필요하지 않다.

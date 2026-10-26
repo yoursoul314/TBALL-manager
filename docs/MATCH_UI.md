@@ -85,3 +85,11 @@ Workspace schema6, tb-manager.workspace.v6에 검증 후 저장한다. 이전 v1
 ### 로컬 브라우저 결과
 
 Chromium 151과 WebKit 26.5에서 classroom-qa 및 browser-qa 모두 통과했다. WebKit은 사진 포함 암호화 백업의 파일 내려받기·UI 복원까지 통과했고 Chromium의 다운로드 제한은 보고서에 분리했다. 가로1024×768/1180×820에서 결과·점수·9구역·회차 기록지·저장 버튼 및 경기 공격/수비/확정 영역의 화면 내 위치를 검사했다. 경고는 기존 Zod 주석 처리 및 500KB 번들 크기 안내이며 빌드를 차단하지 않는다. 공개 배포 검증은 배포 후 별도로 수행한다.
+
+### v0.6 공개 앱 배포 검증 완료 (2026-10-26)
+
+소스 커밋 3cbcfaf72e2052f410e1f8ecfcd78da03d82e52b를 GitHub Desktop으로 main에 전송했다. [Verify](https://github.com/yoursoul314/TBALL-manager/actions/runs/40271235557)와 [GitHub Pages](https://github.com/yoursoul314/TBALL-manager/actions/runs/40271235533)가 모두 성공했다. 공개 주소에서 HTTP200, BETA0.6.0, index-BW3g4fBs.js/index-CMm5I77t.css를 확인했다.
+
+QA_DIST를 해제한 실제 공개 앱을 새 비영구 Chromium151/WebKit26.5 컨텍스트에서 시험했다. browser-qa 및 classroom-qa 모두 통과했다. 팀/경기 추가·삭제·복원·새로고침, 평가 상세화면의 9구역/점수/회차 기록지 동시 노출·초안 유지·다음 회차 저장, 사진 및 엔트리·수비 연결·정정·백업/복원까지 검증했다. 콘솔 오류0. 기존 사용자 브라우저 저장소는 열거나 수정하지 않았다.
+
+WebKit은 실제 백업 파일 다운로드까지 통과했다. Chromium headless는 다운로드 canceled 제한으로 생성된 Blob 내용과 복원 흐름을 검증했다. iPad 크기 화면 에뮬레이션이며 물리 iPad의 사진 선택기·가상 키보드·홈 화면 PWA 갱신은 별도 실기 확인이 필요하다. 기존 화면이 남으면 기록 저장 후 앱의 모든 창을 닫고 다시 열어 BETA0.6.0을 확인한다. 브라우저 저장 데이터 삭제는 필요하지 않다.
