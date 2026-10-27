@@ -84,7 +84,7 @@ export function SettingsView({
                   const file = e.target.files?.[0];
                   if (!file) return;
                   try {
-                    if (file.size > 10_000_000) throw new Error('10MB 이하 파일만 지원합니다');
+                    if (file.size > 64_000_000) throw new Error('64MB 이하 파일만 지원합니다');
                     setRestoring(readBackup(await file.text()));
                   } catch (error) {
                     onNotify(error instanceof Error ? error.message : '백업 읽기 실패', true);

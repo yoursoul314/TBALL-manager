@@ -99,7 +99,7 @@ export async function readPhotoBackup(text: string, password: string) {
   }
   const payload = z
     .object({
-      backup: z.string().max(10_000_000),
+      backup: z.string().max(64_000_000),
       photos: z
         .array(
           z.object({

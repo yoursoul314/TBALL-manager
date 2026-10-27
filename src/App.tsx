@@ -1,3 +1,4 @@
+import { StorageRecoveryView } from './components/StorageRecoveryView';
 import { ComparisonView } from './components/ComparisonView';
 import { planPermanentDeletion } from './domain/management';
 import { useEffect, useState } from 'react';
@@ -31,7 +32,6 @@ import {
   V9_STORAGE_KEY,
   V10_STORAGE_KEY,
   V11_STORAGE_KEY,
-  downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
 import { replayGame } from './engine/game';
@@ -118,27 +118,7 @@ export default function App() {
     const timer = setTimeout(() => setNotice(null), 7000);
     return () => clearTimeout(timer);
   }, [notice]);
-  if (!data)
-    return (
-      <main className="fatal">
-        <AlertCircle />
-        <h1>저장된 데이터를 확인해야 합니다</h1>
-        <p>기존 데이터를 덮어쓰지 않았습니다.</p>
-        <pre>{loaded.error}</pre>
-        <button
-          onClick={() =>
-            downloadFile(
-              'TB-Manager-recovery.json',
-              repository.recoverySnapshot(),
-              'application/json',
-            )
-          }
-        >
-          원본 복구 파일 다운로드
-        </button>
-        <p>원본을 보관한 뒤 개발자에게 스키마·이벤트 오류 수정을 요청하세요.</p>
-      </main>
-    );
+  if (!data) return <StorageRecoveryView error={loaded.error} repository={repository} />;
   const notify = (message: string, error = false) => setNotice({ message, error });
   const save = (next: Workspace) => {
     try {

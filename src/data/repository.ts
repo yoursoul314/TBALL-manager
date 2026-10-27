@@ -1,3 +1,4 @@
+import { decodeStorageText, writeStorageText, MAX_BACKUP_BYTES } from './storageCodec';
 import type { Workspace } from '../domain/model';
 import { parseWorkspace } from './schema';
 import { migrateWorkspace } from './migration';
@@ -22,7 +23,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
   constructor(
     private storage: Pick<Storage, 'getItem' | 'setItem'> & Partial<Pick<Storage, 'removeItem'>>,
   ) {}
-  load(): Workspace | null {
+  load(persistMigration = true): Workspace | null {
     const raw = this.storage.getItem(STORAGE_KEY);
     const legacyRaw = this.storage.getItem(LEGACY_STORAGE_KEY);
     const v11Raw = this.storage.getItem(V11_STORAGE_KEY);
@@ -36,7 +37,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
     const v3Raw = this.storage.getItem(V3_STORAGE_KEY);
     const v2Raw = this.storage.getItem(V2_STORAGE_KEY);
     if (raw !== null) {
-      const input = JSON.parse(raw);
+      const input = JSON.parse(decodeStorageText(raw));
       if (
         ('_legacyBaseline' in input && input._legacyBaseline !== legacyRaw) ||
         ('_v2Baseline' in input && input._v2Baseline !== v2Raw) ||
@@ -205,8 +206,10 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       v2Raw ??
       legacyRaw!;
     const migrated = migrateWorkspace(JSON.parse(source), source);
+    if (!persistMigration) return migrated;
     // Atomic v12 write. Original v1/v2/v3/v4/v5/v6/v7/v8/v9/v10/v11 keys remain untouched on success or failure.
-    this.storage.setItem(
+    writeStorageText(
+      this.storage,
       STORAGE_KEY,
       JSON.stringify({
         ...migrated,
@@ -230,7 +233,8 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
     if ((previous?.revision ?? 0) !== expectedRevision)
       throw new Error('다른 탭에서 기록이 변경되었습니다. JSON 백업 후 새로고침하세요.');
     const validated = parseWorkspace({ ...workspace, revision: expectedRevision + 1 });
-    this.storage.setItem(
+    writeStorageText(
+      this.storage,
       STORAGE_KEY,
       JSON.stringify({
         ...validated,
@@ -346,7 +350,7 @@ export function serializeBackup(workspace: Workspace) {
   );
 }
 export function readBackup(text: string) {
-  if (text.length > 10_000_000) throw new Error('백업 파일은 10MB 이하여야 합니다');
+  if (text.length > MAX_BACKUP_BYTES) throw new Error('백업 파일은 64MB 이하여야 합니다');
   const value = JSON.parse(text);
   if (
     value?.format !== 'tb-manager-backup' ||

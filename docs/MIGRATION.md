@@ -113,3 +113,8 @@ schema v10 유지. 기존 승인 Selection에서 새 경기의 기존 엔트리 
 ## BETA0.13 (2026-10-27)
 
 schema12: v11 원문/이전 키 보존 후 검증·단일 쓰기. pref1/pref2는 미설정 유지, fungoDays/fungoAssessments는 빈 배열. 타격 rubric 부재는 이전1~10척도이며 이력에 새 값을 생성하지 않는다. JSON1~12 읽기/12 쓰기, 저장 실패·구버전 탭 충돌 보호, 사진 IndexedDB 유지. 자세한 정의·제약·사용 순서는 [v0.13 명세](BATTING_QUALITY_V13.md)를 참조한다.
+
+
+## BETA 0.13.1 저장 용량 보완
+
+[중첩 원본 무손실 압축·quota 복구 계약과 검증](STORAGE_QUOTA_V131.md). schema12와 기존 기록·척도는 유지합니다.

@@ -58,7 +58,7 @@ async function purge() {
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
   report.version = await page.locator('.version').textContent();
-  assert.equal(report.version, 'BETA 0.13.0');
+  assert.equal(report.version, 'BETA 0.13.1');
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
   await tap('선수 저장');
