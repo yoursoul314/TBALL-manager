@@ -185,3 +185,14 @@ pwa-upgrade-qa는 실제 로컬 HTTP 서버에서 구버전0.5의 캐시된 화�
 - 실기 iPad의 Safari 주소창, 홈 화면 앱, 소프트 키보드 및 확대 글꼴은 추가 확인 대상. 공개 배포 결과와 화면은 별도 릴리스 보고서에 기록.
 
 - 첫 Verify 실행에서 기존 선수 등록→삭제→복원 통합 테스트가 CI의5초 제한을 초과했다. 같은 커밋의 Pages 테스트는 통과했다. 로컬 재검증에서도 여러 화면을 이동하는 타격/홈런 통합 시나리오가5초를 넘는 변동을 확인했다. Vitest의 기본 제한을15초로 명시하고 병렬 작업자2개 및 모든 검증 내용은 유지한다. 실제 브라우저의 저장·화면 전환 검증도 별도로 수행했다.
+
+
+## BETA0.12 (2026-10-27)
+
+- `npm run check`: 45파일230테스트, 타입 검사·빌드 통과. 목표 횟수 변경/한도/정정/취소/복원, v10→v11 원문·JSON 보존과 저장 실패, 키보드 가시 영역 이벤트를 추가 검증한다.
+- `tablet-assessment-qa.cjs`: 격리된 WebKit·Chromium, 가상 선수만 사용. 1024×768·1180×820·820×1180 수비9능력/저장 무스크롤, 타격은1440×900·390×844도 점검. 400/420/650px 가시 영역과80px 이동 재현 시 메모·정정 사유·저장 버튼 노출 및 실제 저장, 실패 입력 유지 확인.
+- 양 팀 승인안 불러오기→타순 변경→감독 확인→경기 생성→새로고침을 가로1024×768/세로820×1180 각각 완료. 수비 스냅샷과 승인 원본 보존 확인.
+- WebKit 기존 전체 흐름: 등록·사진/EXIF/교체/IndexedDB 유지·실패 보호, 엔트리, 포구/송구/아웃/FC/주자 확인/타임, 정정·통계, 사진 포함 암호화 백업·복원 통과.
+- Chromium PWA: 과거0.5 캐시→0.12 갱신, 원문 보존, 입력 중 업데이트 차단 통과.
+- RULE01~08/TYPE1 v2.0 설정 SHA256은 직전 배포와 동일하다. 실제 iPadOS 키보드를 띄운 하드웨어 테스트는 수행하지 않았으며 분리/플로팅 키보드·화면 확대는 현장 확인이 필요하다.
+- 변경 파일: `src/components/{useVisibleViewport,VisibleViewport.test,DefenseAttemptPlan,DefenseTargets.test,DefenseAssessmentPanel,DefenseDayView,BattingAssessmentPanel,ui}`; `src/assessment/{defenseDays,defenseChecklist,defenseTargets.test}`; `src/domain/{model,defenseAssessment}`; `src/data/{schema,migration,repository,seed}`; `src/App.tsx`, `src/styles.css`, 관련 스키마 기대값 테스트·QA 스크립트·버전 파일·README/명세/결정/이전 문서.

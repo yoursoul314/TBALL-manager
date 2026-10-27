@@ -1,3 +1,4 @@
+import { useVisibleViewport } from './useVisibleViewport';
 import { useState, useRef, useEffect } from 'react';
 import type { Workspace, Direction, Distance } from '../domain/model';
 import type {
@@ -87,6 +88,7 @@ export function BattingAssessmentPanel({
   const [historyPage, setHistoryPage] = useState(0);
   const [localFocus, setLocalFocus] = useState(initialDetailed);
   const focused = controlledFocus ?? localFocus;
+  const viewportRef = useVisibleViewport<HTMLDivElement>(focused);
   const setFocus = (v: boolean) => {
     setLocalFocus(v);
     onFocusChange?.(v);
@@ -203,6 +205,7 @@ export function BattingAssessmentPanel({
         (focused ? ' batting-studio' : '')
       }
       data-view={view}
+      ref={viewportRef}
     >
       {focused && (
         <header className="batting-studio-header">
@@ -959,7 +962,7 @@ function AttemptEditor({
           <small>결과와 점수만 필수</small>
         </div>
         <div className="quick-assessment-grid">
-          <section>
+          <section className="studio-result">
             <fieldset className="batting-choices result-choices">
               <legend>① 타격 결과 · 필수</legend>
               <div className="quick-three">
@@ -1039,6 +1042,7 @@ function AttemptEditor({
             <label>
               회차 메모
               <textarea
+                aria-label="회차 메모"
                 maxLength={2000}
                 value={draft.note}
                 onChange={(e) => patch({ note: e.target.value })}

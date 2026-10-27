@@ -1,3 +1,5 @@
+import { DefenseAttemptPlan } from './DefenseAttemptPlan';
+import { defenseProgress } from '../assessment/defenseDays';
 import { chooseDefenseEvaluation, defenseEvaluation } from '../evaluation/defense';
 import { useRef, useState } from 'react';
 import type { Workspace } from '../domain/model';
@@ -22,6 +24,17 @@ const outcomeLabels = {
   partial: '부분 수행',
   failure: '실패',
   'not-offered': '기회 없음',
+};
+const shortCues: Record<Ability, string> = {
+  G: '몸 앞에서 땅볼 잡기',
+  F: '낙하지점 찾아 잡기',
+  C: '동료의 송구 받기',
+  A: '목표에 정확히 던지기',
+  L: '필요한 거리·힘으로 던지기',
+  Q: '공을 보고 바로 움직이기',
+  M: '수비 범위의 공에 접근',
+  J: '상황에 맞는 행동 선택',
+  B: '베이스 밟기·태그',
 };
 const cues: Record<Ability, string> = {
   G: '땅볼을 몸 앞에서 안정적으로 잡았는가?',
@@ -184,7 +197,9 @@ export function DefenseAssessmentPanel({
       setMessage(
         cancel
           ? '취소했습니다. 원본과 수정 이력은 유지됩니다.'
-          : '저장했습니다. 다음 상황을 기록하세요.',
+          : defenseProgress(next, playerId, draft.date).complete
+            ? '목표 횟수를 완료했습니다. 다음 학생으로 이동하거나 수비 횟수를 늘릴 수 있습니다.'
+            : '저장했습니다. 다음 상황을 기록하세요.',
       );
       if (nextStudent && !editing && !cancel) navigation?.onSavedNext();
     } catch (e) {
@@ -195,6 +210,7 @@ export function DefenseAssessmentPanel({
   };
   const primary = DEFENSE_PRIMARY[draft.situation];
   const evaluation = defenseEvaluation(data, playerId);
+  const progress = defenseProgress(data, playerId, draft.date);
   return (
     <Panel
       className={focused ? 'defense-practice defense-focused' : 'defense-practice'}
@@ -253,6 +269,14 @@ export function DefenseAssessmentPanel({
           </label>
         </div>
       </div>
+      <DefenseAttemptPlan
+        data={data}
+        playerId={playerId}
+        date={draft.date}
+        assessor={draft.assessor}
+        disabled={!!editing}
+        onSave={onSave}
+      />
       <div className="defense-situations" aria-label="수비 평가 상황">
         {Object.entries(DEFENSE_SITUATIONS).map(([v, l]) => (
           <button
@@ -273,7 +297,7 @@ export function DefenseAssessmentPanel({
               <b>
                 {k} · {ABILITY_LABELS[k]}
               </b>{' '}
-              <span>{cues[k]}</span>
+              <span className="defense-short-cue">{shortCues[k]}</span>
             </legend>
             <div className="defense-outcomes">
               {(['success', 'partial', 'failure', 'not-offered', null] as const).map((v) => (
@@ -378,11 +402,19 @@ export function DefenseAssessmentPanel({
       )}
       <div className="defense-save-row">
         {navigation && !editing && (
-          <button className="primary" onClick={() => save(false, true)}>
+          <button
+            className="primary"
+            disabled={progress.complete}
+            onClick={() => save(false, true)}
+          >
             수비 기록 저장 · 다음 학생
           </button>
         )}
-        <button className={navigation && !editing ? '' : 'primary'} onClick={() => save()}>
+        <button
+          className={navigation && !editing ? '' : 'primary'}
+          disabled={!editing && progress.complete}
+          onClick={() => save()}
+        >
           {editing ? '수비 기록 정정 저장' : '수비 기록 저장 · 다음 상황'}
         </button>
         <button onClick={clear} disabled={!dirty && !editing}>

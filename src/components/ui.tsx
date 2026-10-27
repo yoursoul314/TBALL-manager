@@ -1,5 +1,6 @@
+import { useVisibleViewport } from './useVisibleViewport';
 import { X } from 'lucide-react';
-import { useEffect, useRef, useId, type ReactNode } from 'react';
+import { useEffect, useId, type ReactNode } from 'react';
 export function Badge({ children, tone = 'green' }: { children: ReactNode; tone?: string }) {
   return <span className={'badge ' + tone}>{children}</span>;
 }
@@ -45,7 +46,7 @@ export function Modal({
   children: ReactNode;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const ref = useVisibleViewport<HTMLDialogElement>(true);
   const titleId = useId();
   useEffect(() => {
     ref.current?.showModal();

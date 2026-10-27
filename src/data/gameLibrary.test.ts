@@ -17,7 +17,7 @@ it('v5 원본과 선수·평가·경기·이벤트를 보존하고 v7로 이전�
   localStorage.setItem(V5_STORAGE_KEY, raw);
   const repo = new LocalWorkspaceRepository(localStorage),
     next = repo.load()!;
-  expect(next.schemaVersion).toBe(10);
+  expect(next.schemaVersion).toBe(11);
   expect(localStorage.getItem(V5_STORAGE_KEY)).toBe(raw);
   for (const key of ['players', 'assessments', 'events', 'games'] as const)
     expect(next[key]).toEqual(old[key]);

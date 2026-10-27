@@ -5636,3 +5636,117 @@ label {
 .batting-studio .batting-choices button[aria-pressed='true'][aria-label$='미관찰']::before {
   content: none;
 }
+/* v0.12: planned defense repetitions and visible ability descriptions. */
+.defense-attempt-plan {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+.defense-attempt-plan > strong {
+  color: #245b43;
+}
+.defense-attempt-plan button {
+  min-height: 48px;
+}
+.defense-target-editor {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #cad9c4;
+  border-radius: 10px;
+}
+.defense-target-editor label {
+  max-width: 220px;
+}
+.defense-target-editor small,
+.defense-target-editor [role='alert'] {
+  flex-basis: 100%;
+}
+.defense-checklist .defense-short-cue {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #51684f;
+  line-height: 1.35;
+}
+.defense-focused .defense-checklist legend .defense-short-cue {
+  display: block;
+}
+/* Keyboard geometry follows the visual viewport; full-size layouts stay unchanged. */
+.batting-studio[data-visible-viewport='true'] {
+  inset: auto;
+  top: var(--visible-top);
+  left: var(--visible-left);
+  width: var(--visible-width);
+  height: var(--visible-height);
+  box-sizing: border-box;
+}
+.batting-studio input,
+.batting-studio textarea,
+.modal input,
+.modal textarea {
+  font-size: 16px;
+}
+.batting-studio[data-keyboard='true'] {
+  padding-bottom: 96px;
+  scroll-padding-block: 12px 96px;
+}
+.batting-studio[data-keyboard='true'] .record-save-bar {
+  position: fixed;
+  top: calc(var(--visible-top) + var(--visible-height) - 80px);
+  bottom: auto;
+  left: calc(var(--visible-left) + 12px);
+  width: calc(var(--visible-width) - 24px);
+  padding: 8px;
+  height: 72px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #c8d8c2;
+  box-shadow: 0 -4px 16px #23432b18;
+  border-radius: 12px;
+  z-index: 60;
+}
+.batting-studio[data-keyboard='true'] .batting-studio-header .studio-totals,
+.batting-studio[data-keyboard='true'] .assessment-student-nav,
+.batting-studio[data-keyboard='true'] .batting-studio-tabs > span {
+  display: none;
+}
+.batting-studio[data-keyboard='true'] .attempt-correction {
+  grid-template-columns: 1fr 1fr;
+}
+.batting-studio[data-keyboard='true'] .attempt-correction label:nth-child(2) {
+  grid-column: 1/-1;
+  grid-row: 1;
+}
+.batting-studio[data-keyboard='true'] .attempt-note textarea {
+  height: 80px;
+  min-height: 80px;
+}
+.modal[data-visible-viewport='true'] {
+  max-height: calc(var(--visible-height) - 16px);
+  max-width: calc(var(--visible-width) - 16px);
+}
+.modal[data-keyboard='true'] {
+  position: fixed;
+  margin: 0;
+  top: calc(var(--visible-top) + 8px);
+  left: calc(var(--visible-left) + var(--visible-width) / 2);
+  bottom: auto;
+  right: auto;
+  transform: translateX(-50%);
+  scroll-padding-top: 80px;
+  scroll-padding-bottom: 90px;
+}
+.entry-modal[data-keyboard='true'] .entry-navigation {
+  position: static;
+}
+@media (max-width: 699px) {
+  .batting-studio[data-keyboard='true'] .studio-extras .quick-assessment-grid {
+    grid-template-columns: 1fr;
+  }
+}

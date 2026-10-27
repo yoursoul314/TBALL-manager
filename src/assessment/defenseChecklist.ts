@@ -23,6 +23,19 @@ export function saveDefenseAssessment(
   if (cancel && (!old || old.revisions.at(-1)!.status === 'cancelled'))
     throw new Error('취소할 평가가 없습니다');
   if (!meta.reason.trim()) throw new Error('수정·취소 사유를 입력하세요');
+  // New, restored, or moved observations consume one planned round; revisions do not.
+  if (!cancel) {
+    const target = data.defenseDays.find((d) => d.date === input.date)?.targetAttempts ?? null;
+    const count = data.defenseAssessments.filter(
+      (r) =>
+        r.id !== old?.id &&
+        r.playerId === playerId &&
+        r.revisions.at(-1)!.date === input.date &&
+        r.revisions.at(-1)!.status === 'active',
+    ).length;
+    if (target !== null && count >= target)
+      throw new Error('설정한 수비 횟수를 완료했습니다. 추가 기록은 횟수를 늘린 후 저장하세요.');
+  }
   const revision: DefenseRevision = {
     ...(cancel ? old!.revisions.at(-1)! : input),
     id: meta.revisionId,

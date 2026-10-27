@@ -15,7 +15,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v10')));
+  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v11')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -47,30 +47,52 @@ const check = (s) => {
       }),
     );
   page = await ctx.newPage();
+  // Simulate keyboard geometry in an isolated test browser, never user storage.
+  await page.addInitScript(() => {
+    const viewport = new EventTarget();
+    let height = null,
+      top = 0;
+    Object.defineProperties(viewport, {
+      height: { get: () => height ?? innerHeight },
+      width: { get: () => innerWidth },
+      offsetTop: { get: () => top },
+      offsetLeft: { get: () => 0 },
+      scale: { get: () => 1 },
+    });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+    window.__qaKeyboard = (h = null, t = 0) => {
+      height = h;
+      top = t;
+      viewport.dispatchEvent(new Event('resize'));
+      viewport.dispatchEvent(new Event('scroll'));
+    };
+    window.addEventListener('resize', () => viewport.dispatchEvent(new Event('resize')));
+  });
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.11.0');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.12.0');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
   await tap('선수 저장');
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v10'));
+    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v11'));
     d.assessments = d.assessments.filter((a) => a.playerId !== 'green-3');
     for (const k of Object.keys(d)) if (k.startsWith('_')) delete d[k];
-    d.schemaVersion = 9;
-    localStorage.setItem('tb-manager.workspace.v9', JSON.stringify(d));
-    localStorage.removeItem('tb-manager.workspace.v10');
+    d.schemaVersion = 10;
+    localStorage.setItem('tb-manager.workspace.v10', JSON.stringify(d));
+    localStorage.removeItem('tb-manager.workspace.v11');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 10);
-  assert.ok(await page.evaluate(() => localStorage.getItem('tb-manager.workspace.v9')));
+  assert.equal((await data()).schemaVersion, 11);
+  assert.ok(await page.evaluate(() => localStorage.getItem('tb-manager.workspace.v10')));
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
   await page.getByLabel('새 수비 평가 날짜', { exact: true }).fill('2026-10-27');
   await page.getByLabel('수비 공통 평가자', { exact: true }).fill('가상 QA');
+  await page.getByLabel('학생당 수비 횟수', { exact: true }).fill('1');
   await tap('수비 평가 날짜 생성');
   await page.reload({ waitUntil: 'networkidle' });
   await nav('기능평가 & 팀워크');
@@ -79,6 +101,8 @@ const check = (s) => {
   for (const n of ['01', '02'])
     await page.getByLabel('샘플 선수 ' + n + ' 수비 평가 대상 선택', { exact: true }).check();
   await tap('선택 학생 수비 평가 시작');
+  assert.equal((await data()).defenseDays[0].targetAttempts, 1);
+  assert.equal(await page.locator('.defense-short-cue:visible').count(), 9);
   const abilities = {
     G: '땅볼',
     F: '뜬공',
@@ -145,7 +169,7 @@ const check = (s) => {
     const orig = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = orig;
-      if (k === 'tb-manager.workspace.v10')
+      if (k === 'tb-manager.workspace.v11')
         throw new DOMException('QA quota', 'QuotaExceededError');
       return orig.call(this, k, v);
     };
@@ -176,6 +200,17 @@ const check = (s) => {
     await tap('첫 반응·수비 범위·판단 등 9능력 펼치기');
   for (const [k, l] of Object.entries(abilities)) await tap(k + ' ' + l + ' 부분 수행');
   await tap('수비 기록 저장 · 다음 학생');
+  await tap('이전 수비 학생');
+  assert.match(await page.getByLabel('수비 기록 진행').textContent(), /1 \/ 1회 · 완료/);
+  assert.ok(
+    await page
+      .getByRole('button', { name: '수비 기록 저장 · 다음 상황', exact: true })
+      .isDisabled(),
+  );
+  await tap('수비 횟수 설정');
+  await page.getByLabel('학생당 수비 횟수', { exact: true }).fill('2');
+  await tap('횟수 저장');
+  assert.equal((await data()).defenseDays[0].targetAttempts, 2);
   await tap('집중 모드 끝내기');
   assert.equal((await data()).defenseAssessments.length, 2);
   await tap('평가 학생 누적 체크 점수 적용');
@@ -184,7 +219,7 @@ const check = (s) => {
     .locator('.defense-comparison-table')
     .screenshot({ path: path.join(out, '01-defense-nine.png') });
   check(
-    'v9 원문 보존 / 수비 날짜 먼저 저장·새로고침 / 2명 선택·저장 후 다음 학생·실패 유지 / 9능력 점수 일괄 적용',
+    'v10 원문 보존 / 수비 횟수 설정·완료·변경 / 9능력 설명 / 2명 선택·저장 후 다음 학생·실패 유지 / 9능력 점수 일괄 적용',
   );
   await nav('선수 비교 & 선택');
   for (const n of ['01', '02'])
@@ -274,10 +309,97 @@ const check = (s) => {
     report.metrics.push(m);
     if (w === 1180) await page.screenshot({ path: path.join(out, '03-batting-sheet-hidden.png') });
   }
-  await page.setViewportSize({ width: 1180, height: 820 });
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await tap('메모·정정');
+  for (const [width, height, visible, top] of [
+    [1024, 768, 420, 0],
+    [1024, 768, 400, 80],
+    [820, 1180, 650, 0],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.getByLabel('회차 메모', { exact: true }).fill('가상 키보드 메모');
+    await page.evaluate(([h, t]) => window.__qaKeyboard(h, t), [visible, top]);
+    await page.waitForTimeout(100);
+    const geometry = await page.evaluate(() => {
+      const pane = document.querySelector('.batting-studio');
+      return {
+        kind: 'keyboard',
+        top: visualViewport.offsetTop,
+        height: visualViewport.height,
+        field: pane
+          .querySelector('textarea[aria-label="회차 메모"]')
+          .getBoundingClientRect()
+          .toJSON(),
+        save: [...pane.querySelectorAll('button')]
+          .find((b) => b.textContent === '기록 저장 · 다음 회차')
+          .getBoundingClientRect()
+          .toJSON(),
+      };
+    });
+    report.metrics.push(geometry);
+    for (const r of [geometry.field, geometry.save])
+      assert.ok(
+        r.width > 0 && r.height > 0 && r.top >= top && r.bottom <= top + visible,
+        JSON.stringify(geometry),
+      );
+    assert.ok(geometry.field.bottom <= geometry.save.top, 'memo covered by save bar');
+    await page.screenshot({ path: path.join(out, 'keyboard-' + width + '-' + top + '.png') });
+    await page.evaluate(() => window.__qaKeyboard());
+  }
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.getByLabel('회차 메모', { exact: true }).focus();
+  await page.evaluate(() => window.__qaKeyboard(420));
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      Storage.prototype.setItem = original;
+      if (k === 'tb-manager.workspace.v11')
+        throw new DOMException('QA quota', 'QuotaExceededError');
+      return original.call(this, k, v);
+    };
+  });
   await tap('기록 저장 · 다음 회차');
+  assert.equal((await data()).battingAttempts.length, 0);
+  assert.equal(
+    await page.getByLabel('회차 메모', { exact: true }).inputValue(),
+    '가상 키보드 메모',
+  );
+  await tap('기록 저장 · 다음 회차');
+  await page.evaluate(() => window.__qaKeyboard());
+  assert.equal((await data()).battingAttempts[0].note, '가상 키보드 메모');
   assert.equal((await data()).battingAttempts[0].score, 8);
-  check('타격 상세 기록지 기본 숨김·보기/숨김 전환·초안 유지·넓은 입력 / 4개 화면 크기');
+  await tap('기록지 조회');
+  await page.getByRole('listitem', { name: '1회차 8점', exact: true }).click();
+  await tap('메모·정정');
+  await page.getByLabel('회차 메모', { exact: true }).fill('가상 정정 메모');
+  await page.getByLabel('회차 수정 사유', { exact: true }).fill('메모 확인');
+  await page.evaluate(() => window.__qaKeyboard(400, 80));
+  await page.waitForTimeout(100);
+  const correction = await page.getByLabel('회차 수정 사유', { exact: true }).boundingBox();
+  assert.ok(
+    correction.y >= 80 && correction.y + correction.height <= 400,
+    'correction input covered',
+  );
+  const correctionSave = await page
+    .getByRole('button', { name: '정정 저장 · 다음 회차', exact: true })
+    .boundingBox();
+  assert.ok(
+    correctionSave.y >= 80 && correctionSave.y + correctionSave.height <= 480,
+    'correction save covered',
+  );
+  await page.screenshot({ path: path.join(out, 'keyboard-correction.png') });
+  await tap('정정 저장 · 다음 회차');
+  await page.evaluate(() => window.__qaKeyboard());
+  assert.equal((await data()).battingAttempts.length, 1);
+  assert.equal((await data()).battingAttempts[0].score, 8);
+  assert.equal((await data()).battingAttempts[0].note, '가상 정정 메모');
+  assert.ok(
+    (await data()).battingAudit.some(
+      (a) => a.before?.note === '가상 키보드 메모' && a.after?.note === '가상 정정 메모',
+    ),
+  );
+
+  check('타격 상세 5개 화면 크기 / 키보드 축소·이동 시 메모와 저장 노출 / 실패 입력 유지·재시도');
   await tap('다음 평가 학생');
   await tap('정상 타격');
   await tap('평가 6점');
@@ -346,7 +468,7 @@ const check = (s) => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = original;
-      if (k === 'tb-manager.workspace.v10')
+      if (k === 'tb-manager.workspace.v11')
         throw new DOMException('QA quota', 'QuotaExceededError');
       return original.call(this, k, v);
     };
@@ -392,28 +514,43 @@ const check = (s) => {
   await page.getByLabel('승인 감독', { exact: true }).fill('가상 QA');
   await tap('배치안 승인 저장');
   const originals = (await data()).selections;
-  await nav('경기 기록실');
-  await tap('새 경기');
-  await tap('승인 배치안 적용');
-  assert.equal(await page.getByLabel('엔트리 1루수', { exact: true }).inputValue(), 'green-2');
-  await tap('샘플 선수 01 타순 위로');
-  await tap('후공 엔트리 · 0/10명');
-  await tap('승인 배치안 적용');
-  await page.getByLabel('엔트리 확인 감독', { exact: true }).fill('가상 QA');
-  await page.getByRole('checkbox', { name: /양 팀 선발/ }).check();
-  await page
-    .locator('.entry-arrangement')
-    .screenshot({ path: path.join(out, 'approved-entry-order.png') });
-  await tap('경기 생성');
-  const created = (await data()).games.at(-1);
-  assert.deepEqual(created.lineups.away.slice(0, 2), ['green-1', 'green-2']);
-  assert.equal(created.entry.defense.away['1B'], 'green-2');
-  assert.equal(created.entry.defense.home['1B'], 'orange-1');
-  assert.equal(created.rosters.away.length, 10);
-  assert.equal(created.rosters.home.length, 10);
-  assert.deepEqual((await data()).selections, originals);
-  await page.reload({ waitUntil: 'networkidle' });
-  assert.deepEqual((await data()).games.at(-1), created);
+  for (const [width, height] of [
+    [1024, 768],
+    [820, 1180],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await nav('경기 기록실');
+    await tap('새 경기');
+    await tap('승인 배치안 적용');
+    assert.equal(await page.getByLabel('엔트리 1루수', { exact: true }).inputValue(), 'green-2');
+    await tap('샘플 선수 01 타순 위로');
+    await tap('후공 엔트리 · 0/10명');
+    await tap('승인 배치안 적용');
+    await page.getByLabel('엔트리 확인 감독', { exact: true }).fill('가상 QA');
+    const keyboardHeight = width === 1024 ? 420 : 650;
+    await page.evaluate((h) => window.__qaKeyboard(h), keyboardHeight);
+    await page.waitForTimeout(100);
+    const managerRect = await page.getByLabel('엔트리 확인 감독', { exact: true }).boundingBox();
+    assert.ok(
+      managerRect.y >= 0 && managerRect.y + managerRect.height <= keyboardHeight,
+      'manager input hidden',
+    );
+    await page.evaluate(() => window.__qaKeyboard());
+    await page.getByRole('checkbox', { name: /양 팀 선발/ }).check();
+    await page
+      .locator('.entry-arrangement')
+      .screenshot({ path: path.join(out, 'approved-entry-order-' + width + '.png') });
+    await tap('경기 생성');
+    const created = (await data()).games.at(-1);
+    assert.deepEqual(created.lineups.away.slice(0, 2), ['green-1', 'green-2']);
+    assert.equal(created.entry.defense.away['1B'], 'green-2');
+    assert.equal(created.entry.defense.home['1B'], 'orange-1');
+    assert.equal(created.rosters.away.length, 10);
+    assert.equal(created.rosters.home.length, 10);
+    assert.deepEqual((await data()).selections, originals);
+    await page.reload({ waitUntil: 'networkidle' });
+    assert.deepEqual((await data()).games.at(-1), created);
+  }
   check(
     '승인안 두 팀 불러오기 / 미승인 초안 제외 / 타순 수동 변경 / 경기 수비 스냅샷·새로고침 / 원본 승인안 보존',
   );

@@ -106,11 +106,12 @@ export const defenseSequenceSchema = z
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(10),
+      schemaVersion: z.literal(11),
       defenseDays: z
         .array(
           z.object({
             date: z.iso.date(),
+            targetAttempts: z.number().int().min(1).max(200).nullable().default(null),
             assessor: z.string().trim().min(1).max(200),
             purpose: z.string().trim().min(1).max(200),
             note,
@@ -166,6 +167,7 @@ export function parseWorkspace(input: unknown): Workspace {
             z.literal(7),
             z.literal(8),
             z.literal(9),
+            z.literal(10),
           ]),
           raw: z.string(),
         })
@@ -306,7 +308,7 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 10,
+    schemaVersion: 11,
     selections: header.selections,
     defenseDays: header.defenseDays,
     comparisonSelection: header.comparisonSelection,

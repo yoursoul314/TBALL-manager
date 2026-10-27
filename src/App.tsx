@@ -29,6 +29,7 @@ import {
   V7_STORAGE_KEY,
   V8_STORAGE_KEY,
   V9_STORAGE_KEY,
+  V10_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
@@ -96,6 +97,7 @@ export default function App() {
           e.key === V6_STORAGE_KEY ||
           e.key === V8_STORAGE_KEY ||
           e.key === V9_STORAGE_KEY ||
+          e.key === V10_STORAGE_KEY ||
           e.key === V7_STORAGE_KEY)
       )
         setStale(true);

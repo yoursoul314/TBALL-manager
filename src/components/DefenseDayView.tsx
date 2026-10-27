@@ -8,6 +8,7 @@ import {
   defenseDates,
   defenseParticipants,
   createDefenseDay,
+  defenseProgress,
   addDefenseParticipants,
 } from '../assessment/defenseDays';
 import { summarizeDefenseAssessments } from '../assessment/defenseChecklist';
@@ -118,6 +119,7 @@ export function DefenseDayView({
                     purpose: String(f.get('purpose')),
                     note: String(f.get('note')),
                     playerIds: [],
+                    targetAttempts: Number(f.get('target')),
                     createdAt: new Date().toISOString(),
                   }),
                 () => {
@@ -143,6 +145,18 @@ export function DefenseDayView({
                   />
                 </label>
                 <label>
+                  학생당 수비 횟수
+                  <input
+                    name="target"
+                    type="number"
+                    min="1"
+                    max="200"
+                    step="1"
+                    defaultValue="10"
+                    required
+                  />
+                </label>
+                <label>
                   수비 공통 평가자
                   <input name="assessor" required maxLength={200} />
                 </label>
@@ -161,7 +175,7 @@ export function DefenseDayView({
         )}
         {day && (
           <p>
-            {day.date} · {day.assessor} · {day.purpose}
+            {day.date} · {day.assessor} · {day.purpose} · 학생당 {day.targetAttempts ?? '미설정'}회
           </p>
         )}
       </Panel>
@@ -251,7 +265,11 @@ export function DefenseDayView({
                   <PlayerAvatar player={p} />
                   <span>
                     <b>{p.name}</b>
-                    <small>{summarizeDefenseAssessments(data, p.id, date).count}상황 기록</small>
+                    <small>
+                      {summarizeDefenseAssessments(data, p.id, date).count} /{' '}
+                      {day?.targetAttempts ?? '미설정'}회
+                      {defenseProgress(data, p.id, date).complete ? ' · 완료' : ''}
+                    </small>
                   </span>
                 </button>
               ))}

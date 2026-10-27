@@ -259,8 +259,8 @@ export interface Workspace extends BattingData {
   } | null;
   defenseEvaluationChoices: DefenseEvaluationChoice[];
   lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
-  schemaVersion: 10;
-  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; raw: string };
+  schemaVersion: 11;
+  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

@@ -73,6 +73,8 @@ export interface DefenseEvaluationChoice {
 }
 
 export interface DefenseAssessmentDay {
+  /** Per student and date; null preserves legacy dates with no planned limit. */
+  targetAttempts: number | null;
   date: string;
   assessor: string;
   purpose: string;
