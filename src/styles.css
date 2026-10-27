@@ -5229,4 +5229,410 @@ label {
   }
 }
 
-.defense-outcomes button[aria-pressed='true'][aria-label$='미관찰'] { background:#f4f5f2; border:1px dashed #adb8a8; color:#65705f; font-weight:400; }
+.defense-outcomes button[aria-pressed='true'][aria-label$='미관찰'] {
+  background: #f4f5f2;
+  border: 1px dashed #adb8a8;
+  color: #65705f;
+  font-weight: 400;
+}
+/* v0.11: separate preparation, live measurement, history, and analysis. */
+.batting-day-steps,
+.batting-studio-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.batting-day-steps {
+  margin-bottom: 12px;
+}
+.batting-day-steps button,
+.batting-studio-tabs button {
+  min-height: 48px;
+}
+.batting-day-steps [aria-pressed='true'],
+.batting-studio-tabs [aria-pressed='true'] {
+  background: #205c42;
+  color: white;
+  border-color: #205c42;
+}
+.approved-entry-import {
+  padding: 12px;
+  border: 1px solid #a6c6ae;
+  background: #edf5ed;
+  border-radius: 12px;
+  margin: 12px 0;
+}
+.approved-entry-import label {
+  display: block;
+}
+.approved-entry-import select {
+  width: 100%;
+  margin: 6px 0;
+}
+.batting-studio {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #f3f6ef;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overscroll-behavior: contain;
+}
+.batting-studio [hidden],
+.assessment-day-workspace > [hidden] {
+  display: none !important;
+}
+.batting-studio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.batting-studio-header > div {
+  display: grid;
+  gap: 3px;
+}
+.batting-studio-header b {
+  font-size: 18px;
+}
+.batting-studio-header span,
+.batting-studio-header small {
+  font-size: 12px;
+}
+.batting-studio-header .studio-totals {
+  grid-template-columns: auto auto;
+  gap: 4px 14px;
+}
+.batting-studio-header .studio-totals small {
+  grid-column: 1/-1;
+}
+.batting-studio-header .assessment-student-nav {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+.batting-studio button {
+  min-height: 48px;
+}
+.batting-studio-header button {
+  padding: 6px 10px;
+}
+.batting-studio-tabs {
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.batting-studio-tabs > span {
+  margin-left: auto;
+  font-size: 12px;
+  max-width: 310px;
+}
+.batting-studio .record-input-anchor {
+  position: static;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+  scroll-margin: 0;
+}
+.batting-studio .record-input-anchor > .panel {
+  padding: 10px;
+  margin: 0;
+}
+.batting-studio .panel-header {
+  margin-bottom: 4px;
+}
+.batting-studio .panel-header h2 {
+  font-size: 17px;
+}
+.batting-studio .panel-header .eyebrow {
+  display: none;
+}
+.batting-studio .attempt-workbench,
+.batting-studio .attempt-workbench.sheet-collapsed {
+  display: block;
+}
+.batting-studio .attempt-input {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+}
+.batting-studio .record-mode {
+  grid-column: 1/-1;
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+.batting-studio .record-mode button {
+  padding: 4px 12px;
+  min-height: 48px;
+}
+.batting-studio .record-mode small {
+  margin-left: auto;
+  align-self: center;
+}
+.batting-studio .quick-assessment-grid {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1;
+  grid-row: 2;
+  gap: 8px;
+}
+.batting-studio .batting-choices {
+  margin: 0;
+  padding: 0;
+}
+.batting-studio .batting-choices legend {
+  margin: 3px 0;
+  font-size: 12px;
+}
+.batting-studio .batting-choices > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.batting-studio .batting-choices button {
+  min-width: 0;
+  min-height: 48px;
+  padding: 3px;
+  font-size: 13px;
+}
+.batting-studio .batting-choices .quick-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.batting-studio .quick-three button {
+  min-height: 56px;
+}
+.batting-studio .score-buttons {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 4px !important;
+}
+.batting-studio .score-buttons button {
+  min-height: 56px;
+  font-size: 22px;
+}
+.batting-studio .quick-details {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.batting-studio .quick-details > .observation-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+}
+.batting-studio .quick-details .batted-map {
+  grid-column: 1;
+  grid-row: 1/4;
+  margin: 0;
+}
+.batting-studio .quick-details .observation-fields > button {
+  grid-column: 1;
+  grid-row: 4;
+  margin: 0;
+}
+.batting-studio .quick-details .batting-choices {
+  grid-column: 2;
+}
+.batting-studio .quick-details .batting-choices > div {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.batting-studio .batted-map legend {
+  font-size: 12px;
+  margin: 3px 0;
+}
+.batting-studio .batted-map > .hint:first-of-type {
+  display: none;
+}
+.batting-studio .batted-map > .hint {
+  font-size: 11px;
+  margin: 2px 0;
+}
+.batting-studio .zone-field {
+  padding: 5px 4px;
+}
+.batting-studio .zone-row {
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.batting-studio .zone-row button {
+  min-height: 56px;
+  min-width: 48px;
+  padding: 3px;
+}
+.batting-studio .zone-row button b,
+.batting-studio .zone-row button span {
+  font-size: 11px;
+}
+.batting-studio .home-plate-label {
+  margin: 0;
+  font-size: 11px;
+}
+.batting-studio .details-toggle {
+  display: none;
+}
+.batting-studio .record-save-bar {
+  grid-column: 1/-1;
+  position: static;
+  display: flex;
+  margin: 0;
+  padding: 6px 0 0;
+  gap: 8px;
+  border-top: 1px solid #d8e3ce;
+}
+.batting-studio .record-save-bar button {
+  min-height: 56px;
+}
+.batting-studio .record-save-bar .primary {
+  flex: 1;
+}
+.batting-studio .attempt-editor-pane > .button-row {
+  display: inline-flex;
+  margin: 4px 0 0 8px;
+}
+.batting-studio .attempt-editor-pane > button {
+  min-height: 48px;
+}
+.batting-studio .save-feedback,
+.batting-studio .attempt-editor-pane > .hint {
+  display: none;
+}
+.batting-studio .hint {
+  margin: 4px 0;
+  font-size: 11px;
+}
+.batting-studio .quick-assessment:not(.detailed-editor) .attempt-input {
+  grid-template-columns: 1fr;
+}
+.batting-studio .quick-assessment:not(.detailed-editor) .quick-assessment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.batting-studio .studio-extras .quick-details,
+.batting-studio .studio-extras .studio-result,
+.batting-studio .studio-extras .studio-score {
+  display: none;
+}
+.batting-studio .studio-extras .quick-assessment-grid {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.batting-studio .attempt-note {
+  margin: 0;
+}
+.batting-studio .attempt-note textarea {
+  min-height: 90px;
+}
+.batting-studio .attempt-correction {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.batting-studio .attempt-correction label {
+  width: 100%;
+}
+.batting-studio .attempt-sheet-pane {
+  border: 0;
+  padding: 0;
+}
+.batting-studio .attempt-sheet {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: none;
+  overflow: visible;
+  gap: 6px;
+}
+.batting-studio .attempt-sheet button {
+  min-height: 56px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.batting-studio[data-view='history'] .record-input-anchor .panel-header {
+  display: none;
+}
+.batting-studio .studio-error {
+  margin: 0;
+  padding: 6px 10px;
+}
+@media (min-width: 700px) and (max-width: 900px) {
+  .batting-studio-header {
+    flex-wrap: wrap;
+  }
+  .batting-studio .attempt-input {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+  }
+  .batting-studio .quick-details > .observation-fields {
+    grid-template-columns: 1fr;
+  }
+  .batting-studio .quick-details .batted-map,
+  .batting-studio .quick-details .observation-fields > button,
+  .batting-studio .quick-details .batting-choices {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .batting-studio .quick-details .batting-choices > div {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .batting-studio .quick-assessment-grid {
+    gap: 16px;
+  }
+}
+@media (max-width: 699px) {
+  .batting-day-steps {
+    flex-wrap: wrap;
+  }
+  .batting-studio-header {
+    flex-wrap: wrap;
+  }
+  .batting-studio .attempt-input,
+  .batting-studio .quick-assessment:not(.detailed-editor) .quick-assessment-grid {
+    grid-template-columns: 1fr;
+  }
+  .batting-studio .quick-details {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .batting-studio .attempt-sheet {
+    grid-template-columns: 1fr;
+  }
+  .batting-studio-tabs > span {
+    width: 100%;
+    max-width: none;
+  }
+}
+.batting-workspace:not(.batting-studio) .record-input-anchor {
+  position: static;
+  inset: auto;
+  padding: 0;
+  background: transparent;
+}
+.batting-studio .quick-details .batted-map {
+  align-self: start;
+}
+@media (min-width: 901px) {
+  .batting-studio .quick-details .observation-fields > button {
+    grid-row: 3;
+    align-self: end;
+  }
+}
+.app-shell:has(.batting-studio) > .toast {
+  display: none;
+}
+.batting-studio .batting-choices button[aria-pressed='true'][aria-label$='미관찰'] {
+  background: #f0f2ee;
+  color: #536050;
+  border: 1px dashed #9da99a;
+  box-shadow: none;
+}
+.batting-studio .batting-choices button[aria-pressed='true'][aria-label$='미관찰']::before {
+  content: none;
+}

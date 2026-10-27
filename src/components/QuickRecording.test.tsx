@@ -216,28 +216,40 @@ it('선수 프로필 모드는 분리되며 통합 보기에서도 공식 타석
   expect(within(screen.getByRole('dialog')).getByText('0타석 · 0안타')).not.toBeVisible();
 });
 
-it('상세평가 전체 화면 닫기·다시 열기는 회차 초안을 보존한다', async () => {
+it('측정·기록지·분석 페이지 전환은 초안을 보존하고 미저장 종료를 차단한다', async () => {
   const user = await openAssessment();
   await user.click(screen.getByRole('button', { name: '상세 모드' }));
-  expect(screen.getByRole('complementary', { name: '회차 기록지' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /기록지 보기/ })).toHaveAttribute(
-    'aria-expanded',
-    'false',
-  );
-  await user.click(screen.getByRole('button', { name: /기록지 보기/ }));
-  expect(screen.getByRole('button', { name: /기록지 숨기기/ })).toHaveAttribute(
-    'aria-expanded',
-    'true',
-  );
-  await user.click(screen.getByRole('button', { name: /기록지 숨기기/ }));
+  expect(screen.queryByRole('complementary', { name: '회차 기록지' })).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '정상 타격' }));
   await user.click(screen.getByRole('button', { name: '평가 8점' }));
   await user.click(screen.getByRole('button', { name: '좌 원거리' }));
+  for (const name of ['기록지 조회', '성장 분석', '세션·설정']) {
+    await user.click(screen.getByRole('button', { name }));
+    expect(screen.queryByRole('button', { name: '기록 저장 · 다음 회차' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '회차 측정' }));
+    expect(screen.getByRole('button', { name: '평가 8점' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  }
   await user.click(screen.getByRole('button', { name: '전체 화면 닫기' }));
-  expect(screen.getByRole('button', { name: '평가 8점' })).toHaveAttribute('aria-pressed', 'true');
-  await user.click(screen.getByRole('button', { name: '상세 모드' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('저장하지 않은');
   expect(screen.getByRole('button', { name: '좌 원거리' })).toHaveAttribute('aria-pressed', 'true');
   await user.click(screen.getByRole('button', { name: '기록 저장 · 다음 회차' }));
   expect(saved().battingAttempts[0]).toMatchObject({ score: 8, directionZone: 'left-far' });
   expect(saved().events).toEqual([]);
+  await user.click(screen.getByRole('button', { name: '기록지 조회' }));
+  await user.click(screen.getByRole('listitem', { name: '1회차 8점' }));
+  await user.click(screen.getByRole('button', { name: '평가 10점' }));
+  await user.click(screen.getByRole('button', { name: '정정 저장 · 다음 회차' }));
+  expect(saved().battingAttempts[0].score).toBe(8);
+  expect(screen.getByLabelText('회차 수정 사유')).toBeVisible();
+  fireEvent.change(screen.getByLabelText('회차 수정 사유'), { target: { value: '재확인 정정' } });
+  await user.click(screen.getByRole('button', { name: '정정 저장 · 다음 회차' }));
+  expect(saved().battingAttempts[0].score).toBe(10);
+  expect(saved().battingAudit.at(-1)).toMatchObject({
+    before: { score: 8 },
+    after: { score: 10 },
+    reason: '재확인 정정',
+  });
 });

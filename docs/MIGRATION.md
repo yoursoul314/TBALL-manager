@@ -98,3 +98,8 @@ v8 원본과 기존 키를 보존하고 신규 tb-manager.workspace.v9에 저장
 ## schema10 수동 배치 (2026-10-27)
 
 v9는 원문/이전 키를 보존하고 v10 키로 이전한다. 기존 자료의 값을 바꾸지 않고 Selection에 optional method/editedFrom과 nullable score를 허용한다. 수동 초안은 부분 배치, 승인안은10명으로 검증한다. 새 수동 저장은 이전 승인/추천을 덮어쓰지 않는다. 미측정 점수는null이다. 백업 읽기1~10/쓰기10, 구버전 충돌/용량 실패 시 원본 보호, 사진 보존 계약은 유지한다. [상세 계약](TABLET_ASSESSMENT_V10.md).
+
+
+## v0.11 UI 및 승인 배치 불러오기
+
+schema v10 유지. 기존 승인 Selection에서 새 경기의 기존 엔트리 스냅샷으로 복사하므로 신규 저장 필드/변환 없음. 이전 JSON 백업과 감사 원본을 유지한다. [세부 계획](APPROVED_ENTRY_STUDIO_V11.md).

@@ -1,3 +1,4 @@
+import { applyApprovedEntry } from '../domain/approvedEntry';
 import { defenseEvaluation } from '../evaluation/defense';
 import { StudentFilters } from './StudentFilters';
 import { emptyStudentFilter, filterStudents } from '../domain/studentFilter';
@@ -46,6 +47,13 @@ export function NewGame({
   const [checked, setChecked] = useState<Record<Side, string[]>>({ away: [], home: [] });
   const [bulkStatus, setBulkStatus] = useState<EntryStatus>('starter');
   const [feedback, setFeedback] = useState('');
+  const [importError, setImportError] = useState('');
+  const [selectionIds, setSelectionIds] = useState<Record<Side, string>>({ away: '', home: '' });
+  const approvedPlans = data.selections
+    .filter((s) => s.teamId === teams[side] && s.status === 'approved')
+    .slice()
+    .reverse();
+  const selectedPlan = approvedPlans.find((s) => s.id === selectionIds[side]) ?? approvedPlans[0];
   const draft = entries[side];
   const other = side === 'away' ? 'home' : 'away';
   const candidates = data.players.filter(
@@ -262,6 +270,66 @@ export function NewGame({
             </button>
           </nav>
         </div>
+        <section className="approved-entry-import" aria-label="감독 승인 배치안 불러오기">
+          <label>
+            감독 승인 배치안
+            <select
+              aria-label="감독 승인 배치안"
+              value={selectedPlan?.id ?? ''}
+              onChange={(e) => setSelectionIds((old) => ({ ...old, [side]: e.target.value }))}
+            >
+              {!approvedPlans.length && <option value="">이 팀의 승인 배치안 없음</option>}
+              {approvedPlans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {new Date(p.approvedAt ?? p.createdAt).toLocaleString()} · {p.approvedBy} ·{' '}
+                  {p.method === 'manual' ? '수동' : '추천'} 배치
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={!selectedPlan}
+            onClick={() => {
+              try {
+                const next = applyApprovedEntry(
+                  data,
+                  teams[side],
+                  selectedPlan!.id,
+                  draft,
+                  entries[other].assigned,
+                );
+                change(next);
+                select([]);
+                setError('');
+                setImportError('');
+                setFeedback(
+                  '승인안의 선발 10명과 수비 위치를 적용했습니다. 타순은 위·아래 버튼으로 조정한 뒤 경기 엔트리를 확인하세요.',
+                );
+                if (orderRef.current) {
+                  orderRef.current.open = true;
+                  orderRef.current.scrollIntoView?.({ block: 'start' });
+                }
+              } catch (e) {
+                setImportError(e instanceof Error ? e.message : '승인안 적용 실패');
+              }
+            }}
+          >
+            승인 배치안 적용
+          </button>
+          {importError && (
+            <p role="alert" className="alert">
+              {importError}
+            </p>
+          )}
+          <p className="hint">
+            선발·수비를 승인안으로 교체합니다. 기존 교체 후보와 공통 선수 명단은 유지합니다. 타순은
+            직접 조정하며 경기 생성 전 감독 확인이 필요합니다.
+          </p>
+          {selectedPlan && (
+            <p className="hint">승인 당시 배치입니다. 이후 평가 변화는 자동 반영하지 않습니다.</p>
+          )}
+        </section>
         <button
           type="button"
           className="primary"

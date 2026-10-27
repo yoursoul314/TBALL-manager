@@ -47,6 +47,8 @@ export function BattingAssessmentPanel({
   onDetailModeChange,
   onDateChange,
   studentNavigation,
+  focused: controlledFocus,
+  onFocusChange,
 }: {
   data: Workspace;
   playerId: string;
@@ -55,6 +57,8 @@ export function BattingAssessmentPanel({
   initialDate?: string;
   managedDay?: boolean;
   initialDetailed?: boolean;
+  focused?: boolean;
+  onFocusChange?: (value: boolean) => void;
   onDetailModeChange?: (v: boolean) => void;
   onDateChange?: (date: string) => void;
   studentNavigation?: { index: number; total: number; previous?: () => void; next?: () => void };
@@ -80,12 +84,42 @@ export function BattingAssessmentPanel({
   const [lastSaved, setLastSaved] = useState('');
   const inputAnchor = useRef<HTMLDivElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [localFocus, setLocalFocus] = useState(initialDetailed);
+  const focused = controlledFocus ?? localFocus;
+  const setFocus = (v: boolean) => {
+    setLocalFocus(v);
+    onFocusChange?.(v);
+  };
+  const [view, setView] = useState<'measure' | 'history' | 'session' | 'analysis'>('measure');
+  const leaveFocus = () => {
+    if (dirty) {
+      setError('저장하지 않은 입력이 있습니다. 저장하거나 입력을 되돌린 뒤 닫으세요.');
+      return;
+    }
+    setFocus(false);
+  };
   const [detailMode, setDetailModeState] = useState(initialDetailed);
   const setDetailMode = (v: boolean) => {
     setDetailModeState(v);
+    if (v) {
+      setFocus(true);
+      setView('measure');
+    }
     onDetailModeChange?.(v);
   };
   const [feedback, setFeedback] = useState('');
+  useEffect(() => {
+    if (!focused) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [focused]);
+  useEffect(() => {
+    setHistoryPage(0);
+  }, [sessionId, date]);
   const setDirty = (v: boolean) => {
     setDirtyState(v);
     onDirtyChange?.(v);
@@ -105,8 +139,15 @@ export function BattingAssessmentPanel({
     sessions.filter((s) => s.status !== 'cancelled').at(-1) ??
     sessions.at(-1);
   useEffect(() => {
-    inputAnchor.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
-  }, [session?.id]);
+    if (!focused) inputAnchor.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  }, [session?.id, focused]);
+  useEffect(() => {
+    if (focused) setView(session ? 'measure' : 'session');
+    // A reopened measurement screen starts on the current round; tab changes keep the draft mounted.
+  }, [focused]);
+  useEffect(() => {
+    setHistoryPage(0);
+  }, [session?.id, session?.targetAttempts]);
   const attempt = session
     ? data.battingAttempts.find((a) => a.sessionId === session.id && a.attemptNumber === round)
     : undefined;
@@ -155,8 +196,85 @@ export function BattingAssessmentPanel({
     </nav>
   );
   return (
-    <div className={'batting-workspace' + (detailMode ? ' assessment-detailed' : '')}>
-      <div className="assessment-summary" aria-label="현재 평가 요약">
+    <div
+      className={
+        'batting-workspace' +
+        (detailMode ? ' assessment-detailed' : '') +
+        (focused ? ' batting-studio' : '')
+      }
+      data-view={view}
+    >
+      {focused && (
+        <header className="batting-studio-header">
+          <div>
+            <b>
+              {current.name} · {current.number}번
+            </b>
+            <span>
+              {date} · {session?.sessionNumber}차 · {round}/{session?.targetAttempts}회차
+            </span>
+          </div>
+          <div className="studio-totals">
+            <span>
+              오늘 <b>{battingNumber(daily.average)}</b> /10
+            </span>
+            <span>
+              누적 <b>{battingNumber(cumulative.score)}</b> /100
+            </span>
+            <small>
+              {session && SESSION_LABELS[session.status]} · 유효 {daily.count}회
+            </small>
+          </div>
+          {studentNav}
+          <button type="button" onClick={leaveFocus}>
+            전체 화면 닫기
+          </button>
+        </header>
+      )}
+      {focused && (
+        <nav className="batting-studio-tabs" aria-label="타격평가 작업 화면">
+          {(
+            [
+              ['measure', '회차 측정'],
+              ['history', '기록지 조회'],
+              ['session', '세션·설정'],
+              ['analysis', '성장 분석'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={view === key}
+              onClick={() => setView(key)}
+            >
+              {label}
+            </button>
+          ))}
+          <span>
+            {dirty
+              ? '● 입력 중 · 화면을 바꿔도 유지됩니다'
+              : feedback || '관찰은 선택 · 결과와 점수만 필수'}
+          </span>
+        </nav>
+      )}
+      {focused && error && (
+        <p role="alert" className="alert studio-error">
+          {error}
+        </p>
+      )}
+      {!focused && (
+        <button
+          className="primary"
+          type="button"
+          onClick={() => {
+            setFocus(true);
+            setView(session ? 'measure' : 'session');
+          }}
+        >
+          측정 전용 화면 열기
+        </button>
+      )}
+      <div hidden={focused} className="assessment-summary" aria-label="현재 평가 요약">
         <b>
           {current.name} · {current.number}번
         </b>
@@ -183,212 +301,194 @@ export function BattingAssessmentPanel({
           </>
         )}
       </div>
-      {!detailMode && studentNav}
-      <Panel title="날짜별 평가 세션">
-        <div className="form-row">
-          {!managedDay && (
-            <>
-              <label>
-                평가 날짜
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  disabled={dirty}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setDate(e.target.value);
-                      setSessionId('');
-                      setRound(1);
-                    }
-                  }}
-                />
-              </label>
-              <label>
-                기록된 날짜
-                <select
-                  aria-label="기록된 날짜"
-                  value={dates.includes(date) ? date : ''}
-                  disabled={dirty}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setDate(e.target.value);
-                      setSessionId('');
-                      setRound(1);
-                    }
-                  }}
-                >
-                  <option value="">날짜 선택</option>
-                  {dates.map((d) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-              </label>
-            </>
-          )}
-          <label>
-            평가 세션
-            <select
-              value={session?.id ?? ''}
-              disabled={dirty}
-              onChange={(e) => {
-                setSessionId(e.target.value);
-                setRound(1);
-              }}
-            >
-              {!sessions.length && <option value="">세션 없음</option>}
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.sessionNumber}차 · {s.purpose} · {SESSION_LABELS[s.status]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <p>
-          날짜별 평균 <b>{battingNumber(daily.average)}</b> / 10 · 유효 {daily.count}회{' '}
-          {daily.provisional ? '· 잠정 평균' : ''}
-        </p>
-        {!managedDay && (
-          <details open={!session}>
-            <summary>같은 날짜에 새 평가 세션 만들기</summary>
-            <form
-              className="batting-session-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const f = new FormData(e.currentTarget),
-                  actor = String(f.get('assessor'));
-                const next = execute(() =>
-                  createBattingSession(
-                    data,
-                    {
-                      playerId,
-                      date,
-                      targetAttempts: Number(f.get('target')),
-                      assessor: actor,
-                      purpose: String(f.get('purpose')),
-                      note: String(f.get('note')),
-                    },
-                    changeMeta(actor, '신규 평가 세션'),
-                  ),
-                );
-                if (next) {
-                  setSessionId(next.battingSessions.at(-1)!.id);
-                  setRound(1);
-                }
-              }}
-            >
-              <fieldset disabled={dirty}>
-                <div className="form-row">
-                  <label>
-                    타격 횟수
-                    <input
-                      name="target"
-                      type="number"
-                      min="1"
-                      max="200"
-                      defaultValue="10"
-                      required
-                    />
-                  </label>
-                  <label>
-                    세션 평가자
-                    <input name="assessor" maxLength={200} required placeholder="평가자 별칭" />
-                  </label>
-                  <label>
-                    평가 목적
-                    <input
-                      name="purpose"
-                      maxLength={200}
-                      required
-                      placeholder="예: 타구 방향 연습"
-                    />
-                  </label>
-                </div>
+      {!focused && studentNav}
+      <div hidden={focused && view !== 'session'} className="studio-session-page">
+        <Panel title="날짜별 평가 세션">
+          <div className="form-row">
+            {!managedDay && (
+              <>
                 <label>
-                  세션 메모
-                  <textarea name="note" maxLength={2000} />
+                  평가 날짜
+                  <input
+                    type="date"
+                    required
+                    value={date}
+                    disabled={dirty}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setDate(e.target.value);
+                        setSessionId('');
+                        setRound(1);
+                      }
+                    }}
+                  />
                 </label>
-                <button className="primary" type="submit">
-                  평가 세션 생성
-                </button>
-              </fieldset>
-            </form>
-          </details>
-        )}
-        {session && (
-          <>
-            <details>
-              <summary>세션 진행·구역 기준 확인</summary>
-              <p className="callout">
-                {session.sessionNumber}차 · {SESSION_LABELS[session.status]} · 기록 {records.length}
-                /{session.targetAttempts}회<br />
-                구역 정의 {zone?.version}: 근거리 {zone?.near} / 중거리 {zone?.middle} / 원거리{' '}
-                {zone?.far}
-              </p>
-            </details>
-            <details>
-              <summary>세션 정보·날짜·상태 수정</summary>
-              <SessionEditor
-                key={session.id + session.updatedAt}
-                session={session}
+                <label>
+                  기록된 날짜
+                  <select
+                    aria-label="기록된 날짜"
+                    value={dates.includes(date) ? date : ''}
+                    disabled={dirty}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setDate(e.target.value);
+                        setSessionId('');
+                        setRound(1);
+                      }
+                    }}
+                  >
+                    <option value="">날짜 선택</option>
+                    {dates.map((d) => (
+                      <option key={d}>{d}</option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+            <label>
+              평가 세션
+              <select
+                value={session?.id ?? ''}
                 disabled={dirty}
-                onUpdate={(patch, actor, reason) =>
-                  execute(() =>
-                    reviseBattingSession(data, session.id, patch, changeMeta(actor, reason)),
-                  ) !== null
-                }
-                onDateChange={(next) => {
-                  onDateChange?.(next);
-                  setDate(next);
+                onChange={(e) => {
+                  setSessionId(e.target.value);
                   setRound(1);
                 }}
-              />
-            </details>
-          </>
-        )}
-        {error && (
-          <p className="alert" role="alert">
-            {error}
+              >
+                {!sessions.length && <option value="">세션 없음</option>}
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.sessionNumber}차 · {s.purpose} · {SESSION_LABELS[s.status]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p>
+            날짜별 평균 <b>{battingNumber(daily.average)}</b> / 10 · 유효 {daily.count}회{' '}
+            {daily.provisional ? '· 잠정 평균' : ''}
           </p>
-        )}
-      </Panel>
-      {session && (
-        <div ref={inputAnchor} className="record-input-anchor">
-          {detailMode && error && (
-            <p role="alert" className="alert">
+          {!managedDay && (
+            <details open={!session}>
+              <summary>같은 날짜에 새 평가 세션 만들기</summary>
+              <form
+                className="batting-session-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const f = new FormData(e.currentTarget),
+                    actor = String(f.get('assessor'));
+                  const next = execute(() =>
+                    createBattingSession(
+                      data,
+                      {
+                        playerId,
+                        date,
+                        targetAttempts: Number(f.get('target')),
+                        assessor: actor,
+                        purpose: String(f.get('purpose')),
+                        note: String(f.get('note')),
+                      },
+                      changeMeta(actor, '신규 평가 세션'),
+                    ),
+                  );
+                  if (next) {
+                    setSessionId(next.battingSessions.at(-1)!.id);
+                    setRound(1);
+                  }
+                }}
+              >
+                <fieldset disabled={dirty}>
+                  <div className="form-row">
+                    <label>
+                      타격 횟수
+                      <input
+                        name="target"
+                        type="number"
+                        min="1"
+                        max="200"
+                        defaultValue="10"
+                        required
+                      />
+                    </label>
+                    <label>
+                      세션 평가자
+                      <input name="assessor" maxLength={200} required placeholder="평가자 별칭" />
+                    </label>
+                    <label>
+                      평가 목적
+                      <input
+                        name="purpose"
+                        maxLength={200}
+                        required
+                        placeholder="예: 타구 방향 연습"
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    세션 메모
+                    <textarea name="note" maxLength={2000} />
+                  </label>
+                  <button className="primary" type="submit">
+                    평가 세션 생성
+                  </button>
+                </fieldset>
+              </form>
+            </details>
+          )}
+          {session && (
+            <>
+              <details>
+                <summary>세션 진행·구역 기준 확인</summary>
+                <p className="callout">
+                  {session.sessionNumber}차 · {SESSION_LABELS[session.status]} · 기록{' '}
+                  {records.length}/{session.targetAttempts}회<br />
+                  구역 정의 {zone?.version}: 근거리 {zone?.near} / 중거리 {zone?.middle} / 원거리{' '}
+                  {zone?.far}
+                </p>
+              </details>
+              <details>
+                <summary>세션 정보·날짜·상태 수정</summary>
+                <SessionEditor
+                  key={session.id + session.updatedAt}
+                  session={session}
+                  disabled={dirty}
+                  onUpdate={(patch, actor, reason) =>
+                    execute(() =>
+                      reviseBattingSession(data, session.id, patch, changeMeta(actor, reason)),
+                    ) !== null
+                  }
+                  onDateChange={(next) => {
+                    onDateChange?.(next);
+                    setDate(next);
+                    setRound(1);
+                  }}
+                />
+              </details>
+            </>
+          )}
+          {!focused && error && (
+            <p className="alert" role="alert">
               {error}
             </p>
           )}
-          {detailMode && (
-            <header className="assessment-fullscreen-heading">
-              <div>
-                <b>
-                  {current.name} · {current.number}번
-                </b>
-                <span>
-                  {date} · {session.sessionNumber}차 · {round}/{session.targetAttempts}회차 · 오늘
-                  평균 {battingNumber(daily.average)} · 누적{' '}
-                  {cumulative.score === null
-                    ? '평가 기록 없음'
-                    : battingNumber(cumulative.score) + '점'}
-                </span>
-              </div>
-              {studentNav}
-              <button type="button" onClick={() => setDetailMode(false)}>
-                전체 화면 닫기
-              </button>
-            </header>
-          )}
+        </Panel>
+      </div>
+      {session && (
+        <div
+          ref={inputAnchor}
+          hidden={focused && !['measure', 'history'].includes(view)}
+          className="record-input-anchor"
+        >
           <Panel
             title={`${round}회차 기록`}
             eyebrow={`${SESSION_LABELS[session.status]} · ${session.targetAttempts}회 중`}
           >
             <div className={'attempt-workbench' + (!sheetOpen ? ' sheet-collapsed' : '')}>
-              <div className="attempt-editor-pane">
+              <div hidden={focused && view !== 'measure'} className="attempt-editor-pane">
                 <AttemptEditor
                   key={`${session.id}/${round}/${attempt?.updatedAt ?? ''}/${attempt?.status ?? ''}`}
                   defaultDetailed={detailMode}
+                  focused={focused}
                   onModeChange={setDetailMode}
                   attempt={attempt}
                   session={session}
@@ -483,9 +583,14 @@ export function BattingAssessmentPanel({
                   </p>
                 )}
               </div>
-              <aside className="attempt-sheet-pane" aria-label="회차 기록지">
+              <aside
+                hidden={focused && view !== 'history'}
+                className="attempt-sheet-pane"
+                aria-label="회차 기록지"
+              >
                 {
                   <button
+                    hidden={focused}
                     type="button"
                     aria-expanded={sheetOpen}
                     onClick={() => setSheetOpen(!sheetOpen)}
@@ -495,49 +600,80 @@ export function BattingAssessmentPanel({
                   </button>
                 }
                 <div
-                  hidden={!sheetOpen}
+                  hidden={!focused && !sheetOpen}
                   className="attempt-sheet"
                   role="list"
                   aria-label="회차별 타격 기록"
                 >
-                  {Array.from({ length: session.targetAttempts }, (_, i) => i + 1).map((n) => {
-                    const a = records.find((r) => r.attemptNumber === n);
-                    return (
-                      <button
-                        type="button"
-                        role="listitem"
-                        key={n}
-                        disabled={
-                          dirty || (!a && n > 1 && !records.some((r) => r.attemptNumber === n - 1))
-                        }
-                        className={n === round ? 'selected' : ''}
-                        aria-label={`${n}회차 ${a?.status === 'cancelled' ? '취소' : a?.score !== null && a?.score !== undefined ? `${a.score}점` : '미평가'}`}
-                        onClick={() => setRound(n)}
-                      >
-                        <b>
-                          {n}회차 {a?.status === 'cancelled' ? '· 취소' : ''}
-                        </b>
-                        <span className="sheet-result">
-                          {a?.result ? RESULT_LABELS[a.result] : '미측정'}
-                        </span>
-                        <span className="sheet-zone">
-                          {a?.directionZone
-                            ? zoneLabel(a.directionZone)
-                            : a?.direction
-                              ? DIRECTION_LABELS[a.direction]
-                              : '방향 미관찰'}
-                        </span>
-                        <strong>
-                          {a?.score ?? '미평가'}
-                          {a?.score !== null && a?.score !== undefined ? '점' : ''}
-                        </strong>
-                      </button>
-                    );
-                  })}
+                  {Array.from({ length: session.targetAttempts }, (_, i) => i + 1)
+                    .slice(
+                      focused ? historyPage * 10 : 0,
+                      focused ? historyPage * 10 + 10 : undefined,
+                    )
+                    .map((n) => {
+                      const a = records.find((r) => r.attemptNumber === n);
+                      return (
+                        <button
+                          type="button"
+                          role="listitem"
+                          key={n}
+                          disabled={
+                            dirty ||
+                            (!a && n > 1 && !records.some((r) => r.attemptNumber === n - 1))
+                          }
+                          className={n === round ? 'selected' : ''}
+                          aria-label={`${n}회차 ${a?.status === 'cancelled' ? '취소' : a?.score !== null && a?.score !== undefined ? `${a.score}점` : '미평가'}`}
+                          onClick={() => {
+                            setRound(n);
+                            if (focused) setView('measure');
+                          }}
+                        >
+                          <b>
+                            {n}회차 {a?.status === 'cancelled' ? '· 취소' : ''}
+                          </b>
+                          <span className="sheet-result">
+                            {a?.result ? RESULT_LABELS[a.result] : '미측정'}
+                          </span>
+                          <span className="sheet-zone">
+                            {a?.directionZone
+                              ? zoneLabel(a.directionZone)
+                              : a?.direction
+                                ? DIRECTION_LABELS[a.direction]
+                                : '방향 미관찰'}
+                          </span>
+                          <strong>
+                            {a?.score ?? '미평가'}
+                            {a?.score !== null && a?.score !== undefined ? '점' : ''}
+                          </strong>
+                        </button>
+                      );
+                    })}
                 </div>
+                {focused && (
+                  <div className="button-row">
+                    <button
+                      type="button"
+                      disabled={historyPage === 0}
+                      onClick={() => setHistoryPage(historyPage - 1)}
+                    >
+                      기록지 이전 페이지
+                    </button>
+                    <span>
+                      {historyPage + 1}/{Math.ceil(session.targetAttempts / 10)}쪽 · 회차를 선택하면
+                      정정 화면으로 이동
+                    </span>
+                    <button
+                      type="button"
+                      disabled={(historyPage + 1) * 10 >= session.targetAttempts}
+                      onClick={() => setHistoryPage(historyPage + 1)}
+                    >
+                      기록지 다음 페이지
+                    </button>
+                  </div>
+                )}
               </aside>
             </div>
-            <details className="assessment-audit">
+            <details hidden={focused && view !== 'history'} className="assessment-audit">
               <summary>
                 원본 및 정정 이력 (
                 {
@@ -577,7 +713,11 @@ export function BattingAssessmentPanel({
           </Panel>
         </div>
       )}
-      <details>
+      <details
+        hidden={focused && view !== 'analysis'}
+        open={focused && view === 'analysis' ? true : undefined}
+        className="studio-analysis-page"
+      >
         <summary>날짜별 평균 · 성장 그래프 · 이전 수동 평가</summary>
         <BattingAssessmentReport data={data} playerId={playerId} />
       </details>
@@ -726,7 +866,9 @@ function AttemptEditor({
   onCommit,
   defaultDetailed,
   onModeChange,
+  focused,
 }: {
+  focused: boolean;
   defaultDetailed: boolean;
   onModeChange: (v: boolean) => void;
   attempt?: Attempt;
@@ -735,6 +877,9 @@ function AttemptEditor({
   onCommit: (input: AttemptInput, actor: string, reason: string) => boolean;
 }) {
   const [draft, setDraft] = useState<AttemptInput>(attempt ?? blankAttempt());
+  const [extras, setExtras] = useState(false);
+  const [actor, setActor] = useState(session.assessor);
+  const [reason, setReason] = useState('');
   const [dirty, setDirty] = useState(false);
   const [detailed, setDetailedState] = useState(defaultDetailed);
   useEffect(() => setDetailedState(defaultDetailed), [defaultDetailed]);
@@ -770,7 +915,11 @@ function AttemptEditor({
     });
   return (
     <form
-      className={'quick-assessment' + (detailed ? ' detailed-editor' : '')}
+      className={
+        'quick-assessment' +
+        (detailed ? ' detailed-editor' : '') +
+        (focused && extras ? ' studio-extras' : '')
+      }
       onSubmit={(e) => {
         e.preventDefault();
         if (
@@ -778,12 +927,15 @@ function AttemptEditor({
           (draft.status !== 'cancelled' && (!draft.result || draft.score === null))
         )
           return;
+        if (attempt && (!actor.trim() || !reason.trim())) {
+          setExtras(true);
+          return;
+        }
         locked.current = true;
-        const f = new FormData(e.currentTarget);
         const saved = onCommit(
           draft,
-          attempt ? String(f.get('actor')) : session.assessor,
-          attempt ? String(f.get('reason')) : '최초 회차 기록',
+          attempt ? actor : session.assessor,
+          attempt ? reason : '최초 회차 기록',
         );
         if (saved) {
           setDirty(false);
@@ -799,6 +951,11 @@ function AttemptEditor({
           <button type="button" aria-pressed={detailed} onClick={() => setDetailed(true)}>
             상세 모드
           </button>
+          {focused && (
+            <button type="button" aria-pressed={extras} onClick={() => setExtras(!extras)}>
+              {extras ? '결과·관찰로 돌아가기' : '메모·정정'}
+            </button>
+          )}
           <small>결과와 점수만 필수</small>
         </div>
         <div className="quick-assessment-grid">
@@ -856,7 +1013,7 @@ function AttemptEditor({
               <p className="hint">관찰할 수 없는 타구 항목은 해당 없음(null)으로 저장합니다.</p>
             )}
           </section>
-          <fieldset className="batting-choices">
+          <fieldset className="batting-choices studio-score">
             <legend>② 회차 평가점수 · 감독 판정 · 필수</legend>
             <div className="score-buttons">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
@@ -873,7 +1030,11 @@ function AttemptEditor({
             </div>
             <p className="hint">1~10점 직접 판정 · 자동 추정 없음</p>
           </fieldset>
-          <details className="attempt-note" hidden={!detailed}>
+          <details
+            className="attempt-note"
+            hidden={focused ? !extras : !detailed}
+            open={focused && extras ? true : undefined}
+          >
             <summary>평가 메모</summary>
             <label>
               회차 메모
@@ -885,16 +1046,24 @@ function AttemptEditor({
             </label>
           </details>
           {attempt && (
-            <div className="form-row">
+            <div className="form-row attempt-correction" hidden={focused && !extras}>
               <label>
                 기록·수정자
-                <input name="actor" required defaultValue={session.assessor} maxLength={200} />
+                <input
+                  name="actor"
+                  aria-required="true"
+                  value={actor}
+                  onChange={(e) => setActor(e.target.value)}
+                  maxLength={200}
+                />
               </label>
               <label>
                 회차 수정 사유
                 <input
                   name="reason"
-                  required
+                  aria-required="true"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
                   maxLength={2000}
                   placeholder="점수 정정, 취소 복원 등"
                 />

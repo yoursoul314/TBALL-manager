@@ -1,6 +1,6 @@
 # TB Manager | 티볼 통합 매니지먼트 시스템
 
-중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA** v0.10입니다.
+중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA** v0.11입니다.
 
 - 웹앱: https://yoursoul314.github.io/TBALL-manager/
 - 저장소: https://github.com/yoursoul314/TBALL-manager
@@ -9,6 +9,8 @@
 - 확정·미확정 결정: [docs/DECISIONS.md](docs/DECISIONS.md)
 - 검증 결과: [docs/VALIDATION.md](docs/VALIDATION.md)
 - 학생·엔트리·공수 통합 기록 v3: [docs/ROSTER_DEFENSE_V3.md](docs/ROSTER_DEFENSE_V3.md)
+
+감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 기존 데이터 schema v10을 유지합니다. [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
 
 ## 빠른 실행
 

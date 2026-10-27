@@ -50,7 +50,7 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.10.0');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.11.0');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
@@ -228,14 +228,15 @@ const check = (s) => {
   await tap('평가 8점');
   await page.getByRole('button', { name: '좌 원거리', exact: true }).click();
   assert.ok(await page.locator('.attempt-sheet').isHidden());
-  await page.getByRole('button', { name: /기록지 보기/ }).click();
+  await tap('기록지 조회');
   assert.ok(await page.locator('.attempt-sheet').isVisible());
-  await page.getByRole('button', { name: /기록지 숨기기/ }).click();
+  await tap('회차 측정');
   assert.equal(
     await page.getByRole('button', { name: '평가 8점', exact: true }).getAttribute('aria-pressed'),
     'true',
   );
   for (const [w, h] of [
+    [1440, 900],
     [1180, 820],
     [1024, 768],
     [820, 1180],
@@ -247,8 +248,29 @@ const check = (s) => {
       w: innerWidth,
       scroll: document.documentElement.scrollWidth,
       editor: document.querySelector('.attempt-editor-pane').getBoundingClientRect().toJSON(),
+      studioHeight: document.querySelector('.batting-studio').clientHeight,
+      studioScroll: document.querySelector('.batting-studio').scrollHeight,
+      saveBottom: [...document.querySelectorAll('.batting-studio button')]
+        .find((b) => b.textContent === '기록 저장 · 다음 회차')
+        .getBoundingClientRect().bottom,
+      buttons: [
+        ...document.querySelectorAll(
+          '.batting-studio .quick-three button,.batting-studio .score-buttons button,.batting-studio .zone-row button',
+        ),
+      ]
+        .filter((b) => b.getBoundingClientRect().width)
+        .map((b) => ({ w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height })),
     }));
     assert.ok(m.scroll <= m.w + 1);
+    if (w >= 700) {
+      assert.ok(m.studioScroll <= m.studioHeight + 1, JSON.stringify(m));
+      assert.ok(m.saveBottom <= h, 'Save must be visible without scroll');
+      assert.ok(
+        m.buttons.every((b) => b.w >= 48 && b.h >= 48),
+        JSON.stringify(m.buttons),
+      );
+      await page.screenshot({ path: path.join(out, 'batting-measure-' + w + '.png') });
+    }
     report.metrics.push(m);
     if (w === 1180) await page.screenshot({ path: path.join(out, '03-batting-sheet-hidden.png') });
   }
@@ -261,12 +283,13 @@ const check = (s) => {
   await tap('평가 6점');
   await page.getByRole('button', { name: '중 근거리', exact: true }).click();
   await tap('기록 저장 · 다음 회차');
-  await tap('전체 화면 닫기');
+  await tap('간편 모드');
   assert.ok(await page.locator('.attempt-sheet').isHidden());
-  await page.getByRole('button', { name: /기록지 보기/ }).click();
+  await tap('기록지 조회');
   assert.ok(await page.locator('.attempt-sheet').isVisible());
-  await page.getByRole('button', { name: /기록지 숨기기/ }).click();
+  await tap('회차 측정');
   assert.ok(await page.locator('.attempt-sheet').isHidden());
+  await tap('전체 화면 닫기');
   await nav('선수 비교 & 선택');
   await page.getByLabel('샘플 선수 02 비교 선택', { exact: true }).check();
   await page.getByLabel('비교 분석 최소 관찰 수', { exact: true }).fill('1');
@@ -354,6 +377,46 @@ const check = (s) => {
   await page.reload({ waitUntil: 'networkidle' });
   assert.equal((await data()).selections.length, 3);
   check('수동 부분 배치·재열기·10명·맞교환 / 미측정 null / 저장실패 보호 / 감독 승인·수정 새 초안');
+  await nav('선발 시뮬레이션');
+  await page.getByLabel('시뮬레이션 팀', { exact: true }).selectOption('orange');
+  await tap('수동 선수 배치');
+  for (let i = 0; i < 10; i++) {
+    await page
+      .locator('.manual-position-buttons')
+      .getByRole('button', { name: new RegExp('^' + positions[i]) })
+      .click();
+    await tap('샘플 선수 ' + String(i + 13).padStart(2, '0') + ' ' + positions[i] + ' 배치');
+  }
+  await tap('수동 배치안 저장');
+  await tap('시범 배치 감독 승인');
+  await page.getByLabel('승인 감독', { exact: true }).fill('가상 QA');
+  await tap('배치안 승인 저장');
+  const originals = (await data()).selections;
+  await nav('경기 기록실');
+  await tap('새 경기');
+  await tap('승인 배치안 적용');
+  assert.equal(await page.getByLabel('엔트리 1루수', { exact: true }).inputValue(), 'green-2');
+  await tap('샘플 선수 01 타순 위로');
+  await tap('후공 엔트리 · 0/10명');
+  await tap('승인 배치안 적용');
+  await page.getByLabel('엔트리 확인 감독', { exact: true }).fill('가상 QA');
+  await page.getByRole('checkbox', { name: /양 팀 선발/ }).check();
+  await page
+    .locator('.entry-arrangement')
+    .screenshot({ path: path.join(out, 'approved-entry-order.png') });
+  await tap('경기 생성');
+  const created = (await data()).games.at(-1);
+  assert.deepEqual(created.lineups.away.slice(0, 2), ['green-1', 'green-2']);
+  assert.equal(created.entry.defense.away['1B'], 'green-2');
+  assert.equal(created.entry.defense.home['1B'], 'orange-1');
+  assert.equal(created.rosters.away.length, 10);
+  assert.equal(created.rosters.home.length, 10);
+  assert.deepEqual((await data()).selections, originals);
+  await page.reload({ waitUntil: 'networkidle' });
+  assert.deepEqual((await data()).games.at(-1), created);
+  check(
+    '승인안 두 팀 불러오기 / 미승인 초안 제외 / 타순 수동 변경 / 경기 수비 스냅샷·새로고침 / 원본 승인안 보존',
+  );
   assert.equal(report.errors.length, 0);
   report.status = 'passed';
 })()

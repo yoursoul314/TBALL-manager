@@ -61,6 +61,7 @@ it('날짜 생성 후 두 학생 평가·미저장 전환 차단·새로고침·
   app = render(<App />);
   click('기능평가 & 팀워크');
   expect(screen.getByLabelText('평가 날짜 선택')).toHaveValue('2026-10-26');
+  click('2 학생 선택 · 2명');
   expect(screen.getByRole('button', { name: /샘플 선수 01.*1[/]1회/ })).toBeInTheDocument();
 }, 15000);
 it('일괄 평가 저장 실패 시 선택과 원본을 유지하여 재시도할 수 있다', () => {
@@ -88,6 +89,7 @@ it('일괄 평가 저장 실패 시 선택과 원본을 유지하여 재시도�
     );
   }
   render(<Host />);
+  click('학생 선택으로 →');
   fireEvent.click(screen.getByLabelText('샘플 선수 01 평가 대상 선택'));
   click('선택 학생 평가 시작');
   expect(screen.getByRole('alert')).toHaveTextContent('quota');
