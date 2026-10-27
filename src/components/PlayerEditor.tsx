@@ -63,6 +63,8 @@ export function PlayerEditor({
           setError('');
           try {
             const validated = playerSchema.parse(draft);
+            if (validated.pref1 && validated.pref1 === validated.pref2)
+              throw Error('1·2지망 포지션은 다르게 선택하세요');
             const next = {
               ...data,
               games: data.games.map((g) => ({
@@ -156,6 +158,25 @@ export function PlayerEditor({
               <label key={key}>
                 {i ? '보조 포지션' : '주 포지션'}
                 <select
+                  value={draft[key] ?? ''}
+                  onChange={(e) => patch({ [key]: (e.target.value || null) as Position | null })}
+                >
+                  <option value="">미설정</option>
+                  {POSITIONS.map((p) => (
+                    <option key={p} value={p}>
+                      {POSITION_LABELS[p]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          <div className="form-row">
+            {(['pref1', 'pref2'] as const).map((key, i) => (
+              <label key={key}>
+                {i + 1}지망 포지션
+                <select
+                  aria-label={i + 1 + '지망 포지션'}
                   value={draft[key] ?? ''}
                   onChange={(e) => patch({ [key]: (e.target.value || null) as Position | null })}
                 >

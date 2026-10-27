@@ -1,3 +1,12 @@
+import { QualityAttemptEditor } from './QualityAttemptEditor';
+import {
+  QUALITY_RUBRIC,
+  LEGACY_RUBRIC,
+  QUALITY_SCALE,
+  rubricOf,
+  rubricLabel,
+} from '../config/battingQuality';
+import type { BattingRubric } from '../domain/batting';
 import { useVisibleViewport } from './useVisibleViewport';
 import { useState, useRef, useEffect } from 'react';
 import type { Workspace, Direction, Distance } from '../domain/model';
@@ -153,8 +162,10 @@ export function BattingAssessmentPanel({
   const attempt = session
     ? data.battingAttempts.find((a) => a.sessionId === session.id && a.attemptNumber === round)
     : undefined;
-  const daily = summarizeBatting(data, playerId, { from: date, to: date });
-  const cumulative = summarizeBatting(data, playerId);
+  const rubric = session ? rubricOf(session) : QUALITY_RUBRIC;
+  const Editor = rubric === QUALITY_RUBRIC ? QualityAttemptEditor : AttemptEditor;
+  const daily = summarizeBatting(data, playerId, { from: date, to: date, rubric });
+  const cumulative = summarizeBatting(data, playerId, { rubric });
   const execute = (fn: () => Workspace) => {
     try {
       const next = fn();
@@ -219,10 +230,11 @@ export function BattingAssessmentPanel({
           </div>
           <div className="studio-totals">
             <span>
-              오늘 <b>{battingNumber(daily.average)}</b> /10
+              오늘 <b>{battingNumber(daily.average)}</b> ·{' '}
+              {rubric === QUALITY_RUBRIC ? '−1~5점' : '1~10점'}
             </span>
             <span>
-              누적 <b>{battingNumber(cumulative.score)}</b> /100
+              누적 <b>{battingNumber(cumulative.score)}</b> · /100
             </span>
             <small>
               {session && SESSION_LABELS[session.status]} · 유효 {daily.count}회
@@ -256,7 +268,10 @@ export function BattingAssessmentPanel({
           <span>
             {dirty
               ? '● 입력 중 · 화면을 바꿔도 유지됩니다'
-              : feedback || '관찰은 선택 · 결과와 점수만 필수'}
+              : feedback ||
+                (rubric === QUALITY_RUBRIC
+                  ? '타구 질 선택 · 방향은 선택 관찰'
+                  : '이전 척도 · 결과와 점수만 필수')}
           </span>
         </nav>
       )}
@@ -285,10 +300,10 @@ export function BattingAssessmentPanel({
           {date} · {session ? round + ' / ' + session.targetAttempts + '회차' : '세션을 생성하세요'}
         </span>
         <span>
-          오늘 평균 <strong>{battingNumber(daily.average)}</strong> / 10
+          오늘 평균 <strong>{battingNumber(daily.average)}</strong> · {rubricLabel(rubric)}
         </span>
         <span>
-          누적 <strong>{battingNumber(summarizeBatting(data, playerId).score)}</strong> / 100
+          누적 <strong>{battingNumber(cumulative.score)}</strong> / 100
         </span>
         {session && (
           <>
@@ -361,15 +376,16 @@ export function BattingAssessmentPanel({
                 {!sessions.length && <option value="">세션 없음</option>}
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.sessionNumber}차 · {s.purpose} · {SESSION_LABELS[s.status]}
+                    {s.sessionNumber}차 · {s.purpose} · {SESSION_LABELS[s.status]} ·{' '}
+                    {rubricLabel(rubricOf(s))}
                   </option>
                 ))}
               </select>
             </label>
           </div>
           <p>
-            날짜별 평균 <b>{battingNumber(daily.average)}</b> / 10 · 유효 {daily.count}회{' '}
-            {daily.provisional ? '· 잠정 평균' : ''}
+            날짜별 평균 <b>{battingNumber(daily.average)}</b> · {rubricLabel(rubric)} · 유효{' '}
+            {daily.count}회 {daily.provisional ? '· 잠정 평균' : ''}
           </p>
           {!managedDay && (
             <details open={!session}>
@@ -387,6 +403,7 @@ export function BattingAssessmentPanel({
                         playerId,
                         date,
                         targetAttempts: Number(f.get('target')),
+                        rubricVersion: String(f.get('rubric')) as BattingRubric,
                         assessor: actor,
                         purpose: String(f.get('purpose')),
                         note: String(f.get('note')),
@@ -402,6 +419,17 @@ export function BattingAssessmentPanel({
               >
                 <fieldset disabled={dirty}>
                   <div className="form-row">
+                    <label>
+                      세션 평가 척도
+                      <select
+                        aria-label="세션 평가 척도"
+                        name="rubric"
+                        defaultValue={QUALITY_RUBRIC}
+                      >
+                        <option value={QUALITY_RUBRIC}>타구 질 6단계 (−1~5점)</option>
+                        <option value={LEGACY_RUBRIC}>이전 수동 (1~10점)</option>
+                      </select>
+                    </label>
                     <label>
                       타격 횟수
                       <input
@@ -488,7 +516,7 @@ export function BattingAssessmentPanel({
           >
             <div className={'attempt-workbench' + (!sheetOpen ? ' sheet-collapsed' : '')}>
               <div hidden={focused && view !== 'measure'} className="attempt-editor-pane">
-                <AttemptEditor
+                <Editor
                   key={`${session.id}/${round}/${attempt?.updatedAt ?? ''}/${attempt?.status ?? ''}`}
                   defaultDetailed={detailMode}
                   focused={focused}
@@ -635,7 +663,11 @@ export function BattingAssessmentPanel({
                             {n}회차 {a?.status === 'cancelled' ? '· 취소' : ''}
                           </b>
                           <span className="sheet-result">
-                            {a?.result ? RESULT_LABELS[a.result] : '미측정'}
+                            {a?.qualityGrade
+                              ? QUALITY_SCALE[a.qualityGrade].label
+                              : a?.result
+                                ? RESULT_LABELS[a.result]
+                                : '미측정'}
                           </span>
                           <span className="sheet-zone">
                             {a?.directionZone

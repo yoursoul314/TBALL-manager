@@ -21,7 +21,7 @@ async function nav(name) {
   await page.locator('.sidebar').getByRole('button', { name, exact: true }).tap();
 }
 async function data() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v11')));
+  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
 }
 async function fit(name, locators) {
   const rows = [];
@@ -144,6 +144,7 @@ async function fit(name, locators) {
   await page.getByLabel('평가 날짜', { exact: true }).fill('2026-10-26');
   await page.getByLabel('세션 평가자', { exact: true }).fill('QA 감독');
   await page.getByLabel('평가 목적', { exact: true }).fill('전체 화면 검증');
+  await page.getByLabel('세션 평가 척도',{exact:true}).selectOption('manual-ten-v1');
   await page.getByRole('button', { name: '평가 세션 생성', exact: true }).tap();
   await page.getByRole('button', { name: '상세 모드', exact: true }).tap();
   await page.getByRole('button', { name: '정상 타격', exact: true }).tap();

@@ -15,7 +15,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click();
-const data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v11')));
+const data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
 async function nav(name) {
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
   if (!(await b.isVisible())) await tap('메뉴 열기');
@@ -58,13 +58,13 @@ async function purge() {
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
   report.version = await page.locator('.version').textContent();
-  assert.equal(report.version, 'BETA 0.12.0');
+  assert.equal(report.version, 'BETA 0.13.0');
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
   await tap('선수 저장');
   await page.getByRole('dialog').waitFor({state:'hidden'});
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v11'));
+    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v12'));
     d.players = d.players.map((p, i) => ({
       ...p,
       grade: i < 10 ? 2 : 3,
@@ -74,10 +74,10 @@ async function purge() {
     d.schemaVersion = 7;
     for (const k of Object.keys(d)) if (k.startsWith('_')) delete d[k];
     localStorage.setItem('tb-manager.workspace.v7', JSON.stringify(d));
-    localStorage.removeItem('tb-manager.workspace.v11');
+    localStorage.removeItem('tb-manager.workspace.v12');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 11);
+  assert.equal((await data()).schemaVersion, 12);
   assert(await page.evaluate(() => !!localStorage.getItem('tb-manager.workspace.v7')));
   check('v7 원문 보존 이전·학년/반 가상 자료');
   await nav('선수 & 팀');
@@ -135,6 +135,7 @@ async function purge() {
   await page.getByLabel('공통 평가자', { exact: true }).fill('QA');
   await page.getByLabel('공통 평가 목적', { exact: true }).fill('학급 타격 평가');
   await page.getByLabel('공통 타격 횟수', { exact: true }).fill('2');
+  await page.getByLabel('날짜 평가 척도',{exact:true}).selectOption('manual-ten-v1');
   await tap('평가 날짜 생성');
   await page.reload({ waitUntil: 'networkidle' });
   await nav('기능평가 & 팀워크');
@@ -190,7 +191,7 @@ async function purge() {
   await page.evaluate(() => {
     window.qaSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
-      if (k === 'tb-manager.workspace.v11') throw new DOMException('QA quota', 'QuotaExceededError');
+      if (k === 'tb-manager.workspace.v12') throw new DOMException('QA quota', 'QuotaExceededError');
       return window.qaSetItem.call(this, k, v);
     };
   });

@@ -41,6 +41,7 @@ it('날짜 생성 후 두 학생 평가·미저장 전환 차단·새로고침·
   change('공통 평가자', 'QA');
   change('공통 평가 목적', '날짜 평가');
   change('공통 타격 횟수', '1');
+  change('날짜 평가 척도', 'manual-ten-v1');
   click('평가 날짜 생성');
   fireEvent.click(screen.getByLabelText('샘플 선수 01 평가 대상 선택'));
   fireEvent.click(screen.getByLabelText('샘플 선수 02 평가 대상 선택'));

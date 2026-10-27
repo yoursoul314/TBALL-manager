@@ -1,17 +1,36 @@
+import type { BattingRubric } from '../domain/batting';
+import { QUALITY_RUBRIC, LEGACY_RUBRIC, rubricOf, toBatting100 } from '../config/battingQuality';
 import type { Workspace } from '../domain/model';
 import type { BattingAssessmentAttempt as Attempt } from '../domain/batting';
 export interface AssessmentPeriod {
+  rubric?: BattingRubric;
   from?: string;
   to?: string;
 }
 export function summarizeBatting(data: Workspace, playerId: string, period: AssessmentPeriod = {}) {
-  const sessions = data.battingSessions.filter(
+  const allSessions = data.battingSessions.filter(
     (s) =>
       s.playerId === playerId &&
       s.status !== 'cancelled' &&
       (!period.from || s.date >= period.from) &&
       (!period.to || s.date <= period.to),
   );
+  const hasNewScore = data.battingAttempts.some(
+    (a) =>
+      a.status === 'active' &&
+      a.score !== null &&
+      a.result !== null &&
+      allSessions.some((s) => s.id === a.sessionId && rubricOf(s) === QUALITY_RUBRIC),
+  );
+  const availableRubrics = [...new Set(allSessions.map(rubricOf))];
+  const rubric =
+    period.rubric ??
+    (hasNewScore
+      ? QUALITY_RUBRIC
+      : availableRubrics.includes(LEGACY_RUBRIC)
+        ? LEGACY_RUBRIC
+        : QUALITY_RUBRIC);
+  const sessions = allSessions.filter((s) => rubricOf(s) === rubric);
   const sessionMap = new Map(sessions.map((s) => [s.id, s]));
   const attempts = data.battingAttempts.filter(
     (a) => sessionMap.has(a.sessionId) && a.status === 'active',
@@ -41,12 +60,24 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
   const balls = observed.filter(
     (a) =>
       a.result !== 'miss' &&
-      [a.direction ?? null, a.directionZone, a.trajectory, a.intensity, a.contactQuality].some(
-        (v) => v !== null,
-      ),
+      [
+        a.direction ?? null,
+        a.directionZone,
+        a.trajectory,
+        a.intensity,
+        a.contactQuality,
+        a.qualityGrade ?? null,
+      ].some((v) => v !== null),
   );
   const distribution = (
-    key: 'direction' | 'directionZone' | 'trajectory' | 'intensity' | 'contactQuality' | 'result',
+    key:
+      | 'direction'
+      | 'directionZone'
+      | 'trajectory'
+      | 'intensity'
+      | 'contactQuality'
+      | 'result'
+      | 'qualityGrade',
   ) => {
     const value = (a: Attempt) =>
       key === 'direction' ? (a.direction ?? a.directionZone?.split('-')[0] ?? null) : a[key];
@@ -67,7 +98,8 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
     trajectories = distribution('trajectory'),
     intensities = distribution('intensity'),
     contacts = distribution('contactQuality'),
-    results = distribution('result');
+    results = distribution('result'),
+    grades = distribution('qualityGrade');
   const settings = data.battingSettings.classification,
     types: string[] = [];
   const sides = { left: 0, center: 0, right: 0 };
@@ -105,12 +137,20 @@ export function summarizeBatting(data: Workspace, playerId: string, period: Asse
     previous = validDays.at(-2) ?? null;
   const legacy =
     data.assessments.filter((a) => a.playerId === playerId).at(-1)?.battingSkill ?? null;
-  const score = count ? (total / count) * 10 : null;
+  const score = count ? toBatting100(total / count, rubric) : null;
   return {
+    rubric,
+    availableRubrics,
+    grades,
     count,
     total,
     average: count ? total / count : null,
     score,
+    batting10: count
+      ? rubric === QUALITY_RUBRIC
+        ? ((total / count + 1) / 6) * 10
+        : total / count
+      : null,
     days: validDays.length,
     daily,
     recent,

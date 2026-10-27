@@ -4,6 +4,8 @@ export type WorkspaceV4 = Omit<
   CurrentWorkspace,
   | 'schemaVersion'
   | 'migrationSource'
+  | 'fungoDays'
+  | 'fungoAssessments'
   | 'battingDays'
   | 'defenseAssessments'
   | 'defenseEvaluationChoices'
@@ -14,6 +16,13 @@ export type WorkspaceV4 = Omit<
   migrationSource?: { schemaVersion: 2 | 3; raw: string };
 };
 type Workspace = WorkspaceV4;
+import {
+  QUALITY_GRADES,
+  QUALITY_SCALE,
+  QUALITY_RUBRIC,
+  LEGACY_RUBRIC,
+  rubricOf,
+} from '../config/battingQuality';
 import { ZONES } from '../config/batting';
 import { parseWorkspaceV2 } from './schemaV2';
 import { parseCurrentCommon } from './schemaCommon';
@@ -33,6 +42,7 @@ export const battingSessionSchema = z.object({
   note,
   status: z.enum(['in-progress', 'completed', 'cancelled']),
   zoneDefinitionVersion: id,
+  rubricVersion: z.enum([LEGACY_RUBRIC, QUALITY_RUBRIC]).optional(),
   createdAt: time,
   updatedAt: time,
 });
@@ -47,13 +57,23 @@ export const battingAttemptSchema = z
     trajectory: z.enum(['ground', 'line', 'fly']).nullable(),
     intensity: z.enum(['strong', 'normal', 'weak']).nullable(),
     contactQuality: z.enum(['solid', 'normal', 'mishit']).nullable(),
-    score: z.number().int().min(1).max(10).nullable(),
+    qualityGrade: z.enum(QUALITY_GRADES).nullable().optional(),
+    score: z.number().int().min(-1).max(10).nullable(),
     note,
     status: z.enum(['active', 'cancelled']),
     createdAt: time,
     updatedAt: time,
   })
   .superRefine((a, ctx) => {
+    if (a.qualityGrade != null) {
+      const grade = QUALITY_SCALE[a.qualityGrade];
+      if (a.score !== grade.score || a.result !== grade.result)
+        ctx.addIssue({ code: 'custom', message: '타구 질 등급·점수·결과 불일치' });
+      if (a.intensity !== null || a.contactQuality !== null)
+        ctx.addIssue({ code: 'custom', message: '새 척도의 강도·정확성은 별도 생성하지 않습니다' });
+    } else if (a.score !== null && a.score < 1)
+      ctx.addIssue({ code: 'custom', message: '새 척도 등급 없이 0·음수 점수 불가' });
+
     if (a.direction != null && a.directionZone && !a.directionZone.startsWith(a.direction + '-'))
       ctx.addIssue({ code: 'custom', message: '방향과 9구역 불일치' });
     if (
@@ -131,8 +151,15 @@ export function parseWorkspaceV4(
   legacyV3 = false,
   historicalMembership = false,
   allowEmptyGames = false,
+  qualityAllowed = false,
 ): Workspace {
   const batting = battingSchema.parse(input);
+  if (
+    !qualityAllowed &&
+    (batting.battingSessions.some((s) => s.rubricVersion === QUALITY_RUBRIC) ||
+      batting.battingAttempts.some((a) => a.qualityGrade != null))
+  )
+    throw new Error('신규 타구 척도는 새 스키마가 필요합니다');
   if (batting.schemaVersion !== (legacyV3 ? 3 : 4)) throw new Error('스키마 이전이 필요합니다');
   const baseInput = { ...(input as object), schemaVersion: 2 };
   const common = legacyV3
@@ -154,6 +181,11 @@ export function parseWorkspaceV4(
   for (const a of data.battingAttempts) {
     const s = sessions.get(a.sessionId);
     require(s && a.attemptNumber <= s.targetAttempts, '회차의 세션 또는 평가 횟수 오류');
+    if (s && rubricOf(s) === QUALITY_RUBRIC)
+      require(a.result === null
+        ? a.qualityGrade == null
+        : a.qualityGrade != null, '신규 척도의 타구 질 등급 필요');
+    else require(a.qualityGrade == null, '기존 척도에 신규 등급 혼합 불가');
     const list = rounds.get(a.sessionId) ?? [];
     list.push(a);
     rounds.set(a.sessionId, list);
@@ -185,9 +217,20 @@ export function parseWorkspaceV4(
           a.before.attemptNumber === a.after.attemptNumber, '회차 식별 정보 변경 불가');
       if (a.entity === 'session')
         require(a.before.playerId === a.after.playerId &&
-          a.before.zoneDefinitionVersion ===
-            a.after.zoneDefinitionVersion, '평가 대상·구역 버전 변경 불가');
+          a.before.zoneDefinitionVersion === a.after.zoneDefinitionVersion &&
+          rubricOf(a.before) === rubricOf(a.after), '평가 대상·구역 버전 변경 불가');
     }
+    if (a.entity === 'attempt')
+      for (const row of [a.before, a.after])
+        if (row) {
+          const session = sessions.get(row.sessionId);
+          require(session &&
+            (rubricOf(session) === QUALITY_RUBRIC
+              ? row.result === null
+                ? row.qualityGrade == null
+                : row.qualityGrade != null
+              : row.qualityGrade == null), '감사 이력의 척도 불일치');
+        }
     history.set(key, a.after);
   }
   for (const [entity, records] of [

@@ -104,6 +104,14 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
     events: data.events.filter((e) => !gameIds.has(e.gameId)),
     assessments:
       kind === 'players' ? data.assessments.filter((a) => !ids.has(a.playerId)) : data.assessments,
+    fungoAssessments:
+      kind === 'players'
+        ? data.fungoAssessments.filter((a) => !ids.has(a.playerId))
+        : data.fungoAssessments,
+    fungoDays:
+      kind === 'players'
+        ? data.fungoDays.map((d) => ({ ...d, playerIds: d.playerIds.filter((id) => !ids.has(id)) }))
+        : data.fungoDays,
     defenseAssessments:
       kind === 'players'
         ? data.defenseAssessments.filter((a) => !ids.has(a.playerId))
@@ -138,7 +146,12 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
       (t) => !(kind === 'players' && ids.has(t.playerId)) && !(t.gameId && gameIds.has(t.gameId)),
     ),
     selections: data.selections.filter((s) =>
-      kind === 'teams' ? !ids.has(s.teamId) : !s.assignments.some((a) => ids.has(a.playerId)),
+      kind === 'teams'
+        ? !ids.has(s.teamId)
+        : !(
+            s.assignments.some((a) => ids.has(a.playerId)) ||
+            s.waterfall?.candidateIds.some((id) => ids.has(id))
+          ),
     ),
   };
   next.selections = next.selections.map((s) => {
@@ -155,7 +168,11 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
       games: gameIds.size,
       events: data.events.length - next.events.length,
       assessments: data.assessments.length - next.assessments.length,
-      defenseAssessments: data.defenseAssessments.length - next.defenseAssessments.length,
+      defenseAssessments:
+        data.defenseAssessments.length -
+        next.defenseAssessments.length +
+        data.fungoAssessments.length -
+        next.fungoAssessments.length,
       sessions: sessionIds.size,
       attempts: attempts.size,
       teamwork:

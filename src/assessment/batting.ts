@@ -12,7 +12,7 @@ export interface ChangeMeta {
 }
 export type SessionInput = Pick<
   Session,
-  'playerId' | 'date' | 'targetAttempts' | 'assessor' | 'purpose' | 'note'
+  'playerId' | 'date' | 'targetAttempts' | 'assessor' | 'purpose' | 'note' | 'rubricVersion'
 >;
 export type AttemptInput = Pick<
   Attempt,
@@ -23,6 +23,7 @@ export type AttemptInput = Pick<
   | 'intensity'
   | 'contactQuality'
   | 'score'
+  | 'qualityGrade'
   | 'note'
   | 'status'
 >;
@@ -118,6 +119,7 @@ function normalized(input: AttemptInput): AttemptInput {
       intensity: null,
       contactQuality: null,
       score: null,
+      ...(input.qualityGrade !== undefined ? { qualityGrade: null } : {}),
     };
   if (input.result === 'miss')
     return {

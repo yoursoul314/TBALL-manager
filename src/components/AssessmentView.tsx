@@ -1,3 +1,4 @@
+import { FungoView } from './FungoView';
 import { DefenseDayView } from './DefenseDayView';
 import { defenseEvaluation } from '../evaluation/defense';
 import { DefenseAssessmentPanel } from './DefenseAssessmentPanel';
@@ -22,7 +23,7 @@ export function AssessmentView({
   const players = activePlayers(data);
   const [selectedId, setPlayerId] = useState(players[0]?.id ?? '');
   const playerId = players.some((p) => p.id === selectedId) ? selectedId : (players[0]?.id ?? '');
-  const [tab, setTab] = useState<'batting' | 'defense' | 'skill' | 'teamwork'>('batting');
+  const [tab, setTab] = useState<'batting' | 'defense' | 'fungo' | 'skill' | 'teamwork'>('batting');
   const [defenseMode, setDefenseMode] = useState<'day' | 'individual'>('day');
   const [battingMode, setBattingMode] = useState<'day' | 'individual'>('day');
   const [dirty, setDirty] = useState(false);
@@ -67,6 +68,9 @@ export function AssessmentView({
         </button>
         <button className={tab === 'defense' ? 'active' : ''} onClick={() => changeTab('defense')}>
           수비 체크리스트
+        </button>
+        <button className={tab === 'fungo' ? 'active' : ''} onClick={() => changeTab('fungo')}>
+          펑고 5변수 평가
         </button>
         <button className={tab === 'skill' ? 'active' : ''} onClick={() => changeTab('skill')}>
           기능평가
@@ -119,7 +123,20 @@ export function AssessmentView({
       {warning &&
         ((tab === 'batting' && battingMode === 'day') ||
           (tab === 'defense' && defenseMode === 'day')) && <p role="alert">{warning}</p>}
-      {tab === 'defense' && defenseMode === 'day' ? (
+      {tab === 'fungo' ? (
+        <>
+          {warning && <p role="alert">{warning}</p>}
+          <FungoView
+            data={data}
+            onSave={onSave}
+            onDirtyChange={(v) => {
+              setDirty(v);
+              onDirtyChange?.(v);
+              if (!v) setWarning('');
+            }}
+          />
+        </>
+      ) : tab === 'defense' && defenseMode === 'day' ? (
         <DefenseDayView
           data={data}
           onSave={onSave}

@@ -1,3 +1,5 @@
+import { QUALITY_RUBRIC, LEGACY_RUBRIC, rubricOf, rubricLabel } from '../config/battingQuality';
+import type { BattingRubric } from '../domain/batting';
 import { useState, useRef } from 'react';
 import type { Workspace } from '../domain/model';
 import { activePlayers } from '../domain/gameLibrary';
@@ -145,6 +147,7 @@ export function BattingDayView({
                     createAssessmentDay(data, {
                       date: value,
                       targetAttempts: Number(f.get('target')),
+                      rubricVersion: String(f.get('rubric')) as BattingRubric,
                       assessor: String(f.get('assessor')),
                       purpose: String(f.get('purpose')),
                       note: String(f.get('note')),
@@ -166,6 +169,13 @@ export function BattingDayView({
               </p>
               <fieldset disabled={dirty} className="plain-fieldset">
                 <div className="form-row">
+                  <label>
+                    날짜 평가 척도
+                    <select aria-label="날짜 평가 척도" name="rubric" defaultValue={QUALITY_RUBRIC}>
+                      <option value={QUALITY_RUBRIC}>타구 질 6단계 (−1~5점)</option>
+                      <option value={LEGACY_RUBRIC}>이전 수동 (1~10점)</option>
+                    </select>
+                  </label>
                   <label>
                     평가 날짜
                     <input
@@ -215,7 +225,8 @@ export function BattingDayView({
           )}
           {day && (
             <p>
-              {day.date} · {day.assessor} · {day.purpose} · 학생당 {day.targetAttempts}회
+              {day.date} · {rubricLabel(rubricOf(day))} · {day.assessor} · {day.purpose} · 학생당{' '}
+              {day.targetAttempts}회
             </p>
           )}
           {date && day && (

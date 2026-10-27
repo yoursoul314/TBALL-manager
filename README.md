@@ -1,6 +1,6 @@
 # TB Manager | 티볼 통합 매니지먼트 시스템
 
-중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA** v0.12입니다.
+중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA** v0.13입니다.
 
 - 웹앱: https://yoursoul314.github.io/TBALL-manager/
 - 저장소: https://github.com/yoursoul314/TBALL-manager
@@ -10,7 +10,14 @@
 - 검증 결과: [docs/VALIDATION.md](docs/VALIDATION.md)
 - 학생·엔트리·공수 통합 기록 v3: [docs/ROSTER_DEFENSE_V3.md](docs/ROSTER_DEFENSE_V3.md)
 
-감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 추가하며 schema11로 기존 원문을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 유지하며 현재 schema12로 기존 원문을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+
+## BETA 0.13 · 타구 질 및 펑고 워터폴
+
+- 타격 6버튼(+5/+4/+2/+1/0/−1)과 9구역 필드맵. 원점수 평균을 B(10점)와 기능평가(100점)로 선형 환산합니다. 기존 1~10점 기록은 분리 보존합니다.
+- 선수의 1·2지망을 입력하고, 날짜별 다중 학생 펑고 5구(간편) 또는 G/F/C/T_acc/T_pow 개별 점수(정밀)를 기록합니다. 미관찰은 null이며 정정·취소 원본을 유지합니다.
+- 선발 시뮬레이션에서 기존 TYPE1 v2.0과 새 펑고 워터폴을 선택합니다. 포지션 공식·가산점·감점·내야 우선 배정 근거를 표시하고 감독 승인 후 경기 엔트리로 불러옵니다.
+- schema12로 기존 원문·JSON 백업·사진을 보존합니다. [척도·배정·이전 명세](docs/BATTING_QUALITY_V13.md).
 
 ## 빠른 실행
 

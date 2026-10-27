@@ -1,3 +1,5 @@
+import { QUALITY_SCALE } from '../config/battingQuality';
+import { QUALITY_RUBRIC, rubricLabel } from '../config/battingQuality';
 import type { Workspace } from '../domain/model';
 import {
   ABILITIES,
@@ -91,6 +93,7 @@ export function comparisonRows(data: Workspace, ids: string[]) {
             ].sort(),
           )
         : 'manual';
+    const battingSource = 'detailed:' + batting.rubric;
     const metrics: ComparisonMetric[] = [];
     const add = (
       key: string,
@@ -109,7 +112,7 @@ export function comparisonRows(data: Workspace, ids: string[]) {
       batting.selectedScore,
       'score',
       data.battingSettings.scoreSource === 'detailed' ? batting.count : null,
-      data.battingSettings.scoreSource,
+      data.battingSettings.scoreSource === 'detailed' ? battingSource : 'legacy',
       'higher',
     );
     add(
@@ -119,7 +122,7 @@ export function comparisonRows(data: Workspace, ids: string[]) {
       batting.score,
       'score',
       batting.count,
-      'detailed',
+      battingSource,
     );
     add(
       'legacy-score',
@@ -132,12 +135,12 @@ export function comparisonRows(data: Workspace, ids: string[]) {
     );
     add(
       'detail-average',
-      '누적 회차 평균 (10점)',
+      '누적 회차 평균 · ' + rubricLabel(batting.rubric),
       'batting',
       batting.average,
       'score',
       batting.count,
-      'detailed',
+      battingSource,
     );
     add(
       'observed-results',
@@ -146,7 +149,7 @@ export function comparisonRows(data: Workspace, ids: string[]) {
       batting.observed,
       'number',
       null,
-      'detailed',
+      battingSource,
     );
     add(
       'observed-balls',
@@ -155,7 +158,7 @@ export function comparisonRows(data: Workspace, ids: string[]) {
       batting.balls,
       'number',
       null,
-      'detailed',
+      battingSource,
     );
     add(
       'batting-rounds',
@@ -164,33 +167,38 @@ export function comparisonRows(data: Workspace, ids: string[]) {
       batting.count,
       'number',
       null,
-      'detailed',
+      battingSource,
     );
-    add('batting-days', '타격 평가 일수', 'batting', batting.days, 'number', null, 'detailed');
+    add('batting-days', '타격 평가 일수', 'batting', batting.days, 'number', null, battingSource);
     add(
       'recent',
-      '최근 타격 평균 (10점)',
+      '최근 타격 평균 · ' + rubricLabel(batting.rubric),
       'batting',
       batting.recent?.average ?? null,
       'score',
       batting.recent?.count ?? 0,
-      'detailed',
+      battingSource,
     );
     add(
       'change',
-      '최근 날짜 평균 변화 (10점)',
+      '최근 날짜 평균 변화 · ' + rubricLabel(batting.rubric),
       'batting',
       batting.change,
       'score',
       null,
-      'detailed',
+      battingSource,
     );
     for (const [key, label, dist, value] of [
       ['solid', '정타율', batting.contacts, 'solid'],
       ['strong', '강한 타구 비율', batting.intensities, 'strong'],
       ['fair', '정상 타격률', batting.results, 'fair'],
       ['foul', '파울 비율', batting.results, 'foul'],
-      ['miss', '헛스윙 비율', batting.results, 'miss'],
+      [
+        'miss',
+        batting.rubric === QUALITY_RUBRIC ? '티 타격·헛스윙 비율' : '헛스윙 비율',
+        batting.results,
+        'miss',
+      ],
     ] as const)
       add(
         key,
@@ -199,9 +207,21 @@ export function comparisonRows(data: Workspace, ids: string[]) {
         dist.ratio(value),
         'rate',
         dist.total,
-        'detailed',
+        battingSource,
         ['solid', 'strong', 'fair'].includes(key) ? 'higher' : key === 'miss' ? 'lower' : null,
       );
+    if (batting.rubric === QUALITY_RUBRIC)
+      for (const [key, grade] of Object.entries(QUALITY_SCALE))
+        add(
+          'grade-' + key,
+          grade.label + ' (' + grade.score + '점) 비율',
+          'batting',
+          batting.grades.ratio(key),
+          'rate',
+          batting.grades.total,
+          battingSource,
+          grade.score >= 4 ? 'higher' : 'lower',
+        );
     const rate = (a: number, b: number) => (b ? a / b : null);
     add(
       'avg',

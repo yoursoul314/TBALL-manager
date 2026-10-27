@@ -115,7 +115,7 @@ async function download(button, filename) {
   return path.join(out, filename);
 }
 async function workspace() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v11')));
+  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
 }
 async function photoInfo() {
   return page.evaluate(
@@ -249,7 +249,7 @@ async function photoInfo() {
         Storage.prototype.setItem = original;
       };
       Storage.prototype.setItem = function (k, v) {
-        if (k === 'tb-manager.workspace.v11')
+        if (k === 'tb-manager.workspace.v12')
           throw new DOMException('QA storage full', 'QuotaExceededError');
         return original.call(this, k, v);
       };

@@ -20,6 +20,7 @@ it('날짜별 회차 입력·저장·새로고침 후 유지·정정과 프로�
   fireEvent.change(screen.getByLabelText('평가 날짜'), { target: { value: '2026-10-20' } });
   fireEvent.change(screen.getByLabelText('세션 평가자'), { target: { value: '가상 코치' } });
   fireEvent.change(screen.getByLabelText('평가 목적'), { target: { value: '테스트 연습' } });
+  fireEvent.change(screen.getByLabelText('세션 평가 척도'), { target: { value: 'manual-ten-v1' } });
   await user.click(screen.getByRole('button', { name: '평가 세션 생성' }));
   await user.click(screen.getByRole('button', { name: '정상 타격' }));
   await user.click(screen.getByRole('button', { name: '상세 모드' }));

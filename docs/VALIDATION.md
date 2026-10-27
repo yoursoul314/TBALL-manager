@@ -196,3 +196,17 @@ pwa-upgrade-qa는 실제 로컬 HTTP 서버에서 구버전0.5의 캐시된 화�
 - Chromium PWA: 과거0.5 캐시→0.12 갱신, 원문 보존, 입력 중 업데이트 차단 통과.
 - RULE01~08/TYPE1 v2.0 설정 SHA256은 직전 배포와 동일하다. 실제 iPadOS 키보드를 띄운 하드웨어 테스트는 수행하지 않았으며 분리/플로팅 키보드·화면 확대는 현장 확인이 필요하다.
 - 변경 파일: `src/components/{useVisibleViewport,VisibleViewport.test,DefenseAttemptPlan,DefenseTargets.test,DefenseAssessmentPanel,DefenseDayView,BattingAssessmentPanel,ui}`; `src/assessment/{defenseDays,defenseChecklist,defenseTargets.test}`; `src/domain/{model,defenseAssessment}`; `src/data/{schema,migration,repository,seed}`; `src/App.tsx`, `src/styles.css`, 관련 스키마 기대값 테스트·QA 스크립트·버전 파일·README/명세/결정/이전 문서.
+
+
+## BETA0.13 (2026-10-27)
+
+- 새6단계 타격: 각 점수/선형100점 및 B10점 환산, 0·−1 유효, 회차 가중 평균, 미측정·취소 제외, 척도 분리,9구역·유형 독립, 정정·원본 감사·저장 실패·v11→12 이전과 백업을 검증한다.
+- 펑고: 5구 G/F/C 포구와 송구·강도 독립 환산, 간편↔정밀, 날짜·다중 학생·다음 학생, 수정/취소/복원, 중복·범위·미측정, 초기화·완전삭제 연동을 검증한다.
+- 배치: 제공9포지션 공식과 P 기존 가중값, 희망 가산, 임계값/감점1회, 내야 에이스 우선, 워터폴 순서/중복/동점 재현성, 누락값 빈자리, 스냅샷·승인 차단/승인을 검증한다.
+- 로컬 WebKit 타격 1440×900/1180×820/1024×768/820×1180/390×844; Chromium 펑고1024×768/1180×820/820×1180/390×844. 태블릿 기록 화면 저장 버튼 가시성, 가로 넘침 없음, 축소·이동 가시 영역 키보드 및 저장 실패 후 입력 유지·재시도 확인. 실제 기기 키보드 테스트는 아니다.
+- WebKit 기존 날짜별9능력·타격1~10점, 비교·수동선발·감독승인·두 팀 불러오기·타순 조정·새 경기 생성·수비 스냅샷 보존 흐름을 확인했다.
+- 실제 학생 데이터와 사용자 브라우저 저장소는 사용하지 않았다. RULE01~08/TYPE1 v2.0 파일 SHA256은 직전 배포와 동일하다. 상세 최종 실행 결과 및 배포 화면은 릴리스 보고서에 기록한다.
+
+- 최종 npm run check: 50개 파일257개 테스트/타입 검사/빌드 통과(80.35초 테스트). WebKit 사진·EXIF·엔트리·공수 기록·FC·정정·통계·사진 포함 암호화 백업 복원 회귀 통과. Chromium PWA0.5→0.13 갱신, v5 원문 및 입력 중 업데이트 차단 통과. 기존 Zod 주석/500kB 번들 경고는 남아 있으며 실행 오류는 없었다.
+
+- 새 타격과 펑고 모두 WebKit/Chromium 교차 검증 통과. WebKit 선택상자 높이를48px로 고정해 태블릿 가로·세로 기록·환산·저장 노출을 확인했다. P는 기존 TYPE1 기본점수에 공통 희망 가산점5/3을 별도로 더하며 원래 가중치는 유지한다.

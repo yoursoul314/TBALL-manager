@@ -108,3 +108,8 @@ schema v10 유지. 기존 승인 Selection에서 새 경기의 기존 엔트리 
 ## v11 수비 횟수 (BETA0.12)
 
 `tb-manager.workspace.v11`을 현재 키로 사용한다. v10 이하 원문을 삭제하지 않고 전체 참조·경기 재생·감사 검증 후 단일 쓰기로 이전한다. v10 원문은 migrationSource.raw에도 보존하고 이전 키 변경 시 저장을 차단한다. 새 DefenseAssessmentDay.targetAttempts는1~200 정수 또는 null이며 기존 날짜에는 null을 추가한다. 학생/경기/이벤트/기존 평가/타격 회차/선발은 변환하지 않는다. JSON 백업1~11을 읽고11로 내보낸다. 사진 IndexedDB는 변경하지 않는다. 실패 시 구버전 원문은 유지되고 복구 다운로드에 v1~v11이 포함된다. 전체 초기화에만 기존 키까지 지우는 기존 명시적 확인 절차를 적용한다. v11 신규 자료를 구버전으로 자동 역변환하지 않는다.
+
+
+## BETA0.13 (2026-10-27)
+
+schema12: v11 원문/이전 키 보존 후 검증·단일 쓰기. pref1/pref2는 미설정 유지, fungoDays/fungoAssessments는 빈 배열. 타격 rubric 부재는 이전1~10척도이며 이력에 새 값을 생성하지 않는다. JSON1~12 읽기/12 쓰기, 저장 실패·구버전 탭 충돌 보호, 사진 IndexedDB 유지. 자세한 정의·제약·사용 순서는 [v0.13 명세](BATTING_QUALITY_V13.md)를 참조한다.

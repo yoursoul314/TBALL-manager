@@ -55,7 +55,7 @@ export function BattingAssessmentSettings({
           <label>
             기능평가 점수 출처
             <select name="source" defaultValue={settings.scoreSource}>
-              <option value="detailed">신규 상세 누적 평균 (기본)</option>
+              <option value="detailed">새 6단계 우선 · 없으면 이전 회차 평균</option>
               <option value="legacy">이전 수동 점수 (별도 선택)</option>
             </select>
           </label>
@@ -78,8 +78,14 @@ export function BattingAssessmentSettings({
         <div className="form-row">
           {(
             [
-              ['strong', '강타형 강한 타구 비율 ≥', settings.classification.strongRatio, 0, 100],
-              ['solid', '정확성 중심형 정타 비율 ≥', settings.classification.solidRatio, 0, 100],
+              [
+                'strong',
+                '이전 관찰: 강한 타구 비율 ≥',
+                settings.classification.strongRatio,
+                0,
+                100,
+              ],
+              ['solid', '이전 관찰: 정타 비율 ≥', settings.classification.solidRatio, 0, 100],
               [
                 'side',
                 '좌·중·우 집중형 해당 방향 비율 ≥',

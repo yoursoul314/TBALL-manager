@@ -1,3 +1,4 @@
+import { fungoDaysSchema, fungoAssessmentsSchema } from './fungoSchema';
 import { defenseAssessmentsSchema } from './defenseAssessmentSchema';
 import { z } from 'zod';
 import type { Workspace, GameEvent } from '../domain/model';
@@ -22,6 +23,8 @@ const extras = z.object({
     .optional(),
   classroom: z.string().trim().max(30).nullable().optional(),
   studentNumber: z.number().int().min(1).max(999).nullable().optional(),
+  pref1: z.enum(POSITIONS).nullable().optional(),
+  pref2: z.enum(POSITIONS).nullable().optional(),
   primaryPosition: z.enum(POSITIONS).nullable().optional(),
   secondaryPosition: z.enum(POSITIONS).nullable().optional(),
   note: note.optional(),
@@ -106,7 +109,9 @@ export const defenseSequenceSchema = z
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(11),
+      schemaVersion: z.literal(12),
+      fungoDays: fungoDaysSchema.default([]),
+      fungoAssessments: fungoAssessmentsSchema.default([]),
       defenseDays: z
         .array(
           z.object({
@@ -144,6 +149,7 @@ export function parseWorkspace(input: unknown): Workspace {
       battingDays: z
         .array(
           z.object({
+            rubricVersion: z.enum(['manual-ten-v1', 'quality-six-v1']).optional(),
             date: z.iso.date(),
             targetAttempts: z.number().int().min(1).max(200),
             assessor: z.string().trim().min(1).max(200),
@@ -168,6 +174,7 @@ export function parseWorkspace(input: unknown): Workspace {
             z.literal(8),
             z.literal(9),
             z.literal(10),
+            z.literal(11),
           ]),
           raw: z.string(),
         })
@@ -184,11 +191,29 @@ export function parseWorkspace(input: unknown): Workspace {
               z.object({
                 position: z.enum(POSITIONS),
                 playerId: id,
-                score: z.number().min(0).max(100).nullable(),
+                score: z.number().min(-30).max(105).nullable(),
               }),
             )
             .max(10),
-          method: z.enum(['automatic', 'manual']).optional(),
+          method: z.enum(['automatic', 'manual', 'waterfall']).optional(),
+          waterfall: z
+            .object({
+              version: z.literal('fungo-waterfall-v1'),
+              candidateIds: z.array(id).max(2000),
+              feedback: z
+                .array(
+                  z.object({
+                    playerId: id,
+                    position: z.enum(POSITIONS),
+                    text: z.string().max(4000),
+                    base: z.number().min(0).max(100),
+                    bonus: z.union([z.literal(0), z.literal(3), z.literal(5)]),
+                    penalty: z.union([z.literal(0), z.literal(20), z.literal(30)]),
+                  }),
+                )
+                .max(10),
+            })
+            .optional(),
           editedFrom: id.optional(),
           status: z.enum(['draft', 'approved']),
           approvedBy: z.string().min(1).max(2000).nullable(),
@@ -206,6 +231,7 @@ export function parseWorkspace(input: unknown): Workspace {
   const base = parseWorkspaceV4(
     { ...(input as object), schemaVersion: 4, migrationSource: undefined, selections: [] },
     false,
+    true,
     true,
     true,
   );
@@ -243,10 +269,58 @@ export function parseWorkspace(input: unknown): Workspace {
     return e;
   }) as GameEvent[];
   const ids = new Set(players.map((p) => p.id));
+  for (const p of players)
+    if (p.pref1 && p.pref1 === p.pref2) throw Error('1·2지망 포지션은 다르게 선택하세요');
+  const fungoIds = new Set<string>(),
+    fungoPairs = new Set<string>(),
+    revisionIds = new Set<string>();
+  if (new Set(header.fungoDays.map((d) => d.date)).size !== header.fungoDays.length)
+    throw Error('펑고 평가 날짜 중복');
+  for (const d of header.fungoDays)
+    if (new Set(d.playerIds).size !== d.playerIds.length || d.playerIds.some((id) => !ids.has(id)))
+      throw Error('펑고 평가 학생 오류');
+  for (const r of header.fungoAssessments) {
+    const pair = r.playerId + '/' + r.revisions[0].date;
+    if (!ids.has(r.playerId) || fungoIds.has(r.id) || fungoPairs.has(pair))
+      throw Error('펑고 기록 참조·중복 오류');
+    fungoIds.add(r.id);
+    fungoPairs.add(pair);
+    for (const v of r.revisions) {
+      if (revisionIds.has(v.id) || v.date !== r.revisions[0].date)
+        throw Error('펑고 수정 이력 오류');
+      revisionIds.add(v.id);
+    }
+  }
   const teamIds = new Set(header.teams.map((t) => team.parse(t).id));
   if (new Set(header.selections.map((s) => s.id)).size !== header.selections.length)
     throw new Error('배치안 ID 중복');
   for (const s of header.selections) {
+    if (
+      s.method !== 'waterfall' &&
+      s.assignments.some((a) => a.score !== null && (a.score < 0 || a.score > 100))
+    )
+      throw Error('기존 배치 점수는 0~100');
+    if (s.method === 'waterfall') {
+      const w = s.waterfall;
+      if (
+        !w ||
+        w.feedback.length !== s.assignments.length ||
+        new Set(w.candidateIds).size !== w.candidateIds.length ||
+        w.candidateIds.some((id) => !ids.has(id))
+      )
+        throw Error('워터폴 근거 누락');
+      for (const a of s.assignments) {
+        const f = w.feedback.filter((f) => f.playerId === a.playerId && f.position === a.position);
+        if (
+          f.length !== 1 ||
+          !w.candidateIds.includes(a.playerId) ||
+          a.score === null ||
+          Math.abs(a.score - (f[0].base + f[0].bonus - f[0].penalty)) > 1e-8
+        )
+          throw Error('워터폴 점수 근거 불일치');
+      }
+    }
+
     if (!teamIds.has(s.teamId) || s.assignments.some((a) => !ids.has(a.playerId)))
       throw new Error('배치안 팀 또는 선수 없음');
     if (
@@ -254,7 +328,10 @@ export function parseWorkspace(input: unknown): Workspace {
       new Set(s.assignments.map((a) => a.playerId)).size !== s.assignments.length
     )
       throw new Error('배치안 포지션 또는 선수 중복');
-    if ((s.method !== 'manual' || s.status === 'approved') && s.assignments.length !== 10)
+    if (
+      (!['manual', 'waterfall'].includes(s.method ?? 'automatic') || s.status === 'approved') &&
+      s.assignments.length !== 10
+    )
       throw new Error('TYPE1은 10포지션이 필요합니다');
     if (s.method !== 'manual' && s.assignments.some((a) => a.score === null))
       throw new Error('자동 추천은 측정 점수가 필요합니다');
@@ -308,8 +385,10 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 11,
+    schemaVersion: 12,
     selections: header.selections,
+    fungoDays: header.fungoDays,
+    fungoAssessments: header.fungoAssessments,
     defenseDays: header.defenseDays,
     comparisonSelection: header.comparisonSelection,
     battingDays: header.battingDays,

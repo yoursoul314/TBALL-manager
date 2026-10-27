@@ -5750,3 +5750,503 @@ label {
     grid-template-columns: 1fr;
   }
 }
+
+/* v0.13 quality score and direction: two independent observations. */
+.quality-assessment .plain-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.quality-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.quality-toolbar button {
+  min-height: 48px;
+}
+.quality-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.quality-grades {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.quality-grades > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.quality-grades button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 5px;
+  min-height: 104px;
+  padding: 12px;
+}
+.quality-grades button b {
+  font-size: 20px;
+}
+.quality-grades button strong {
+  font-size: 14px;
+}
+.quality-grades button span {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.quality-direction {
+  min-width: 0;
+}
+.quality-direction .zone-field {
+  max-width: none;
+  margin: 0;
+}
+.quality-direction .zone-row button {
+  min-height: 64px;
+  padding: 4px;
+}
+.quality-direction .home-plate-label {
+  font-size: 13px;
+}
+.quality-direction .observation-fields > button {
+  min-height: 48px;
+  margin-top: 6px;
+}
+.quality-direction .batted-map > .hint {
+  display: none;
+}
+.quality-optional {
+  margin-top: 8px;
+}
+.quality-optional summary {
+  min-height: 48px;
+  padding: 10px;
+  cursor: pointer;
+}
+.quality-optional fieldset {
+  margin: 0;
+}
+.quality-optional button {
+  min-height: 48px;
+}
+.quality-notes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.quality-notes textarea {
+  min-height: 100px;
+}
+.quality-correction {
+  display: grid;
+  gap: 8px;
+}
+.quality-assessment .record-save-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.quality-assessment .record-save-bar button {
+  min-height: 56px;
+}
+.quality-assessment .record-save-bar .primary {
+  flex: 1;
+}
+.batting-studio .quality-main {
+  gap: 12px;
+}
+.batting-studio .quality-grades button {
+  min-height: 104px;
+}
+.batting-studio[data-keyboard='true'] .quality-notes textarea {
+  height: 80px;
+  min-height: 80px;
+}
+.quality-main[hidden],
+.quality-notes[hidden] {
+  display: none;
+}
+@media (max-width: 699px) {
+  .quality-main,
+  .quality-notes {
+    grid-template-columns: 1fr;
+  }
+  .quality-grades button {
+    min-height: 110px;
+  }
+}
+
+.fungo-students {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  max-height: 36vh;
+  overflow: auto;
+  margin: 14px 0;
+}
+.fungo-students .check {
+  min-height: 48px;
+}
+.fungo-editor {
+  background: var(--surface, #fff);
+  border: 1px solid #d6ded9;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.fungo-content {
+  padding: 12px;
+}
+.fungo-legend {
+  font-size: 13px;
+  margin: 8px 0;
+}
+.fungo-balls {
+  display: grid;
+  gap: 6px;
+}
+.fungo-ball {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) minmax(220px, 1.4fr) minmax(220px, 1.4fr) minmax(
+      140px,
+      0.9fr
+    );
+  gap: 10px;
+  align-items: end;
+}
+.fungo-ball label {
+  margin: 0;
+  min-width: 0;
+  font-size: 12px;
+}
+.fungo-ball select,
+.fungo-ball input {
+  min-height: 48px;
+  width: 100%;
+  min-width: 0;
+}
+.fungo-marks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(48px, 1fr));
+  gap: 4px;
+}
+.fungo-marks button {
+  height: 48px;
+  min-width: 48px;
+  padding: 4px;
+}
+.fungo-marks .selected {
+  background: #24634c;
+  color: white;
+  border: 2px solid #143e30;
+  box-shadow: inset 0 0 0 2px white;
+}
+.fungo-summary,
+.fungo-precise {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.fungo-summary > div {
+  padding: 8px;
+  background: #edf5ef;
+  border-radius: 8px;
+}
+.fungo-summary strong {
+  display: block;
+  font-size: 21px;
+}
+.fungo-summary small {
+  font-size: 12px;
+}
+.fungo-save-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 10px;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  position: sticky;
+  bottom: 0;
+}
+.fungo-save-bar button {
+  min-height: 48px;
+}
+.fungo-editor[data-keyboard='true'] {
+  position: fixed;
+  z-index: 180;
+  left: var(--visible-left, 0);
+  top: var(--visible-top, 0);
+  width: var(--visible-width, 100vw);
+  height: var(--visible-height, 100dvh);
+  display: flex;
+  flex-direction: column;
+}
+.fungo-editor[data-keyboard='true'] .fungo-content {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 24px;
+}
+.fungo-editor[data-keyboard='true'] .fungo-save-bar {
+  flex-shrink: 0;
+}
+.waterfall-feedback p {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
+}
+.fungo-view pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fungo-view th small {
+  display: block;
+}
+@media (max-width: 900px) {
+  .fungo-ball {
+    grid-template-columns: 150px 1fr 1fr;
+  }
+  .fungo-ball > label:last-child {
+    grid-column: 1/-1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .fungo-ball > label:last-child input {
+    width: 120px;
+  }
+  .fungo-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .fungo-ball {
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #ddd;
+    padding: 8px 0;
+  }
+  .fungo-ball > label:first-child {
+    grid-column: 1/-1;
+  }
+  .fungo-summary,
+  .fungo-precise {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fungo-save-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .fungo-marks {
+    grid-template-columns: repeat(4, minmax(36px, 1fr));
+  }
+  .fungo-marks button {
+    min-width: 36px;
+  }
+  .fungo-students {
+    max-height: 40vh;
+  }
+}
+
+.fungo-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fungo-heading button {
+  min-height: 48px;
+}
+.fungo-focus {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: #f3f6ef;
+  padding: 10px 14px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.fungo-focus > .fungo-heading + .toolbar {
+  display: none;
+}
+.fungo-focus > .toolbar,
+.fungo-focus > .tabs {
+  margin: 4px 0;
+}
+.fungo-focus > .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fungo-focus > .toolbar label {
+  flex: 1;
+}
+.fungo-focus > .toolbar select {
+  min-height: 48px;
+}
+.fungo-focus .fungo-content > .toolbar {
+  margin: 0;
+}
+.fungo-focus .hint {
+  margin: 5px 0;
+  font-size: 12px;
+}
+.fungo-focus .fungo-legend {
+  margin: 5px 0;
+}
+.fungo-focus .fungo-summary {
+  margin-top: 6px;
+}
+.fungo-focus > p[role='alert'] {
+  margin: 4px 0;
+}
+.fungo-view input,
+.fungo-view textarea,
+.fungo-view select {
+  font-size: 16px;
+}
+@media (max-width: 600px) {
+  .fungo-ball {
+    grid-template-columns: 1fr;
+  }
+  .fungo-marks {
+    grid-template-columns: repeat(4, minmax(48px, 1fr));
+  }
+  .fungo-marks button {
+    min-width: 48px;
+  }
+  .fungo-focus {
+    padding: 8px;
+  }
+  .fungo-focus > .toolbar {
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 700px) {
+  .batting-studio .quality-grades button {
+    min-height: 96px;
+    padding: 9px 12px;
+  }
+  .fungo-focus .fungo-heading {
+    height: 0;
+  }
+  .fungo-focus .fungo-heading b {
+    display: none;
+  }
+  .fungo-focus .fungo-heading > button {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+  }
+  .fungo-focus > .toolbar {
+    padding-right: 135px;
+    margin: 0 0 4px;
+  }
+  .fungo-focus > .toolbar label {
+    font-size: 0;
+    gap: 0;
+    margin: 0;
+  }
+  .fungo-focus > .toolbar select {
+    font-size: 16px;
+  }
+  .fungo-focus > .tabs {
+    margin: 0 0 4px;
+    padding: 0;
+  }
+  .fungo-focus > .tabs button {
+    min-height: 48px;
+    padding: 8px 14px;
+  }
+  .fungo-focus > .toolbar > span {
+    font-size: 12px;
+  }
+  .fungo-focus > p[role='alert'] {
+    font-size: 12px;
+    margin: 0 0 3px;
+  }
+  .fungo-focus .fungo-content > .toolbar .tabs {
+    margin: 0;
+  }
+  .fungo-focus .fungo-content > .toolbar {
+    padding: 0;
+    gap: 8px;
+  }
+  .fungo-focus .fungo-ball label {
+    gap: 2px;
+  }
+  .fungo-focus .fungo-ball small {
+    line-height: 16px;
+  }
+  .fungo-focus .fungo-ball {
+    gap: 8px;
+  }
+  .fungo-focus .fungo-summary > div {
+    padding: 6px 8px;
+  }
+  .fungo-focus .fungo-balls {
+    gap: 4px;
+  }
+}
+
+.batting-studio .quality-direction .batted-map {
+  margin: 0;
+}
+.batting-studio .quality-direction > .observation-fields {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+@media (min-width: 700px) {
+  .fungo-focus .fungo-content {
+    padding: 8px;
+  }
+  .fungo-focus .fungo-save-bar {
+    padding: 6px 10px;
+  }
+  .fungo-focus .fungo-balls {
+    gap: 3px;
+  }
+}
+
+@media (min-width: 700px) {
+  .batting-studio .quality-direction .zone-row button {
+    min-height: 56px;
+  }
+  .batting-studio .quality-grades {
+    margin-bottom: 0;
+  }
+  .batting-studio .quality-optional {
+    margin-top: 4px;
+  }
+}
+@media (min-width: 700px) and (max-width: 900px) {
+  .fungo-ball > label:last-child {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+@media (min-width: 700px) {
+  .fungo-focus {
+    padding-bottom: 6px;
+  }
+}
+
+.fungo-ball select,
+.fungo-focus > .toolbar select {
+  height: 48px;
+  min-height: 48px;
+  padding: 8px 10px;
+  line-height: 1.2;
+}

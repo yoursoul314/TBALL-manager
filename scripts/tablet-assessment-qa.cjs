@@ -15,7 +15,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v11')));
+  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -71,22 +71,22 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.12.0');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.13.0');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
   await tap('선수 저장');
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v11'));
+    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v12'));
     d.assessments = d.assessments.filter((a) => a.playerId !== 'green-3');
     for (const k of Object.keys(d)) if (k.startsWith('_')) delete d[k];
     d.schemaVersion = 10;
     localStorage.setItem('tb-manager.workspace.v10', JSON.stringify(d));
-    localStorage.removeItem('tb-manager.workspace.v11');
+    localStorage.removeItem('tb-manager.workspace.v12');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 11);
+  assert.equal((await data()).schemaVersion, 12);
   assert.ok(await page.evaluate(() => localStorage.getItem('tb-manager.workspace.v10')));
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
@@ -169,7 +169,7 @@ const check = (s) => {
     const orig = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = orig;
-      if (k === 'tb-manager.workspace.v11')
+      if (k === 'tb-manager.workspace.v12')
         throw new DOMException('QA quota', 'QuotaExceededError');
       return orig.call(this, k, v);
     };
@@ -255,6 +255,7 @@ const check = (s) => {
   await page.getByLabel('새 평가 날짜', { exact: true }).fill('2026-10-27');
   await page.getByLabel('공통 평가자', { exact: true }).fill('가상 QA');
   await page.getByLabel('공통 평가 목적', { exact: true }).fill('타격');
+  await page.getByLabel('날짜 평가 척도',{exact:true}).selectOption('manual-ten-v1');
   await tap('평가 날짜 생성');
   await page.getByLabel('샘플 선수 01 평가 대상 선택', { exact: true }).check();
   await page.getByLabel('샘플 선수 02 평가 대상 선택', { exact: true }).check();
@@ -353,7 +354,7 @@ const check = (s) => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = original;
-      if (k === 'tb-manager.workspace.v11')
+      if (k === 'tb-manager.workspace.v12')
         throw new DOMException('QA quota', 'QuotaExceededError');
       return original.call(this, k, v);
     };
@@ -468,7 +469,7 @@ const check = (s) => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = original;
-      if (k === 'tb-manager.workspace.v11')
+      if (k === 'tb-manager.workspace.v12')
         throw new DOMException('QA quota', 'QuotaExceededError');
       return original.call(this, k, v);
     };

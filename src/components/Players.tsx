@@ -1,3 +1,6 @@
+import { latestFungo } from '../assessment/fungo';
+import { FUNGO_KEYS, FUNGO_LABELS } from '../domain/fungo';
+import { rubricLabel } from '../config/battingQuality';
 import { defenseEvaluation } from '../evaluation/defense';
 import { DefenseAssessmentReport } from './DefenseAssessmentPanel';
 import { ManagementDialog, type ManagementRequest } from './ManagementDialog';
@@ -577,6 +580,7 @@ export function Profile({
   const a = data.assessments.filter((a) => a.playerId === id).at(-1);
   const evaluation = defenseEvaluation(data, id);
   const batting = summarizeBatting(data, id);
+  const fungo = latestFungo(data, id);
   const stats = data.games
     .filter((g) => !g.archivedAt)
     .flatMap(
@@ -695,9 +699,35 @@ export function Profile({
         <section>
           <h3>타격 기능평가</h3>
           <b>{batting.score?.toFixed(1) ?? '평가 기록 없음'} / 100</b>
-          <p>{batting.count}회 유효 평가 · 경기 기록과 별도</p>
+          <p>
+            {batting.count}회 유효 평가 · {rubricLabel(batting.rubric)} · 경기 기록과 별도
+          </p>
         </section>
       </div>
+      <section hidden={view === 'game'} className="profile-fungo">
+        <h3>펑고 5변수 · 최근 날짜 평가</h3>
+        <p>
+          1지망 {p.pref1 ? POSITION_LABELS[p.pref1] : '미설정'} · 2지망{' '}
+          {p.pref2 ? POSITION_LABELS[p.pref2] : '미설정'} ·{' '}
+          {fungo.revision?.date ?? '평가 기록 없음'}
+        </p>
+        <div className="fungo-summary">
+          {FUNGO_KEYS.map((k) => (
+            <div key={k}>
+              <small>
+                {k} · {FUNGO_LABELS[k]}
+              </small>
+              <strong>
+                {fungo.scores[k] === null ? '미측정' : fungo.scores[k]!.toFixed(1)}
+                <small>/10</small>
+              </strong>
+            </div>
+          ))}
+        </div>
+        <p className="hint">
+          기존 9능력과 별도입니다. C는 1루 스쿱, 타격 B는 6단계 평가의 10점 환산입니다.
+        </p>
+      </section>
       <section hidden={view === 'assessment'}>
         <h3>실전 경기 기록</h3>
         <div className="mini-stats">

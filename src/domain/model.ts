@@ -1,3 +1,4 @@
+import type { FungoAssessment, FungoDay } from './fungo';
 import type {
   DefenseAssessment,
   DefenseEvaluationChoice,
@@ -24,6 +25,8 @@ export interface Player {
   grade?: 1 | 2 | 3 | null;
   classroom?: string | null;
   studentNumber?: number | null;
+  pref1?: Position | null;
+  pref2?: Position | null;
   primaryPosition?: Position | null;
   secondaryPosition?: Position | null;
   note?: string;
@@ -242,13 +245,27 @@ export interface Selection {
   policyVersion: string;
   sourceRevision: number;
   assignments: { position: Position; playerId: Id; score: number | null }[];
-  method?: 'automatic' | 'manual';
+  method?: 'automatic' | 'manual' | 'waterfall';
+  waterfall?: {
+    version: 'fungo-waterfall-v1';
+    candidateIds: Id[];
+    feedback: {
+      playerId: Id;
+      position: Position;
+      text: string;
+      base: number;
+      bonus: number;
+      penalty: number;
+    }[];
+  };
   editedFrom?: Id;
   status: 'draft' | 'approved';
   approvedBy: string | null;
   approvedAt: string | null;
 }
 export interface Workspace extends BattingData {
+  fungoDays: FungoDay[];
+  fungoAssessments: FungoAssessment[];
   defenseAssessments: DefenseAssessment[];
   defenseDays: DefenseAssessmentDay[];
   comparisonSelection: {
@@ -259,8 +276,8 @@ export interface Workspace extends BattingData {
   } | null;
   defenseEvaluationChoices: DefenseEvaluationChoice[];
   lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
-  schemaVersion: 11;
-  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; raw: string };
+  schemaVersion: 12;
+  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

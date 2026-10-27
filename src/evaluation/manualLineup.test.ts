@@ -44,7 +44,7 @@ it('v9 원문·날짜 평가를 보존하고 미측정 수동 배치를 저장·
   localStorage.setItem(V9_STORAGE_KEY, raw);
   const repo = new LocalWorkspaceRepository(localStorage),
     d = repo.load()!;
-  expect(d.schemaVersion).toBe(11);
+  expect(d.schemaVersion).toBe(12);
   expect(d.migrationSource?.raw).toBe(raw);
   expect(d.defenseDays).toEqual(old.defenseDays);
   const next = repo.save(

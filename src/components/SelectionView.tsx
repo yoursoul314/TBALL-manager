@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { recommendWaterfall, waterfallCandidates } from '../evaluation/waterfall';
 import type { Workspace } from '../domain/model';
 import { activeTeams } from '../domain/gameLibrary';
 import { defenseEvaluation } from '../evaluation/defense';
@@ -20,6 +21,7 @@ export function SelectionView({
   onProfile: (id: string) => void;
   onDirtyChange?: (v: boolean) => void;
 }) {
+  const [algorithm, setAlgorithm] = useState<'type1' | 'waterfall'>('type1');
   const [team, setTeam] = useState(activeTeams(data)[0]?.id ?? ''),
     [message, setMessage] = useState(''),
     [approving, setApproving] = useState(false),
@@ -31,11 +33,15 @@ export function SelectionView({
     fresh = selection?.sourceRevision === data.revision;
   const generate = () => {
     try {
-      const result = recommendPositions(
-        data.players
-          .filter((p) => p.active && !p.archivedAt)
-          .map((p) => ({ playerId: p.id, abilities: defenseEvaluation(data, p.id).abilities })),
-      );
+      const waterfall =
+        algorithm === 'waterfall' ? recommendWaterfall(waterfallCandidates(data)) : null;
+      const result =
+        waterfall ??
+        recommendPositions(
+          data.players
+            .filter((p) => p.active && !p.archivedAt)
+            .map((p) => ({ playerId: p.id, abilities: defenseEvaluation(data, p.id).abilities })),
+        );
       if (!result)
         throw new Error(
           '10개 포지션을 모두 배정할 수 없습니다. 등록 명단 중 최소 10명의 필요한 기능평가를 입력하세요.',
@@ -48,10 +54,19 @@ export function SelectionView({
             id: crypto.randomUUID(),
             teamId: team,
             createdAt: new Date().toISOString(),
-            policyVersion: data.policy.version,
+            policyVersion: waterfall ? 'fungo-waterfall-v1' : data.policy.version,
             sourceRevision: data.revision + 1,
             assignments: result.assignments,
-            method: 'automatic',
+            method: waterfall ? 'waterfall' : 'automatic',
+            ...(waterfall
+              ? {
+                  waterfall: {
+                    version: 'fungo-waterfall-v1' as const,
+                    candidateIds: waterfall.candidateIds,
+                    feedback: waterfall.feedback,
+                  },
+                }
+              : {}),
             status: 'draft',
             approvedBy: null,
             approvedAt: null,
@@ -108,17 +123,38 @@ export function SelectionView({
             </option>
           ))}
         </select>
-        <Badge>TYPE1 v2.0 확정 가중치</Badge>
+        <label>
+          추천 방식
+          <select
+            aria-label="추천 방식"
+            value={algorithm}
+            onChange={(e) => setAlgorithm(e.target.value as typeof algorithm)}
+          >
+            <option value="type1">기존 TYPE1 v2.0 · 9능력</option>
+            <option value="waterfall">펑고 5변수 · 워터폴 배정</option>
+          </select>
+        </label>
+        <Badge>TYPE1 v2.0 확정 가중치 보존</Badge>
         <Badge tone="amber">기능평가 기반 시뮬레이션</Badge>
       </div>
       <div className="callout amber">
-        자동 추천은 입력된 9개 수비 능력의 가중합을 최대화합니다.{' '}
+        {algorithm === 'waterfall'
+          ? '새 펑고 공식에 따라 순서대로 배정합니다.'
+          : '기존 TYPE1 추천은 입력된 9개 수비 능력의 가중합을 최대화합니다.'}{' '}
         <b>
           최종 선발 알고리즘은 TODO입니다. 추천·수동 배치는 확정 엔트리가 아니며 사용자 승인 전에는
           검토 대기입니다.
         </b>{' '}
         TYPE2는 참고용으로 정의를 기다리고 있습니다.
       </div>
+      {algorithm === 'waterfall' && (
+        <p className="callout">
+          최근 날짜의 펑고 5변수와 새 6단계 타격 B(10점)를 사용합니다. 1B → SS → 3B → CF1 → LF → CF2
+          → 2B → RF → 본루수 → P 순서입니다. 내야 적합도 80점 이상 상위 2명은 1B보다 SS·3B에 우선
+          배정합니다. P는 기존 TYPE1 기본점수에 희망 가산점을 별도로 더합니다. 필수 점수가 없으면
+          빈자리로 남으며 10명이 배치되어야 승인할 수 있습니다.
+        </p>
+      )}
       {message && (
         <div role="alert" className="alert">
           {message}
@@ -149,8 +185,12 @@ export function SelectionView({
           {selection ? (
             <>
               <p>
-                {selection.method === 'manual' ? '감독 수동 배치' : '수비 기능평가 자동 추천'} ·{' '}
-                {selection.assignments.length}/10명
+                {selection.method === 'waterfall'
+                  ? '펑고 워터폴 추천'
+                  : selection.method === 'manual'
+                    ? '감독 수동 배치'
+                    : '수비 기능평가 자동 추천'}{' '}
+                · {selection.assignments.length}/10명
               </p>
               <div className="assignment-list">
                 {[...selection.assignments]
@@ -167,6 +207,22 @@ export function SelectionView({
                     </button>
                   ))}
               </div>
+              {selection.waterfall && (
+                <details className="waterfall-feedback" open>
+                  <summary>학생에게 설명하는 배정 근거</summary>
+                  {selection.waterfall.feedback.map((f) => (
+                    <p key={f.position}>
+                      <b>{POSITION_LABELS[f.position]}</b> · {f.text}
+                    </p>
+                  ))}
+                  {selection.assignments.length < 10 && (
+                    <p role="status">
+                      미측정 항목 또는 후보 부족으로 {10 - selection.assignments.length}자리가 비어
+                      있습니다. 평가 입력 또는 수동 배치 후 승인하세요.
+                    </p>
+                  )}
+                </details>
+              )}
               {!fresh && (
                 <div className="callout amber">
                   저장 이후 데이터가 변경되었습니다. 다시 시뮬레이션하거나 수동 배치안을 다시 저장한

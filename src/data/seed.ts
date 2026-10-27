@@ -19,8 +19,9 @@ export function createDemoWorkspace(): Workspace {
     })),
   );
   return {
-    schemaVersion: 11,
+    schemaVersion: 12,
     defenseDays: [],
+    fungoDays:[],fungoAssessments:[],
     comparisonSelection: null,
     defenseAssessments: [],
     defenseEvaluationChoices: [],
