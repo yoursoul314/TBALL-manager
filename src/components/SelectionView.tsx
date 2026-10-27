@@ -1,3 +1,4 @@
+import { defenseEvaluation } from '../evaluation/defense';
 import { activeTeams } from '../domain/gameLibrary';
 import { PlayerAvatar } from './PlayerAvatar';
 import { useState } from 'react';
@@ -28,7 +29,7 @@ export function SelectionView({
       .filter((p) => p.active && !p.archivedAt)
       .map((p) => ({
         playerId: p.id,
-        abilities: data.assessments.filter((a) => a.playerId === p.id).at(-1)?.abilities || {},
+        abilities: defenseEvaluation(data, p.id).abilities,
       }));
     const result = recommendPositions(candidates);
     if (!result) {

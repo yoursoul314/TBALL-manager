@@ -25,7 +25,7 @@ async function nav(name) {
   await button.tap();
 }
 const tap = (name) => page.getByRole('button', { name, exact: true }).tap();
-const data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v7')));
+const data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v8')));
 async function formFit(name) {
   const r = await page.evaluate(() => {
     const boxes = [
@@ -147,6 +147,7 @@ async function captureBackup(button) {
   const p = (await data()).players.at(-1);
   assert.equal(p.teamId, null);
   await nav('기능평가 & 팀워크');
+  if(await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).count()) await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).click();
   assert.equal(
     await page
       .getByLabel('선수 선택', { exact: true })
@@ -158,6 +159,7 @@ async function captureBackup(button) {
   await tap('QA 공통 등록 학생 선수 삭제');
   await tap('선수 삭제 확정');
   await nav('기능평가 & 팀워크');
+  if(await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).count()) await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).click();
   assert.equal(await page.getByRole('option', { name: /QA 공통 등록 학생/ }).count(), 0);
   await nav('선수 & 팀');
   await tap('삭제된 선수 · 1');
@@ -189,7 +191,7 @@ async function captureBackup(button) {
   await page.setViewportSize({ width: 1180, height: 820 });
   await nav('규칙 & 설정');
   await tap('앱 업데이트 확인');
-  await page.getByText('현재 BETA 0.7.0입니다.', { exact: true }).waitFor();
+  await page.getByText('현재 BETA 0.8.0입니다.', { exact: true }).waitFor();
   await formFit('settings');
   const before = await data();
   await tap('초기화 준비');
@@ -210,17 +212,17 @@ async function captureBackup(button) {
   check('백업 확인 전 초기화 차단·기록만 초기화·선수/사진 보존·새로고침');
   // Simulate the existing v6 device's migration, in this isolated context only.
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v7'));
+    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v8'));
     delete d.lastReset;
     delete d.migrationSource;
     delete d.legacySource;
     for (const key of Object.keys(d)) if (key.startsWith('_')) delete d[key];
     d.schemaVersion = 6;
     localStorage.setItem('tb-manager.workspace.v6', JSON.stringify(d));
-    localStorage.removeItem('tb-manager.workspace.v7');
+    localStorage.removeItem('tb-manager.workspace.v8');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 7);
+  assert.equal((await data()).schemaVersion, 8);
   assert(await page.evaluate(() => !!localStorage.getItem('tb-manager.workspace.v6')));
   await nav('규칙 & 설정');
   await tap('전체 초기화 · 선수/팀/사진 포함');
@@ -239,6 +241,7 @@ async function captureBackup(button) {
   assert.equal(await page.evaluate(() => localStorage.getItem('tb-manager.workspace.v6')), null);
   await page.reload({ waitUntil: 'networkidle' });
   await nav('기능평가 & 팀워크');
+  if(await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).count()) await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).click();
   await page.getByText(/등록된 선수가 없습니다/).waitFor();
   await nav('선수 & 팀');
   await tap('선수 등록');
@@ -246,6 +249,7 @@ async function captureBackup(button) {
   await tap('선수 저장');
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await nav('기능평가 & 팀워크');
+  if(await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).count()) await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).click();
   assert.equal(await page.getByLabel('선수 선택', { exact: true }).getByRole('option').count(), 1);
   check('전체 초기화·구버전 저장본 제거·팀 없이 재등록·등록 학생만 평가에 표시');
   await nav('규칙 & 설정');

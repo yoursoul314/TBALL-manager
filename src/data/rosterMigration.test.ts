@@ -20,7 +20,7 @@ it('v4 원본을 보존하고 학년 미설정·추정 날짜·기존 엔트리�
   localStorage.setItem(V4_STORAGE_KEY, raw);
   const repo = new LocalWorkspaceRepository(localStorage),
     data = repo.load()!;
-  expect(data.schemaVersion).toBe(7);
+  expect(data.schemaVersion).toBe(8);
   expect(data.players.every((p) => p.grade === null)).toBe(true);
   expect(data.games[0]).toMatchObject({
     createdAt: source.games[0].createdAt,

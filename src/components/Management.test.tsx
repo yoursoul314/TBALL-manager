@@ -19,6 +19,7 @@ it('선수 등록→평가 선택→삭제→평가 제외→복원 흐름을 �
   nav('선수 저장');
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   nav('기능평가 & 팀워크');
+  if(screen.queryByRole('button',{name:'개인별 이전 기록'})) nav('개인별 이전 기록');
   expect(
     within(screen.getByLabelText('선수 선택')).getByRole('option', { name: /새 등록 QA/ }),
   ).toBeInTheDocument();
@@ -26,6 +27,7 @@ it('선수 등록→평가 선택→삭제→평가 제외→복원 흐름을 �
   nav('새 등록 QA 선수 삭제');
   nav('선수 삭제 확정');
   nav('기능평가 & 팀워크');
+  if(screen.queryByRole('button',{name:'개인별 이전 기록'})) nav('개인별 이전 기록');
   expect(
     within(screen.getByLabelText('선수 선택')).queryByRole('option', { name: /새 등록 QA/ }),
   ).not.toBeInTheDocument();
@@ -33,6 +35,7 @@ it('선수 등록→평가 선택→삭제→평가 제외→복원 흐름을 �
   nav('삭제된 선수 · 1');
   nav('새 등록 QA 선수 복원');
   nav('기능평가 & 팀워크');
+  if(screen.queryByRole('button',{name:'개인별 이전 기록'})) nav('개인별 이전 기록');
   expect(screen.getByRole('option', { name: /새 등록 QA/ })).toBeInTheDocument();
 });
 it('선수 삭제 저장 실패 시 원본과 확인 창을 유지한다', () => {
@@ -55,6 +58,7 @@ it('전체 초기화 후 빈 화면들이 정상 표시되고 새 등록 선수�
   );
   render(<App />);
   nav('기능평가 & 팀워크');
+  if(screen.queryByRole('button',{name:'개인별 이전 기록'})) nav('개인별 이전 기록');
   expect(screen.getByText(/등록된 선수가 없습니다/)).toBeInTheDocument();
   nav('경기 분석');
   expect(screen.getByText(/표시할 경기가 없습니다/)).toBeInTheDocument();
@@ -65,6 +69,7 @@ it('전체 초기화 후 빈 화면들이 정상 표시되고 새 등록 선수�
   nav('선수 저장');
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   nav('기능평가 & 팀워크');
+  if(screen.queryByRole('button',{name:'개인별 이전 기록'})) nav('개인별 이전 기록');
   expect(within(screen.getByLabelText('선수 선택')).getAllByRole('option')).toHaveLength(1);
   expect(screen.queryByRole('option', { name: /샘플 선수/ })).not.toBeInTheDocument();
 });

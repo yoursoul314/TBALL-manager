@@ -16,6 +16,7 @@ export const zoneLabel = (zone: string | null) => {
 };
 export function emptyBattingData(): BattingData {
   return {
+    battingDays: [],
     battingSessions: [],
     battingAttempts: [],
     battingAudit: [],

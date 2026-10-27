@@ -33,7 +33,10 @@ export function resetWorkspace(data: Workspace, scope: ResetScope, at: string): 
     next.legacyTeamwork = data.legacyTeamwork.filter((t) => !t.gameId);
   }
   if (evaluation) {
+    next.battingDays = [];
     next.assessments = [];
+    next.defenseAssessments = [];
+    next.defenseEvaluationChoices = [];
     next.battingSessions = [];
     next.battingAttempts = [];
     next.battingAudit = [];

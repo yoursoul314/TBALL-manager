@@ -5,11 +5,14 @@ import { migrateWorkspaceV4 } from './migrationV4';
 export function migrateWorkspace(input: unknown, originalText?: string): Workspace {
   if (!input || typeof input !== 'object' || !('schemaVersion' in input))
     throw new Error('저장 데이터의 스키마 버전이 없습니다');
-  if (input.schemaVersion === 7) return parseWorkspace(input);
-  if (input.schemaVersion === 5 || input.schemaVersion === 6)
+  if (input.schemaVersion === 8) return parseWorkspace(input);
+  if (input.schemaVersion === 5 || input.schemaVersion === 6 || input.schemaVersion === 7)
     return parseWorkspace({
       ...input,
-      schemaVersion: 7,
+      schemaVersion: 8,
+      battingDays: [],
+      defenseAssessments: [],
+    defenseEvaluationChoices: [],
       migrationSource: {
         schemaVersion: input.schemaVersion,
         raw: originalText ?? JSON.stringify(input),
@@ -18,7 +21,10 @@ export function migrateWorkspace(input: unknown, originalText?: string): Workspa
   const old = migrateWorkspaceV4(input, originalText);
   return parseWorkspace({
     ...old,
-    schemaVersion: 7,
+    schemaVersion: 8,
+    battingDays: [],
+    defenseAssessments: [],
+    defenseEvaluationChoices: [],
     ...(input.schemaVersion === 4
       ? { migrationSource: { schemaVersion: 4, raw: originalText ?? JSON.stringify(input) } }
       : {}),

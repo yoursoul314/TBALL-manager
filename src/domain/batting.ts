@@ -64,7 +64,16 @@ export interface BattingSettings {
     spreadMaxRatio: number | null;
   };
 }
+export interface BattingAssessmentDay {
+  date: string;
+  targetAttempts: number;
+  assessor: string;
+  purpose: string;
+  note: string;
+  createdAt: string;
+}
 export interface BattingData {
+  battingDays: BattingAssessmentDay[];
   battingSessions: BattingAssessmentSession[];
   battingAttempts: BattingAssessmentAttempt[];
   battingAudit: BattingAudit[];

@@ -29,6 +29,7 @@ async function openAssessment() {
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: '기능평가 & 팀워크' }));
+  await user.click(screen.getByRole('button', { name: '개인별 이전 기록' }));
   fireEvent.change(screen.getByLabelText('평가 날짜'), { target: { value: date } });
   return user;
 }

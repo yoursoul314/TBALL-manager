@@ -16,6 +16,7 @@ it('날짜별 회차 입력·저장·새로고침 후 유지·정정과 프로�
   const user = userEvent.setup();
   let app = render(<App />);
   await user.click(screen.getByRole('button', { name: '기능평가 & 팀워크' }));
+  await user.click(screen.getByRole('button', { name: '개인별 이전 기록' }));
   fireEvent.change(screen.getByLabelText('평가 날짜'), { target: { value: '2026-10-20' } });
   fireEvent.change(screen.getByLabelText('세션 평가자'), { target: { value: '가상 코치' } });
   fireEvent.change(screen.getByLabelText('평가 목적'), { target: { value: '테스트 연습' } });
@@ -42,6 +43,7 @@ it('날짜별 회차 입력·저장·새로고침 후 유지·정정과 프로�
   app.unmount();
   app = render(<App />);
   await user.click(screen.getByRole('button', { name: '기능평가 & 팀워크' }));
+  await user.click(screen.getByRole('button', { name: '개인별 이전 기록' }));
   fireEvent.change(screen.getByLabelText('평가 날짜'), { target: { value: '2026-10-20' } });
   expect(screen.getByTestId('batting-score')).toHaveTextContent('80.0');
   await user.click(screen.getByRole('button', { name: '평가 10점' }));
@@ -86,6 +88,7 @@ it('헛스윙은 필드맵이 비활성화되고 파울은 실제 관찰 선택 
   const user = userEvent.setup();
   render(<App />);
   await user.click(screen.getByRole('button', { name: '기능평가 & 팀워크' }));
+  await user.click(screen.getByRole('button', { name: '개인별 이전 기록' }));
   fireEvent.change(screen.getByLabelText('평가 날짜'), { target: { value: date } });
   await user.click(screen.getByRole('button', { name: '상세 모드' }));
   await user.click(screen.getByRole('button', { name: '헛스윙' }));

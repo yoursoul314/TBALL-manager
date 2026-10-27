@@ -41,20 +41,49 @@ export function BattingAssessmentPanel({
   playerId,
   onSave,
   onDirtyChange,
+  initialDate,
+  managedDay = false,
+  initialDetailed = false,
+  onDetailModeChange,
+  onDateChange,
+  studentNavigation,
 }: {
   data: Workspace;
   playerId: string;
   onSave: (d: Workspace) => void;
   onDirtyChange?: (v: boolean) => void;
+  initialDate?: string;
+  managedDay?: boolean;
+  initialDetailed?: boolean;
+  onDetailModeChange?: (v: boolean) => void;
+  onDateChange?: (date: string) => void;
+  studentNavigation?: { index: number; total: number; previous?: () => void; next?: () => void };
 }) {
-  const [date, setDate] = useState(today()),
+  const [date, setDate] = useState(initialDate ?? today()),
     [sessionId, setSessionId] = useState(''),
-    [round, setRound] = useState(1),
+    [round, setRound] = useState(() => {
+      if (!managedDay) return 1;
+      const options = data.battingSessions.filter(
+        (s) => s.playerId === playerId && s.date === (initialDate ?? today()),
+      );
+      const latest = options.filter((s) => s.status !== 'cancelled').at(-1) ?? options.at(-1);
+      if (!latest) return 1;
+      return (
+        Array.from({ length: latest.targetAttempts }, (_, i) => i + 1).find(
+          (n) =>
+            !data.battingAttempts.some((a) => a.sessionId === latest.id && a.attemptNumber === n),
+        ) ?? latest.targetAttempts
+      );
+    }),
     [error, setError] = useState(''),
     [dirty, setDirtyState] = useState(false);
   const [lastSaved, setLastSaved] = useState('');
   const inputAnchor = useRef<HTMLDivElement>(null);
-  const [detailMode, setDetailMode] = useState(false);
+  const [detailMode, setDetailModeState] = useState(initialDetailed);
+  const setDetailMode = (v: boolean) => {
+    setDetailModeState(v);
+    onDetailModeChange?.(v);
+  };
   const [feedback, setFeedback] = useState('');
   const setDirty = (v: boolean) => {
     setDirtyState(v);
@@ -70,7 +99,10 @@ export function BattingAssessmentPanel({
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
   const sessions = data.battingSessions.filter((s) => s.playerId === playerId && s.date === date);
-  const session = sessions.find((s) => s.id === sessionId) ?? sessions.at(-1);
+  const session =
+    sessions.find((s) => s.id === sessionId) ??
+    sessions.filter((s) => s.status !== 'cancelled').at(-1) ??
+    sessions.at(-1);
   useEffect(() => {
     inputAnchor.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
   }, [session?.id]);
@@ -100,6 +132,27 @@ export function BattingAssessmentPanel({
   ]
     .sort()
     .reverse();
+  const studentNav = studentNavigation && (
+    <nav className="assessment-student-nav" aria-label="평가 학생 이동">
+      <button
+        type="button"
+        disabled={dirty || !studentNavigation.previous}
+        onClick={studentNavigation.previous}
+      >
+        이전 평가 학생
+      </button>
+      <b>
+        {studentNavigation.index}/{studentNavigation.total}명
+      </b>
+      <button
+        type="button"
+        disabled={dirty || !studentNavigation.next}
+        onClick={studentNavigation.next}
+      >
+        다음 평가 학생
+      </button>
+    </nav>
+  );
   return (
     <div className={'batting-workspace' + (detailMode ? ' assessment-detailed' : '')}>
       <div className="assessment-summary" aria-label="현재 평가 요약">
@@ -129,44 +182,49 @@ export function BattingAssessmentPanel({
           </>
         )}
       </div>
+      {!detailMode && studentNav}
       <Panel title="날짜별 평가 세션">
         <div className="form-row">
-          <label>
-            평가 날짜
-            <input
-              type="date"
-              required
-              value={date}
-              disabled={dirty}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setDate(e.target.value);
-                  setSessionId('');
-                  setRound(1);
-                }
-              }}
-            />
-          </label>
-          <label>
-            기록된 날짜
-            <select
-              aria-label="기록된 날짜"
-              value={dates.includes(date) ? date : ''}
-              disabled={dirty}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setDate(e.target.value);
-                  setSessionId('');
-                  setRound(1);
-                }
-              }}
-            >
-              <option value="">날짜 선택</option>
-              {dates.map((d) => (
-                <option key={d}>{d}</option>
-              ))}
-            </select>
-          </label>
+          {!managedDay && (
+            <>
+              <label>
+                평가 날짜
+                <input
+                  type="date"
+                  required
+                  value={date}
+                  disabled={dirty}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setDate(e.target.value);
+                      setSessionId('');
+                      setRound(1);
+                    }
+                  }}
+                />
+              </label>
+              <label>
+                기록된 날짜
+                <select
+                  aria-label="기록된 날짜"
+                  value={dates.includes(date) ? date : ''}
+                  disabled={dirty}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setDate(e.target.value);
+                      setSessionId('');
+                      setRound(1);
+                    }
+                  }}
+                >
+                  <option value="">날짜 선택</option>
+                  {dates.map((d) => (
+                    <option key={d}>{d}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
           <label>
             평가 세션
             <select
@@ -190,59 +248,73 @@ export function BattingAssessmentPanel({
           날짜별 평균 <b>{battingNumber(daily.average)}</b> / 10 · 유효 {daily.count}회{' '}
           {daily.provisional ? '· 잠정 평균' : ''}
         </p>
-        <details open={!session}>
-          <summary>같은 날짜에 새 평가 세션 만들기</summary>
-          <form
-            className="batting-session-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget),
-                actor = String(f.get('assessor'));
-              const next = execute(() =>
-                createBattingSession(
-                  data,
-                  {
-                    playerId,
-                    date,
-                    targetAttempts: Number(f.get('target')),
-                    assessor: actor,
-                    purpose: String(f.get('purpose')),
-                    note: String(f.get('note')),
-                  },
-                  changeMeta(actor, '신규 평가 세션'),
-                ),
-              );
-              if (next) {
-                setSessionId(next.battingSessions.at(-1)!.id);
-                setRound(1);
-              }
-            }}
-          >
-            <fieldset disabled={dirty}>
-              <div className="form-row">
+        {!managedDay && (
+          <details open={!session}>
+            <summary>같은 날짜에 새 평가 세션 만들기</summary>
+            <form
+              className="batting-session-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const f = new FormData(e.currentTarget),
+                  actor = String(f.get('assessor'));
+                const next = execute(() =>
+                  createBattingSession(
+                    data,
+                    {
+                      playerId,
+                      date,
+                      targetAttempts: Number(f.get('target')),
+                      assessor: actor,
+                      purpose: String(f.get('purpose')),
+                      note: String(f.get('note')),
+                    },
+                    changeMeta(actor, '신규 평가 세션'),
+                  ),
+                );
+                if (next) {
+                  setSessionId(next.battingSessions.at(-1)!.id);
+                  setRound(1);
+                }
+              }}
+            >
+              <fieldset disabled={dirty}>
+                <div className="form-row">
+                  <label>
+                    타격 횟수
+                    <input
+                      name="target"
+                      type="number"
+                      min="1"
+                      max="200"
+                      defaultValue="10"
+                      required
+                    />
+                  </label>
+                  <label>
+                    세션 평가자
+                    <input name="assessor" maxLength={200} required placeholder="평가자 별칭" />
+                  </label>
+                  <label>
+                    평가 목적
+                    <input
+                      name="purpose"
+                      maxLength={200}
+                      required
+                      placeholder="예: 타구 방향 연습"
+                    />
+                  </label>
+                </div>
                 <label>
-                  타격 횟수
-                  <input name="target" type="number" min="1" max="200" defaultValue="10" required />
+                  세션 메모
+                  <textarea name="note" maxLength={2000} />
                 </label>
-                <label>
-                  세션 평가자
-                  <input name="assessor" maxLength={200} required placeholder="평가자 별칭" />
-                </label>
-                <label>
-                  평가 목적
-                  <input name="purpose" maxLength={200} required placeholder="예: 타구 방향 연습" />
-                </label>
-              </div>
-              <label>
-                세션 메모
-                <textarea name="note" maxLength={2000} />
-              </label>
-              <button className="primary" type="submit">
-                평가 세션 생성
-              </button>
-            </fieldset>
-          </form>
-        </details>
+                <button className="primary" type="submit">
+                  평가 세션 생성
+                </button>
+              </fieldset>
+            </form>
+          </details>
+        )}
         {session && (
           <>
             <details>
@@ -266,6 +338,7 @@ export function BattingAssessmentPanel({
                   ) !== null
                 }
                 onDateChange={(next) => {
+                  onDateChange?.(next);
                   setDate(next);
                   setRound(1);
                 }}
@@ -300,6 +373,7 @@ export function BattingAssessmentPanel({
                     : battingNumber(cumulative.score) + '점'}
                 </span>
               </div>
+              {studentNav}
               <button type="button" onClick={() => setDetailMode(false)}>
                 전체 화면 닫기
               </button>

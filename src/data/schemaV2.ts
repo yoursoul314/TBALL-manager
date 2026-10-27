@@ -5,7 +5,14 @@ import { RULES_VERSION } from '../config/rules';
 import { replayGame } from '../engine/game';
 import type { Workspace } from '../domain/model';
 import type { BattingData } from '../domain/batting';
-type WorkspaceV2 = Omit<Workspace, keyof BattingData | 'schemaVersion' | 'migrationSource'> & {
+type WorkspaceV2 = Omit<
+  Workspace,
+  | keyof BattingData
+  | 'schemaVersion'
+  | 'migrationSource'
+  | 'defenseAssessments'
+  | 'defenseEvaluationChoices'
+> & {
   schemaVersion: 2;
 };
 
@@ -283,7 +290,8 @@ export function parseWorkspaceV2(input: unknown): WorkspaceV2 {
   const player = new Map(data.players.map((p) => [p.id, p]));
   const teams = new Set(data.teams.map((t) => t.id));
   const games = new Set(data.games.map((g) => g.id));
-  for (const p of data.players) require(p.teamId !== null && teams.has(p.teamId), '선수의 소속 팀이 없습니다');
+  for (const p of data.players)
+    require(p.teamId !== null && teams.has(p.teamId), '선수의 소속 팀이 없습니다');
   for (const g of data.games) {
     for (const s of ['away', 'home'] as const) {
       require(teams.has(g.teamIds[s]), '경기의 팀이 없습니다');

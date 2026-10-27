@@ -1,19 +1,17 @@
+import { defenseEvaluation } from '../evaluation/defense';
+import { StudentFilters } from './StudentFilters';
+import { emptyStudentFilter, filterStudents } from '../domain/studentFilter';
+import { assignEntryBatch, type EntryDraft } from '../domain/entryBatch';
 import { activeTeams } from '../domain/gameLibrary';
 import { useState, useRef } from 'react';
 import type { EntryStatus, Game, Side, Workspace } from '../domain/model';
 import { localDate, gradeLabel, ENTRY_LABELS, validateEntry } from '../domain/roster';
-import { POSITIONS, POSITION_LABELS, type Position } from '../config/positions';
+import { POSITIONS, POSITION_LABELS } from '../config/positions';
 import { recommendPositions, positionScore } from '../evaluation/score';
 import { RULES_VERSION } from '../config/rules';
 import { PlayerAvatar } from './PlayerAvatar';
 import { Modal } from './ui';
-interface Draft {
-  loaded: boolean;
-  assigned: string[];
-  status: Record<string, EntryStatus>;
-  lineup: string[];
-  defense: Partial<Record<Position, string>>;
-}
+type Draft = EntryDraft;
 export function NewGame({
   data,
   onCreate,
@@ -44,12 +42,19 @@ export function NewGame({
     [manager, setManager] = useState(''),
     [approved, setApproved] = useState(false),
     [error, setError] = useState('');
+  const [filter, setFilter] = useState(emptyStudentFilter);
+  const [checked, setChecked] = useState<Record<Side, string[]>>({ away: [], home: [] });
+  const [bulkStatus, setBulkStatus] = useState<EntryStatus>('starter');
+  const [feedback, setFeedback] = useState('');
   const draft = entries[side];
   const other = side === 'away' ? 'home' : 'away';
   const candidates = data.players.filter(
     (p) => !p.archivedAt && !entries[other].assigned.includes(p.id),
   );
   const players = draft.loaded ? candidates : [];
+  const visiblePlayers = filterStudents(players, filter);
+  const selected = checked[side].filter((id) => players.some((p) => p.id === id));
+  const select = (ids: string[]) => setChecked((old) => ({ ...old, [side]: ids }));
   const change = (next: Draft) => {
     setEntries((old) => ({ ...old, [side]: next }));
     setApproved(false);
@@ -84,7 +89,7 @@ export function NewGame({
         .filter((p) => p.active && !['absent', 'unavailable'].includes(draft.status[p.id]))
         .map((p) => ({
           playerId: p.id,
-          abilities: data.assessments.filter((a) => a.playerId === p.id).at(-1)?.abilities ?? {},
+          abilities: defenseEvaluation(data, p.id).abilities,
         })),
     );
     if (!result) {
@@ -202,6 +207,7 @@ export function NewGame({
                 value={teams[s]}
                 onChange={(e) => {
                   const id = e.target.value;
+                  setChecked((old) => ({ ...old, [s]: [] }));
                   setTeams((old) => ({ ...old, [s]: id }));
                   setEntries((old) => ({ ...old, [s]: empty() }));
                   setApproved(false);
@@ -294,10 +300,92 @@ export function NewGame({
           추천은 TYPE1 v2.0 수비 기능 가중치만 사용합니다. 최종 종합 선발 점수가 아니며 감독이
           수정·확인합니다.
         </p>
+        {draft.loaded && (
+          <section className="bulk-entry-controls" aria-label="여러 학생 팀 배정">
+            <StudentFilters
+              players={players}
+              value={filter}
+              onChange={setFilter}
+              prefix="경기 선수"
+            />
+            <div className="bulk-actions">
+              <button
+                type="button"
+                onClick={() =>
+                  select([...new Set([...selected, ...visiblePlayers.map((p) => p.id)])])
+                }
+              >
+                검색 결과 전체 선택 · {visiblePlayers.length}명
+              </button>
+              <button type="button" disabled={!selected.length} onClick={() => select([])}>
+                선택 해제
+              </button>
+              <b aria-live="polite">
+                선택 {selected.length}명 · 표시 {visiblePlayers.length}명
+              </b>
+              <label>
+                일괄 경기 상태
+                <select
+                  aria-label="일괄 경기 상태"
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value as EntryStatus)}
+                >
+                  {Object.entries(ENTRY_LABELS).map(([v, label]) => (
+                    <option key={v} value={v}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="primary"
+                disabled={!selected.length}
+                onClick={() => {
+                  try {
+                    change(
+                      assignEntryBatch(
+                        draft,
+                        selected,
+                        bulkStatus,
+                        data.players,
+                        entries[other].assigned,
+                      ),
+                    );
+                    select([]);
+                    setError('');
+                    setFeedback(
+                      selected.length +
+                        '명을 ' +
+                        (data.teams.find((t) => t.id === teams[side])?.name ?? '팀') +
+                        ' ' +
+                        ENTRY_LABELS[bulkStatus] +
+                        '로 배정했습니다',
+                    );
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : '배정 실패');
+                  }
+                }}
+              >
+                선택 학생 팀에 배정
+              </button>
+            </div>
+            {feedback && <p role="status">{feedback}</p>}
+            {error && (
+              <p role="alert" className="alert">
+                {error}
+              </p>
+            )}
+            <p className="hint">
+              필터를 바꿔도 선택은 유지됩니다. 선택한 학생 전체에 적용하며 선발 10명 초과 시 모두
+              배정하지 않습니다.
+            </p>
+          </section>
+        )}
         <div className="entry-candidates" ref={candidatesRef}>
-          {players.map((p) => {
-            const a = data.assessments.filter((a) => a.playerId === p.id).at(-1);
-            const scores = POSITIONS.map((pos) => positionScore(a?.abilities ?? {}, pos)).filter(
+          {visiblePlayers.map((p) => {
+            const evaluation = defenseEvaluation(data, p.id);
+            const scores = POSITIONS.map((pos) => positionScore(evaluation.abilities, pos)).filter(
               (v): v is number => v !== null,
             );
             return (
@@ -305,6 +393,21 @@ export function NewGame({
                 className={'entry-player ' + (draft.status[p.id] === 'starter' ? 'selected' : '')}
                 key={p.id}
               >
+                <label className="check batch-check">
+                  <input
+                    type="checkbox"
+                    aria-label={p.name + ' 일괄 선택'}
+                    checked={selected.includes(p.id)}
+                    onChange={(e) =>
+                      select(
+                        e.target.checked
+                          ? [...selected, p.id]
+                          : selected.filter((id) => id !== p.id),
+                      )
+                    }
+                  />
+                  일괄 선택
+                </label>
                 <button
                   type="button"
                   aria-pressed={draft.status[p.id] === 'starter'}

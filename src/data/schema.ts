@@ -1,3 +1,4 @@
+import { defenseAssessmentsSchema } from './defenseAssessmentSchema';
 import { z } from 'zod';
 import type { Workspace, GameEvent } from '../domain/model';
 import { POSITIONS } from '../config/positions';
@@ -105,7 +106,32 @@ export const defenseSequenceSchema = z
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(7),
+      schemaVersion: z.literal(8),
+      defenseAssessments: defenseAssessmentsSchema.default([]),
+      defenseEvaluationChoices: z
+        .array(
+          z.object({
+            id,
+            playerId: id,
+            source: z.enum(['manual', 'checklist']),
+            changedAt: z.iso.datetime(),
+            changedBy: z.string().trim().min(1).max(200),
+          }),
+        )
+        .max(100000)
+        .default([]),
+      battingDays: z
+        .array(
+          z.object({
+            date: z.iso.date(),
+            targetAttempts: z.number().int().min(1).max(200),
+            assessor: z.string().trim().min(1).max(200),
+            purpose: z.string().trim().min(1).max(200),
+            note,
+            createdAt: z.iso.datetime(),
+          }),
+        )
+        .max(20000),
       lastReset: z
         .object({ at: z.iso.datetime(), scope: z.enum(['games', 'evaluations', 'records', 'all']) })
         .optional(),
@@ -117,6 +143,7 @@ export function parseWorkspace(input: unknown): Workspace {
             z.literal(4),
             z.literal(5),
             z.literal(6),
+            z.literal(7),
           ]),
           raw: z.string(),
         })
@@ -127,6 +154,8 @@ export function parseWorkspace(input: unknown): Workspace {
       events: z.array(z.unknown()),
     })
     .parse(input);
+  if (new Set(header.battingDays.map((d) => d.date)).size !== header.battingDays.length)
+    throw new Error('평가 날짜 중복');
   const base = parseWorkspaceV4(
     { ...(input as object), schemaVersion: 4, migrationSource: undefined },
     false,
@@ -167,6 +196,14 @@ export function parseWorkspace(input: unknown): Workspace {
     return e;
   }) as GameEvent[];
   const ids = new Set(players.map((p) => p.id));
+  if (header.defenseAssessments.some((r) => !ids.has(r.playerId)))
+    throw new Error('수비 평가 선수 없음');
+  if (
+    new Set(header.defenseEvaluationChoices.map((c) => c.id)).size !==
+      header.defenseEvaluationChoices.length ||
+    header.defenseEvaluationChoices.some((c) => !ids.has(c.playerId))
+  )
+    throw new Error('수비 점수 출처 선택 오류');
   for (const game of games) {
     validateEntry(game);
     if (
@@ -191,7 +228,10 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 7,
+    schemaVersion: 8,
+    battingDays: header.battingDays,
+    defenseAssessments: header.defenseAssessments,
+    defenseEvaluationChoices: header.defenseEvaluationChoices,
     lastReset: header.lastReset,
     migrationSource: header.migrationSource,
     teams: header.teams.map((t) => team.parse(t)),

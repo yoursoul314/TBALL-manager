@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import type { Workspace as CurrentWorkspace } from '../domain/model';
-export type WorkspaceV4 = Omit<CurrentWorkspace, 'schemaVersion' | 'migrationSource'> & {
+export type WorkspaceV4 = Omit<
+  CurrentWorkspace,
+  | 'schemaVersion'
+  | 'migrationSource'
+  | 'battingDays'
+  | 'defenseAssessments'
+  | 'defenseEvaluationChoices'
+> & {
   schemaVersion: 4;
   migrationSource?: { schemaVersion: 2 | 3; raw: string };
 };

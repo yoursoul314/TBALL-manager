@@ -1,3 +1,4 @@
+import { planPermanentDeletion } from './domain/management';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
@@ -24,6 +25,7 @@ import {
   V4_STORAGE_KEY,
   V5_STORAGE_KEY,
   V6_STORAGE_KEY,
+  V7_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
@@ -87,7 +89,8 @@ export default function App() {
           e.key === V3_STORAGE_KEY ||
           e.key === V4_STORAGE_KEY ||
           e.key === V5_STORAGE_KEY ||
-          e.key === V6_STORAGE_KEY)
+          e.key === V6_STORAGE_KEY ||
+          e.key === V7_STORAGE_KEY)
       )
         setStale(true);
     };
@@ -324,7 +327,28 @@ export default function App() {
               }}
             />
           )}
-          {view === 'players' && <Players data={data} onSave={save} onProfile={setProfile} />}
+          {view === 'players' && (
+            <Players
+              data={data}
+              onSave={save}
+              onProfile={setProfile}
+              onPurge={async (kind, ids) => {
+                if (stale || assessmentDirty || matchDirty)
+                  throw new Error('미저장 입력 또는 다른 탭의 변경을 먼저 확인하세요');
+                const plan = planPermanentDeletion(data, kind, ids);
+                const photos = await photoRepository.all();
+                await restorePhotosAndWorkspace(
+                  photoRepository,
+                  photos.filter((p) => !plan.photoIds.includes(p.playerId)),
+                  plan.workspace,
+                  (next) => setData(repository.resetAll(next, data.revision)),
+                );
+                setProfile(null);
+                setGameId('');
+                setMatchOpened(false);
+              }}
+            />
+          )}
           {view === 'match' && (!matchOpened || !game) && (
             <MatchLibrary
               data={data}

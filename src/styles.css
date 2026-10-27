@@ -4529,3 +4529,301 @@ label {
     flex-basis: 100px;
   }
 }
+
+/* Group entry and date-first assessment, 48px touch targets. */
+.bulk-entry-controls {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #cedbca;
+  border-radius: 12px;
+  background: #f6f9f1;
+}
+.bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 12px 0;
+}
+.bulk-actions button {
+  min-height: 48px;
+}
+.bulk-actions label {
+  flex: 1 1 160px;
+  max-width: 240px;
+}
+.batch-check {
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #dce5d8;
+}
+.entry-player > .batch-check {
+  grid-column: 1 / -1;
+}
+.assessment-day-workspace {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.assessment-student-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+}
+.student-pick {
+  padding: 12px;
+  border: 1px solid #cedbca;
+  border-radius: 10px;
+  min-height: 64px;
+  margin: 0;
+}
+.student-pick:has(input:checked) {
+  background: #e7f0d9;
+  border: 2px solid #2c6049;
+}
+.student-pick span,
+.assessment-participants span {
+  min-width: 0;
+}
+.student-pick small,
+.assessment-participants small {
+  display: block;
+  margin-top: 4px;
+}
+.assessment-participants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 220px;
+  overflow: auto;
+}
+.assessment-participants button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  flex: 1 1 160px;
+}
+.assessment-participants button[aria-pressed='true'] {
+  background: #244f3e;
+  color: white;
+}
+.assessment-student-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.assessment-student-nav button {
+  min-height: 48px;
+}
+.assessment-fullscreen-heading .assessment-student-nav {
+  flex-shrink: 0;
+}
+.player-photo {
+  border-radius: 10px;
+}
+.player-photo img {
+  object-fit: contain;
+  object-position: center;
+  background: #e7ede6;
+  border-radius: inherit;
+}
+.player-card .player-photo {
+  width: 64px;
+  height: 76px;
+  flex-shrink: 0;
+}
+.profile-hero .player-photo,
+.player-photo.large {
+  width: 96px;
+  height: 120px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  .student-filters > label {
+    flex-basis: 100%;
+  }
+  .assessment-fullscreen-heading {
+    flex-wrap: wrap;
+  }
+  .assessment-student-nav {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .bulk-actions label {
+    max-width: none;
+  }
+}
+
+.team-management-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+}
+.team-management-buttons button {
+  min-height: 48px;
+  flex: 1;
+}
+.purge-counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.purge-counts div {
+  padding: 12px;
+  background: #f4f5ef;
+  border-radius: 10px;
+}
+.purge-counts dd {
+  font-weight: 700;
+  margin: 4px 0 0;
+}
+
+/* Situational defense assessment: no inferred successes or official selection scores. */
+.defense-situations {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.defense-situations button,
+.defense-outcomes button {
+  min-height: 48px;
+  white-space: normal;
+}
+.defense-situations button[aria-pressed='true'],
+.defense-outcomes button[aria-pressed='true'] {
+  background: #e2f2df;
+  border: 2px solid #386b36;
+  color: #244b23;
+  font-weight: 700;
+}
+.defense-checklist {
+  display: grid;
+  gap: 10px;
+}
+.defense-checklist fieldset {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid #dbe3d8;
+  border-radius: 12px;
+  padding: 10px;
+}
+.defense-checklist legend span {
+  font-size: 12px;
+  color: #53654e;
+}
+.defense-outcomes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.defense-extra,
+.defense-history {
+  margin: 14px 0;
+}
+.defense-extra summary,
+.defense-history summary {
+  min-height: 48px;
+  align-content: center;
+  cursor: pointer;
+}
+.defense-save-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.defense-save-row button {
+  min-height: 52px;
+}
+.defense-score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.defense-score-grid > div {
+  padding: 10px;
+  border-radius: 10px;
+  background: #f2f5ef;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.defense-score-grid b {
+  font-size: 20px;
+}
+.defense-score-grid span {
+  font-size: 11px;
+  color: #53654e;
+}
+.defense-history article {
+  border-top: 1px solid #dbe3d8;
+  padding: 10px 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .defense-situations {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .defense-score-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .defense-outcomes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .defense-checklist legend span {
+    display: block;
+  }
+}
+
+.defense-practice > .panel-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.defense-focused {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  overflow: auto;
+  border-radius: 0;
+  padding: 16px;
+  background: #fafcf8;
+  margin: 0;
+}
+.defense-focused .panel-header {
+  margin-bottom: 8px;
+}
+.defense-focused .defense-situations {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.defense-focused .defense-checklist {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.defense-focused .defense-source,
+.defense-focused .defense-assessment-report,
+.defense-focused .defense-history {
+  display: none;
+}
+.defense-focused .defense-save-row {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 0;
+  background: #fafcf8;
+  border-top: 1px solid #dbe3d8;
+}
+@media (max-width: 700px) {
+  .defense-focused .defense-checklist {
+    grid-template-columns: 1fr;
+  }
+  .defense-focused .defense-situations {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

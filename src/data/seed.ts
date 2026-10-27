@@ -19,7 +19,9 @@ export function createDemoWorkspace(): Workspace {
     })),
   );
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
+    defenseAssessments: [],
+    defenseEvaluationChoices: [],
     ...emptyBattingData(),
     revision: 0,
     teams,

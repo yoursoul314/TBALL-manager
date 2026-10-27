@@ -21,7 +21,7 @@ async function nav(name) {
   await page.locator('.sidebar').getByRole('button', { name, exact: true }).tap();
 }
 async function data() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v7')));
+  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v8')));
 }
 async function fit(name, locators) {
   const rows = [];
@@ -140,6 +140,7 @@ async function fit(name, locators) {
   const eventCount = (await data()).events.length;
   await page.setViewportSize({ width: 1180, height: 820 });
   await nav('기능평가 & 팀워크');
+  if(await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).count()) await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).click();
   await page.getByLabel('평가 날짜', { exact: true }).fill('2026-10-26');
   await page.getByLabel('세션 평가자', { exact: true }).fill('QA 감독');
   await page.getByLabel('평가 목적', { exact: true }).fill('전체 화면 검증');

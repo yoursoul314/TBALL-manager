@@ -1,3 +1,7 @@
+import { defenseEvaluation } from '../evaluation/defense';
+import { DefenseAssessmentReport } from './DefenseAssessmentPanel';
+import { ManagementDialog, type ManagementRequest } from './ManagementDialog';
+import type { ManagementKind } from '../domain/management';
 import { setTeamArchived, setPlayerArchived } from '../domain/gameLibrary';
 import type { Team } from '../domain/model';
 import { PlayerEditor } from './PlayerEditor';
@@ -23,11 +27,16 @@ export function Players({
   data,
   onSave,
   onProfile,
+  onPurge,
 }: {
   data: Workspace;
   onSave: (d: Workspace) => void;
   onProfile: (id: string) => void;
+  onPurge: (kind: ManagementKind, ids: string[]) => Promise<void>;
 }) {
+  const [management, setManagement] = useState<ManagementRequest | null>(null);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]),
+    [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [playerTrash, setPlayerTrash] = useState(false);
   const [deletingPlayer, setDeletingPlayer] = useState<Player | null>(null);
   const [teamTrash, setTeamTrash] = useState(false);
@@ -62,6 +71,11 @@ export function Players({
             .toLocaleLowerCase()
             .includes(q),
         ),
+  );
+  const listedTeams = data.teams.filter((t) => Boolean(t.archivedAt) === teamTrash);
+  const chosenTeams = selectedTeams.filter((id) => listedTeams.some((t) => t.id === id));
+  const chosenPlayers = selectedPlayers.filter((id) =>
+    data.players.some((p) => p.id === id && Boolean(p.archivedAt) === playerTrash),
   );
   return (
     <>
@@ -108,15 +122,64 @@ export function Players({
       </div>
       {teamTrash && (
         <p className="callout">
-          소속 선수·사진·평가·과거 경기는 그대로 보존됩니다. 팀을 복원하거나 선수 정보에서 소속을
-          변경할 수 있습니다.
+          소속 선수·사진·평가·과거 경기는 그대로 보존됩니다. 팀을 복원하거나 연결된 기록까지
+          완전삭제할 수 있습니다.
         </p>
       )}
+      <div className="bulk-actions" aria-label="팀 일괄 관리">
+        <button
+          onClick={() =>
+            setSelectedTeams([...new Set([...chosenTeams, ...listedTeams.map((t) => t.id)])])
+          }
+        >
+          표시 팀 전체 선택
+        </button>
+        <button disabled={!chosenTeams.length} onClick={() => setSelectedTeams([])}>
+          팀 선택 해제
+        </button>
+        <b>팀 {chosenTeams.length}개 선택</b>
+        <button
+          disabled={!chosenTeams.length}
+          onClick={() =>
+            setManagement({
+              kind: 'teams',
+              ids: chosenTeams,
+              action: teamTrash ? 'restore' : 'archive',
+            })
+          }
+        >
+          {teamTrash ? '선택 팀 복원' : '선택 팀 삭제'}
+        </button>
+        {teamTrash && (
+          <button
+            className="danger-button"
+            disabled={!chosenTeams.length}
+            onClick={() => setManagement({ kind: 'teams', ids: chosenTeams, action: 'purge' })}
+          >
+            선택 팀 완전삭제
+          </button>
+        )}
+      </div>
       <div className="team-cards">
         {data.teams
           .filter((t) => Boolean(t.archivedAt) === teamTrash)
           .map((t) => (
             <div className="team-card-shell" key={t.id}>
+              <label className="check batch-check">
+                <input
+                  type="checkbox"
+                  aria-label={t.name + ' 팀 선택'}
+                  checked={chosenTeams.includes(t.id)}
+                  onChange={(e) =>
+                    setSelectedTeams(
+                      e.target.checked
+                        ? [...chosenTeams, t.id]
+                        : chosenTeams.filter((id) => id !== t.id),
+                    )
+                  }
+                />
+                선택
+              </label>
               <button
                 key={t.id}
                 className={'team-card ' + (team === t.id ? 'selected' : '')}
@@ -139,19 +202,28 @@ export function Players({
                 <ArrowUpRight size={20} />
               </button>
               {t.archivedAt ? (
-                <button
-                  aria-label={t.name + ' 팀 복원'}
-                  onClick={() => {
-                    try {
-                      onSave(setTeamArchived(data, t.id, false, new Date().toISOString()));
-                      setError('');
-                    } catch (e) {
-                      setError(e instanceof Error ? e.message : '복원 실패');
-                    }
-                  }}
-                >
-                  팀 복원
-                </button>
+                <div className="team-management-buttons">
+                  <button
+                    aria-label={t.name + ' 팀 복원'}
+                    onClick={() => {
+                      try {
+                        onSave(setTeamArchived(data, t.id, false, new Date().toISOString()));
+                        setError('');
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : '복원 실패');
+                      }
+                    }}
+                  >
+                    팀 복원
+                  </button>
+                  <button
+                    className="danger-button"
+                    aria-label={t.name + ' 팀 완전삭제'}
+                    onClick={() => setManagement({ kind: 'teams', ids: [t.id], action: 'purge' })}
+                  >
+                    팀 삭제(완전)
+                  </button>
+                </div>
               ) : (
                 <button
                   aria-label={t.name + ' 팀 삭제'}
@@ -240,16 +312,68 @@ export function Players({
           </div>
         }
       >
+        <div className="bulk-actions" aria-label="선수 일괄 관리">
+          <button
+            onClick={() =>
+              setSelectedPlayers([...new Set([...chosenPlayers, ...players.map((p) => p.id)])])
+            }
+          >
+            표시 선수 전체 선택
+          </button>
+          <button disabled={!chosenPlayers.length} onClick={() => setSelectedPlayers([])}>
+            선수 선택 해제
+          </button>
+          <b>선수 {chosenPlayers.length}명 선택</b>
+          <button
+            disabled={!chosenPlayers.length}
+            onClick={() =>
+              setManagement({
+                kind: 'players',
+                ids: chosenPlayers,
+                action: playerTrash ? 'restore' : 'archive',
+              })
+            }
+          >
+            {playerTrash ? '선택 선수 복원' : '선택 선수 삭제'}
+          </button>
+          {playerTrash && (
+            <button
+              className="danger-button"
+              disabled={!chosenPlayers.length}
+              onClick={() =>
+                setManagement({ kind: 'players', ids: chosenPlayers, action: 'purge' })
+              }
+            >
+              선택 선수 완전삭제
+            </button>
+          )}
+        </div>
         <div className="player-grid">
           {players.map((p) => {
-            const a = data.assessments.filter((a) => a.playerId === p.id).at(-1);
-            const best = a
-              ? POSITIONS.map((pos) => ({ pos, score: positionScore(a.abilities, pos) })).sort(
-                  (a, b) => (b.score ?? -1) - (a.score ?? -1),
-                )[0]
+            const evaluation = defenseEvaluation(data, p.id);
+            const best = Object.keys(evaluation.abilities).length
+              ? POSITIONS.map((pos) => ({
+                  pos,
+                  score: positionScore(evaluation.abilities, pos),
+                })).sort((a, b) => (b.score ?? -1) - (a.score ?? -1))[0]
               : null;
             return (
               <div key={p.id} className="player-card-shell">
+                <label className="check batch-check">
+                  <input
+                    type="checkbox"
+                    aria-label={p.name + ' 관리 선택'}
+                    checked={chosenPlayers.includes(p.id)}
+                    onChange={(e) =>
+                      setSelectedPlayers(
+                        e.target.checked
+                          ? [...chosenPlayers, p.id]
+                          : chosenPlayers.filter((id) => id !== p.id),
+                      )
+                    }
+                  />
+                  선택
+                </label>
                 <button className="player-card" onClick={() => onProfile(p.id)}>
                   <div className="player-card-top">
                     <PlayerAvatar player={p} />
@@ -271,6 +395,17 @@ export function Players({
                   </div>
                 </button>
                 <div className="player-management-buttons">
+                  {p.archivedAt && (
+                    <button
+                      className="danger-button"
+                      aria-label={p.name + ' 선수 완전삭제'}
+                      onClick={() =>
+                        setManagement({ kind: 'players', ids: [p.id], action: 'purge' })
+                      }
+                    >
+                      선수 삭제(완전)
+                    </button>
+                  )}
                   <button
                     className="text-button"
                     aria-label={p.name + ' 정보 수정'}
@@ -310,6 +445,20 @@ export function Players({
         </div>
         {!players.length && <Empty>검색 결과가 없습니다.</Empty>}
       </Panel>
+      {management && (
+        <ManagementDialog
+          data={data}
+          request={management}
+          onSave={onSave}
+          onPurge={onPurge}
+          onClose={() => {
+            setManagement(null);
+            setSelectedPlayers([]);
+            setSelectedTeams([]);
+            setTeam('all');
+          }}
+        />
+      )}
       {(add || editing) && (
         <PlayerEditor
           player={editing ?? undefined}
@@ -426,6 +575,7 @@ export function Profile({
   const [view, setView] = useState<'combined' | 'assessment' | 'game'>('combined');
   const p = data.players.find((p) => p.id === id)!;
   const a = data.assessments.filter((a) => a.playerId === id).at(-1);
+  const evaluation = defenseEvaluation(data, id);
   const batting = summarizeBatting(data, id);
   const stats = data.games
     .filter((g) => !g.archivedAt)
@@ -609,14 +759,24 @@ export function Profile({
               ))}
           </div>
         </details>
-        <h3>수비 능력 · 9개 지표</h3>
-        {a ? (
+        <DefenseAssessmentReport data={data} playerId={id} />
+        <h3>최종 수비 기능평가 · 9개 지표</h3>
+        <p className="hint">
+          사용 점수:{' '}
+          {evaluation.source === 'checklist'
+            ? '체크리스트 환산 · 관찰 수정 시 자동 재계산'
+            : '기존 수동 평가'}
+        </p>
+        {Object.keys(evaluation.abilities).length ? (
           ABILITIES.map((k) => (
             <Progress
               key={k}
-              value={a.abilities[k] ?? 0}
+              value={evaluation.abilities[k] ?? 0}
               label={
-                k + ' · ' + ABILITY_LABELS[k] + (a.abilities[k] === undefined ? ' (미측정)' : '')
+                k +
+                ' · ' +
+                ABILITY_LABELS[k] +
+                (evaluation.abilities[k] === undefined ? ' (미측정)' : '')
               }
             />
           ))

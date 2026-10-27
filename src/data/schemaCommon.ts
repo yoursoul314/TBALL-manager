@@ -5,7 +5,14 @@ import { RULES_VERSION } from '../config/rules';
 import { replayGame } from '../engine/game';
 import type { Workspace } from '../domain/model';
 import type { BattingData } from '../domain/batting';
-type WorkspaceV2 = Omit<Workspace, keyof BattingData | 'schemaVersion' | 'migrationSource'> & {
+type WorkspaceV2 = Omit<
+  Workspace,
+  | keyof BattingData
+  | 'schemaVersion'
+  | 'migrationSource'
+  | 'defenseAssessments'
+  | 'defenseEvaluationChoices'
+> & {
   schemaVersion: 2;
 };
 

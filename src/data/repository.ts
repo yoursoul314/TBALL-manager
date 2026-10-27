@@ -7,7 +7,8 @@ export const V3_STORAGE_KEY = 'tb-manager.workspace.v3';
 export const V4_STORAGE_KEY = 'tb-manager.workspace.v4';
 export const V5_STORAGE_KEY = 'tb-manager.workspace.v5';
 export const V6_STORAGE_KEY = 'tb-manager.workspace.v6';
-export const STORAGE_KEY = 'tb-manager.workspace.v7';
+export const V7_STORAGE_KEY = 'tb-manager.workspace.v7';
+export const STORAGE_KEY = 'tb-manager.workspace.v8';
 export interface WorkspaceRepository {
   load(): Workspace | null;
   save(workspace: Workspace, expectedRevision: number): Workspace;
@@ -20,6 +21,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
   load(): Workspace | null {
     const raw = this.storage.getItem(STORAGE_KEY);
     const legacyRaw = this.storage.getItem(LEGACY_STORAGE_KEY);
+    const v7Raw = this.storage.getItem(V7_STORAGE_KEY);
     const v6Raw = this.storage.getItem(V6_STORAGE_KEY);
     const v5Raw = this.storage.getItem(V5_STORAGE_KEY);
     const v4Raw = this.storage.getItem(V4_STORAGE_KEY);
@@ -33,7 +35,8 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         ('_v3Baseline' in input && input._v3Baseline !== v3Raw) ||
         ('_v4Baseline' in input && input._v4Baseline !== v4Raw) ||
         ('_v5Baseline' in input && input._v5Baseline !== v5Raw) ||
-        ('_v6Baseline' in input && input._v6Baseline !== v6Raw)
+        ('_v6Baseline' in input && input._v6Baseline !== v6Raw) ||
+        ('_v7Baseline' in input && input._v7Baseline !== v7Raw)
       )
         throw new Error(
           '구버전 탭의 데이터 변경이 감지되었습니다. 두 원본을 백업한 뒤 복구하세요.',
@@ -46,7 +49,8 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       v3Raw === null &&
       v4Raw === null &&
       v5Raw === null &&
-      v6Raw === null
+      v6Raw === null &&
+      v7Raw === null
     )
       return null;
     if (v2Raw !== null) {
@@ -96,9 +100,23 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
           throw new Error('구버전 탭의 변경이 있습니다. 모든 원본을 복구하세요.');
       }
     }
-    const source = v6Raw ?? v5Raw ?? v4Raw ?? v3Raw ?? v2Raw ?? legacyRaw!;
+    if (v7Raw !== null) {
+      const v7 = JSON.parse(v7Raw);
+      for (const [key, value] of Object.entries({
+        _legacyBaseline: legacyRaw,
+        _v2Baseline: v2Raw,
+        _v3Baseline: v3Raw,
+        _v4Baseline: v4Raw,
+        _v5Baseline: v5Raw,
+        _v6Baseline: v6Raw,
+      })) {
+        if (key in v7 && v7[key] !== value)
+          throw new Error('구버전 탭의 변경이 있습니다. 모든 원본을 복구하세요.');
+      }
+    }
+    const source = v7Raw ?? v6Raw ?? v5Raw ?? v4Raw ?? v3Raw ?? v2Raw ?? legacyRaw!;
     const migrated = migrateWorkspace(JSON.parse(source), source);
-    // Atomic v7 write. Original v1/v2/v3/v4/v5/v6 keys remain untouched on success or failure.
+    // Atomic v8 write. Original v1/v2/v3/v4/v5/v6/v7 keys remain untouched on success or failure.
     this.storage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -109,6 +127,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         _v4Baseline: v4Raw,
         _v5Baseline: v5Raw,
         _v6Baseline: v6Raw,
+        _v7Baseline: v7Raw,
       }),
     );
     return migrated;
@@ -128,6 +147,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         _v4Baseline: this.storage.getItem(V4_STORAGE_KEY),
         _v5Baseline: this.storage.getItem(V5_STORAGE_KEY),
         _v6Baseline: this.storage.getItem(V6_STORAGE_KEY),
+        _v7Baseline: this.storage.getItem(V7_STORAGE_KEY),
       }),
     );
     return validated;
@@ -141,6 +161,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       V4_STORAGE_KEY,
       V5_STORAGE_KEY,
       V6_STORAGE_KEY,
+      V7_STORAGE_KEY,
       STORAGE_KEY,
     ];
     const original = keys.map((key) => [key, this.storage.getItem(key)] as const);
@@ -159,6 +180,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
           _v4Baseline: null,
           _v5Baseline: null,
           _v6Baseline: null,
+          _v7Baseline: null,
         }),
       );
       return saved;
@@ -185,7 +207,8 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         v4: this.storage.getItem(V4_STORAGE_KEY),
         v5: this.storage.getItem(V5_STORAGE_KEY),
         v6: this.storage.getItem(V6_STORAGE_KEY),
-        v7: this.storage.getItem(STORAGE_KEY),
+        v7: this.storage.getItem(V7_STORAGE_KEY),
+        v8: this.storage.getItem(STORAGE_KEY),
       },
       null,
       2,
@@ -205,7 +228,7 @@ export function serializeBackup(workspace: Workspace) {
   return JSON.stringify(
     {
       format: 'tb-manager-backup',
-      version: 7,
+      version: 8,
       exportedAt: new Date().toISOString(),
       workspace: parseWorkspace(workspace),
     },
@@ -218,7 +241,7 @@ export function readBackup(text: string) {
   const value = JSON.parse(text);
   if (
     value?.format !== 'tb-manager-backup' ||
-    ![1, 2, 3, 4, 5, 6, 7].includes(value.version) ||
+    ![1, 2, 3, 4, 5, 6, 7, 8].includes(value.version) ||
     value.workspace?.schemaVersion !== value.version
   )
     throw new Error('지원하지 않는 백업 형식');
