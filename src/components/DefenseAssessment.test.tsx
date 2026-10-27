@@ -59,6 +59,7 @@ it('저장 실패는 체크·수정 입력을 유지하고 미저장 선수 전�
   });
   render(<AssessmentView data={createDemoWorkspace()} onSave={fail} />);
   click('수비 체크리스트');
+  click('수비 개인별 이전 기록');
   change('평가자·수정자', 'QA');
   click('G 땅볼 성공');
   click('다음 선수');
@@ -117,6 +118,7 @@ it('체크 출처 적용 후 기능평가9항목이 환산값·미측정으로 �
   const original = structuredClone(saved.assessments);
   render(<Harness />);
   click('수비 체크리스트');
+  click('수비 개인별 이전 기록');
   change('평가자·수정자', 'QA');
   click('G 땅볼 부분 수행');
   click('수비 기록 저장 · 다음 상황');
@@ -127,6 +129,7 @@ it('체크 출처 적용 후 기능평가9항목이 환산값·미측정으로 �
   expect(screen.getByLabelText('뜬공')).toHaveValue(null);
   expect(saved.assessments).toEqual(original);
   click('수비 체크리스트');
+  click('수비 개인별 이전 기록');
   click('기존 수동 수비평가로 전환');
   click('기능평가');
   expect(screen.getByLabelText('땅볼')).toHaveValue(original[0].abilities.G);

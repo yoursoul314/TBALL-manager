@@ -56,7 +56,7 @@ const server = http.createServer((req, res) => {
   await fixture.getByLabel('팀 이름', { exact: true }).fill('QA 업그레이드 보존팀');
   await fixture.getByRole('button', { name: '팀 저장', exact: true }).click();
   const raw = await fixture.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v8'));
+    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v9'));
     for (const key of Object.keys(d)) if (key.startsWith('_')) delete d[key];
     d.schemaVersion = 5;
     return JSON.stringify(d);
@@ -96,24 +96,24 @@ const server = http.createServer((req, res) => {
       });
   });
   await page.reload({ waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'BETA 0.8.0', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'BETA 0.9.0', exact: true }).waitFor();
   const next = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('tb-manager.workspace.v8')),
+    JSON.parse(localStorage.getItem('tb-manager.workspace.v9')),
   );
-  assert.equal(next.schemaVersion, 8);
+  assert.equal(next.schemaVersion, 9);
   assert.deepEqual(next.players, JSON.parse(raw).players);
   assert.deepEqual(next.games, JSON.parse(raw).games);
   assert.equal(await page.evaluate(() => localStorage.getItem('tb-manager.workspace.v5')), raw);
-  report.checks.push('0.5 캐시 화면 재현 → 새 서비스워커 활성화 → 0.8 재열기 및 v5 원본/기록 보존');
+  report.checks.push('0.5 캐시 화면 재현 → 새 서비스워커 활성화 → 0.9 재열기 및 v5 원본/기록 보존');
   await page.getByRole('button', { name: '기능평가 & 팀워크', exact: true }).click();
-  await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).click();
+  await page.getByRole('button', { name: '개인별 이전 기록', exact: true }).click();
   await page.getByLabel('세션 평가자', { exact: true }).fill('QA');
   await page.getByLabel('평가 목적', { exact: true }).fill('미저장 보호');
   await page.getByRole('button', { name: '평가 세션 생성', exact: true }).click();
   await page.getByRole('button', { name: '정상 타격', exact: true }).click();
   await page.getByRole('button', { name: '평가 8점', exact: true }).click();
   future = true;
-  await page.getByRole('button', { name: 'BETA 0.8.0', exact: true }).click();
+  await page.getByRole('button', { name: 'BETA 0.9.0', exact: true }).click();
   await page.getByRole('button', { name: '새 버전 적용', exact: true }).waitFor();
   assert(await page.getByRole('button', { name: '새 버전 적용', exact: true }).isDisabled());
   report.checks.push('미저장 평가 입력 중 업데이트 적용 차단·강제 새로고침 없음');

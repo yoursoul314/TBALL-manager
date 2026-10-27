@@ -4827,3 +4827,116 @@ label {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Date defense cohorts, compact batting sheet and evidence comparisons. */
+.assessment-detailed .attempt-workbench.sheet-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.assessment-detailed .sheet-collapsed .attempt-sheet-pane {
+  grid-row: 1;
+  border: 0;
+  padding: 0;
+}
+.assessment-detailed .attempt-sheet-pane > button {
+  min-height: 48px;
+  width: 100%;
+}
+.attempt-sheet[hidden] {
+  display: none;
+}
+.comparison-table-wrap {
+  max-width: 100%;
+  overflow: auto;
+}
+.comparison-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.comparison-table-wrap th,
+.comparison-table-wrap td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #dce4d8;
+  text-align: center;
+  vertical-align: middle;
+}
+.comparison-table-wrap th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: #f5f8f0;
+  z-index: 1;
+}
+.comparison-table-wrap small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #52604d;
+}
+.defense-comparison-table {
+  min-width: 740px;
+  table-layout: fixed;
+}
+.defense-comparison-table th:first-child {
+  width: 110px;
+}
+.defense-comparison-table b {
+  font-size: 16px;
+}
+.metric-comparison {
+  min-width: 500px;
+}
+.metric-comparison td {
+  min-width: 120px;
+}
+.metric-comparison th button {
+  min-height: 48px;
+}
+.comparison-insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.comparison-insights article {
+  border: 1px solid #dce4d8;
+  padding: 16px;
+  border-radius: 12px;
+}
+.comparison-insights article ul {
+  padding-left: 20px;
+}
+.comparison-insights article li {
+  margin: 8px 0;
+}
+.comparison-insights .check {
+  min-height: 48px;
+}
+@media (max-width: 700px) {
+  .defense-comparison-table {
+    min-width: 0;
+    table-layout: auto;
+  }
+  .defense-comparison-table thead {
+    display: none;
+  }
+  .defense-comparison-table tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 12px 0;
+    border: 1px solid #dce4d8;
+    border-radius: 12px;
+  }
+  .defense-comparison-table th:first-child {
+    grid-column: 1/-1;
+    width: auto;
+    position: static;
+  }
+  .defense-comparison-table td:before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+  }
+  .comparison-insights {
+    grid-template-columns: 1fr;
+  }
+}

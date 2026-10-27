@@ -79,6 +79,7 @@ export function BattingAssessmentPanel({
     [dirty, setDirtyState] = useState(false);
   const [lastSaved, setLastSaved] = useState('');
   const inputAnchor = useRef<HTMLDivElement>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [detailMode, setDetailModeState] = useState(initialDetailed);
   const setDetailMode = (v: boolean) => {
     setDetailModeState(v);
@@ -383,7 +384,9 @@ export function BattingAssessmentPanel({
             title={`${round}회차 기록`}
             eyebrow={`${SESSION_LABELS[session.status]} · ${session.targetAttempts}회 중`}
           >
-            <div className="attempt-workbench">
+            <div
+              className={'attempt-workbench' + (detailMode && !sheetOpen ? ' sheet-collapsed' : '')}
+            >
               <div className="attempt-editor-pane">
                 <AttemptEditor
                   key={`${session.id}/${round}/${attempt?.updatedAt ?? ''}/${attempt?.status ?? ''}`}
@@ -483,8 +486,24 @@ export function BattingAssessmentPanel({
                 )}
               </div>
               <aside className="attempt-sheet-pane" aria-label="회차 기록지">
-                <h3>타격 평가 기록지</h3>
-                <div className="attempt-sheet" role="list" aria-label="회차별 타격 기록">
+                {detailMode ? (
+                  <button
+                    type="button"
+                    aria-expanded={sheetOpen}
+                    onClick={() => setSheetOpen(!sheetOpen)}
+                  >
+                    {sheetOpen ? '기록지 숨기기' : '기록지 보기'} · {records.length}/
+                    {session.targetAttempts}회
+                  </button>
+                ) : (
+                  <h3>타격 평가 기록지</h3>
+                )}
+                <div
+                  hidden={detailMode && !sheetOpen}
+                  className="attempt-sheet"
+                  role="list"
+                  aria-label="회차별 타격 기록"
+                >
                   {Array.from({ length: session.targetAttempts }, (_, i) => i + 1).map((n) => {
                     const a = records.find((r) => r.attemptNumber === n);
                     return (

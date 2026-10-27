@@ -1,3 +1,4 @@
+import { ComparisonView } from './components/ComparisonView';
 import { planPermanentDeletion } from './domain/management';
 import { useEffect, useState } from 'react';
 import {
@@ -26,6 +27,7 @@ import {
   V5_STORAGE_KEY,
   V6_STORAGE_KEY,
   V7_STORAGE_KEY,
+  V8_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
@@ -53,6 +55,7 @@ const navigation = [
   { id: 'match', name: '경기 기록실', icon: CircleDot },
   { id: 'stats', name: '경기 분석', icon: ChartNoAxesCombined },
   { id: 'assessment', name: '기능평가 & 팀워크', icon: ClipboardCheck },
+  { id: 'compare', name: '선수 비교 & 선택', icon: ChartNoAxesCombined },
   { id: 'selection', name: '선발 시뮬레이션', icon: Waypoints },
   { id: 'settings', name: '규칙 & 설정', icon: Settings2 },
 ] as const;
@@ -90,6 +93,7 @@ export default function App() {
           e.key === V4_STORAGE_KEY ||
           e.key === V5_STORAGE_KEY ||
           e.key === V6_STORAGE_KEY ||
+          e.key === V8_STORAGE_KEY ||
           e.key === V7_STORAGE_KEY)
       )
         setStale(true);
@@ -394,6 +398,14 @@ export default function App() {
           {view === 'stats' && <StatsView data={data} onProfile={setProfile} />}
           {view === 'assessment' && (
             <AssessmentView data={data} onSave={save} onDirtyChange={setAssessmentDirty} />
+          )}
+          {view === 'compare' && (
+            <ComparisonView
+              data={data}
+              onSave={save}
+              onProfile={setProfile}
+              onDirtyChange={setAssessmentDirty}
+            />
           )}
           {view === 'selection' && (
             <SelectionView data={data} onSave={safelySave} onProfile={setProfile} />

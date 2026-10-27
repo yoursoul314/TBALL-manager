@@ -76,13 +76,30 @@ export function DefenseAssessmentPanel({
   playerId,
   onSave,
   onDirtyChange,
+  managedDay,
+  navigation,
+  initialFocused = false,
+  onFocusChange,
 }: {
   data: Workspace;
   playerId: string;
   onSave: (d: Workspace) => void;
   onDirtyChange?: (v: boolean) => void;
+  managedDay?: { date: string; assessor: string };
+  navigation?: {
+    index: number;
+    total: number;
+    previous?: () => void;
+    next?: () => void;
+    onSavedNext: () => void;
+  };
+  initialFocused?: boolean;
+  onFocusChange?: (v: boolean) => void;
 }) {
-  const fresh = (date = localDate(), assessor = ''): DefenseInput => ({
+  const fresh = (
+    date = managedDay?.date ?? localDate(),
+    assessor = managedDay?.assessor ?? '',
+  ): DefenseInput => ({
     date,
     assessor,
     situation: 'ground',
@@ -98,7 +115,7 @@ export function DefenseAssessmentPanel({
     [detail, setDetail] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
-  const [focused, setFocused] = useState(false);
+  const [focused, setFocused] = useState(initialFocused);
   const [sourceAuthor, setSourceAuthor] = useState(
     data.defenseAssessments
       .filter((r) => r.playerId === playerId)
@@ -107,7 +124,9 @@ export function DefenseAssessmentPanel({
   );
   const draftId = useRef(crypto.randomUUID()),
     saving = useRef(false);
-  const rows = data.defenseAssessments.filter((r) => r.playerId === playerId);
+  const rows = data.defenseAssessments.filter(
+    (r) => r.playerId === playerId && (!managedDay || r.revisions.at(-1)!.date === managedDay.date),
+  );
   const change = (next: DefenseInput) => {
     setDraft(next);
     setDirty(true);
@@ -129,7 +148,7 @@ export function DefenseAssessmentPanel({
     setError('');
     draftId.current = crypto.randomUUID();
   };
-  const save = (cancel = false) => {
+  const save = (cancel = false, nextStudent = false) => {
     if (saving.current) return;
     if (!draft.assessor.trim()) {
       setError('평가자·수정자를 입력하세요');
@@ -167,6 +186,7 @@ export function DefenseAssessmentPanel({
           ? '취소했습니다. 원본과 수정 이력은 유지됩니다.'
           : '저장했습니다. 다음 상황을 기록하세요.',
       );
+      if (nextStudent && !editing && !cancel) navigation?.onSavedNext();
     } catch (e) {
       setError(e instanceof Error ? e.message : '저장하지 못했습니다. 입력은 유지됩니다.');
     } finally {
@@ -183,12 +203,30 @@ export function DefenseAssessmentPanel({
       action={
         <div className="button-row">
           <Badge tone="amber">수비 기능 반영 · 종합 선발 TODO</Badge>
-          <button onClick={() => setFocused(!focused)}>
+          <button
+            onClick={() => {
+              setFocused(!focused);
+              onFocusChange?.(!focused);
+            }}
+          >
             {focused ? '집중 모드 끝내기' : '수비 기록 집중 모드'}
           </button>
         </div>
       }
     >
+      {navigation && (
+        <div className="assessment-student-navigation">
+          <button disabled={dirty || !navigation.previous} onClick={navigation.previous}>
+            이전 수비 학생
+          </button>
+          <b>
+            {navigation.index}/{navigation.total}명
+          </b>
+          <button disabled={dirty || !navigation.next} onClick={navigation.next}>
+            다음 수비 학생
+          </button>
+        </div>
+      )}
       <p className="hint">
         한 상황에서 수행한 행동을 각각 체크하세요. 포구 성공을 선택해도 송구·실책 결과가 자동
         입력되지는 않습니다.
@@ -198,6 +236,7 @@ export function DefenseAssessmentPanel({
           수비 평가 날짜
           <input
             type="date"
+            readOnly={!!managedDay}
             value={draft.date}
             onChange={(e) => change({ ...draft, date: e.target.value })}
           />
@@ -330,7 +369,12 @@ export function DefenseAssessmentPanel({
         </p>
       )}
       <div className="defense-save-row">
-        <button className="primary" onClick={() => save()}>
+        {navigation && !editing && (
+          <button className="primary" onClick={() => save(false, true)}>
+            수비 기록 저장 · 다음 학생
+          </button>
+        )}
+        <button className={navigation && !editing ? '' : 'primary'} onClick={() => save()}>
           {editing ? '수비 기록 정정 저장' : '수비 기록 저장 · 다음 상황'}
         </button>
         <button onClick={clear} disabled={!dirty && !editing}>

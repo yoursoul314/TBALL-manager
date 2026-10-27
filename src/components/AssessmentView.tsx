@@ -1,3 +1,4 @@
+import { DefenseDayView } from './DefenseDayView';
 import { defenseEvaluation } from '../evaluation/defense';
 import { DefenseAssessmentPanel } from './DefenseAssessmentPanel';
 import { BattingDayView } from './BattingDayView';
@@ -22,6 +23,7 @@ export function AssessmentView({
   const [selectedId, setPlayerId] = useState(players[0]?.id ?? '');
   const playerId = players.some((p) => p.id === selectedId) ? selectedId : (players[0]?.id ?? '');
   const [tab, setTab] = useState<'batting' | 'defense' | 'skill' | 'teamwork'>('batting');
+  const [defenseMode, setDefenseMode] = useState<'day' | 'individual'>('day');
   const [battingMode, setBattingMode] = useState<'day' | 'individual'>('day');
   const [dirty, setDirty] = useState(false);
   const [warning, setWarning] = useState('');
@@ -95,8 +97,39 @@ export function AssessmentView({
           ))}
         </div>
       )}
-      {warning && tab === 'batting' && battingMode === 'day' && <p role="alert">{warning}</p>}
-      {tab === 'batting' && battingMode === 'day' ? (
+      {tab === 'defense' && (
+        <div className="tabs assessment-mode-tabs">
+          {(['day', 'individual'] as const).map((mode) => (
+            <button
+              key={mode}
+              className={defenseMode === mode ? 'active' : ''}
+              onClick={() => {
+                if (dirty) {
+                  setWarning('저장하지 않은 수비 기록이 있습니다. 먼저 저장하거나 되돌리세요.');
+                  return;
+                }
+                setDefenseMode(mode);
+              }}
+            >
+              {mode === 'day' ? '수비 날짜별 함께 평가' : '수비 개인별 이전 기록'}
+            </button>
+          ))}
+        </div>
+      )}
+      {warning &&
+        ((tab === 'batting' && battingMode === 'day') ||
+          (tab === 'defense' && defenseMode === 'day')) && <p role="alert">{warning}</p>}
+      {tab === 'defense' && defenseMode === 'day' ? (
+        <DefenseDayView
+          data={data}
+          onSave={onSave}
+          onDirtyChange={(v) => {
+            setDirty(v);
+            onDirtyChange?.(v);
+            if (!v) setWarning('');
+          }}
+        />
+      ) : tab === 'batting' && battingMode === 'day' ? (
         <BattingDayView
           data={data}
           onSave={onSave}

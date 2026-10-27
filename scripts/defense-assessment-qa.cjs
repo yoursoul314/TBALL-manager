@@ -15,7 +15,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v8')));
+  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v9')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -50,9 +50,10 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.8.0');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.9.0');
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
+  await tap('수비 개인별 이전 기록');
   await page.getByLabel('평가자·수정자', { exact: true }).fill('가상 QA');
   await tap('G 땅볼 성공');
   await tap('A 송구 정확도 실패');
@@ -63,7 +64,7 @@ const check = (s) => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = original;
-      if (k === 'tb-manager.workspace.v8') throw new DOMException('QA quota', 'QuotaExceededError');
+      if (k === 'tb-manager.workspace.v9') throw new DOMException('QA quota', 'QuotaExceededError');
       return original.call(this, k, v);
     };
   });
@@ -96,6 +97,7 @@ const check = (s) => {
   assert.equal(await page.getByLabel('땅볼', { exact: true }).inputValue(), '100');
   assert.equal(await page.getByLabel('뜬공', { exact: true }).inputValue(), '');
   await tap('수비 체크리스트');
+  await tap('수비 개인별 이전 기록');
   check(
     '기능평가 9항목 적용 및 미측정 분리 / 포구 성공·악송구 독립 체크 / 미관찰 null / 저장 실패 유지 / 다음 상황 초기화',
   );
@@ -126,6 +128,7 @@ const check = (s) => {
   await page.reload({ waitUntil: 'networkidle' });
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
+  await tap('수비 개인별 이전 기록');
   assert.equal((await data()).defenseAssessments.length, 1);
   let section = page.getByRole('region', { name: '수비 체크리스트 분석' });
   await section.getByText('100.0점', { exact: true }).waitFor();

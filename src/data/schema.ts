@@ -106,7 +106,27 @@ export const defenseSequenceSchema = z
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(8),
+      schemaVersion: z.literal(9),
+      defenseDays: z
+        .array(
+          z.object({
+            date: z.iso.date(),
+            assessor: z.string().trim().min(1).max(200),
+            purpose: z.string().trim().min(1).max(200),
+            note,
+            playerIds: z.array(id).max(2000),
+            createdAt: z.iso.datetime(),
+          }),
+        )
+        .max(20000),
+      comparisonSelection: z
+        .object({
+          playerIds: z.array(id).max(2000),
+          note,
+          updatedAt: z.iso.datetime(),
+          status: z.literal('draft'),
+        })
+        .nullable(),
       defenseAssessments: defenseAssessmentsSchema.default([]),
       defenseEvaluationChoices: z
         .array(
@@ -144,6 +164,7 @@ export function parseWorkspace(input: unknown): Workspace {
             z.literal(5),
             z.literal(6),
             z.literal(7),
+            z.literal(8),
           ]),
           raw: z.string(),
         })
@@ -196,6 +217,14 @@ export function parseWorkspace(input: unknown): Workspace {
     return e;
   }) as GameEvent[];
   const ids = new Set(players.map((p) => p.id));
+  if (new Set(header.defenseDays.map((d) => d.date)).size !== header.defenseDays.length)
+    throw new Error('수비 평가 날짜 중복');
+  for (const list of [
+    ...header.defenseDays.map((d) => d.playerIds),
+    header.comparisonSelection?.playerIds ?? [],
+  ])
+    if (new Set(list).size !== list.length || list.some((id) => !ids.has(id)))
+      throw new Error('수비 날짜·비교 후보 학생 중복 또는 없음');
   if (header.defenseAssessments.some((r) => !ids.has(r.playerId)))
     throw new Error('수비 평가 선수 없음');
   if (
@@ -228,7 +257,9 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 8,
+    schemaVersion: 9,
+    defenseDays: header.defenseDays,
+    comparisonSelection: header.comparisonSelection,
     battingDays: header.battingDays,
     defenseAssessments: header.defenseAssessments,
     defenseEvaluationChoices: header.defenseEvaluationChoices,

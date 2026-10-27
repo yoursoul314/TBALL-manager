@@ -212,6 +212,10 @@ it('상세평가 전체 화면 닫기·다시 열기는 회차 초안을 보존�
   const user = await openAssessment();
   await user.click(screen.getByRole('button', { name: '상세 모드' }));
   expect(screen.getByRole('complementary', { name: '회차 기록지' })).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:/기록지 보기/})).toHaveAttribute('aria-expanded','false');
+  await user.click(screen.getByRole('button',{name:/기록지 보기/}));
+  expect(screen.getByRole('button',{name:/기록지 숨기기/})).toHaveAttribute('aria-expanded','true');
+  await user.click(screen.getByRole('button',{name:/기록지 숨기기/}));
   await user.click(screen.getByRole('button', { name: '정상 타격' }));
   await user.click(screen.getByRole('button', { name: '평가 8점' }));
   await user.click(screen.getByRole('button', { name: '좌 원거리' }));

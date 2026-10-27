@@ -71,3 +71,12 @@ export interface DefenseEvaluationChoice {
   changedAt: string;
   changedBy: string;
 }
+
+export interface DefenseAssessmentDay {
+  date: string;
+  assessor: string;
+  purpose: string;
+  note: string;
+  playerIds: string[];
+  createdAt: string;
+}

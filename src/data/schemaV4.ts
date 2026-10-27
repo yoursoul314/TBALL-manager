@@ -7,6 +7,8 @@ export type WorkspaceV4 = Omit<
   | 'battingDays'
   | 'defenseAssessments'
   | 'defenseEvaluationChoices'
+  | 'defenseDays'
+  | 'comparisonSelection'
 > & {
   schemaVersion: 4;
   migrationSource?: { schemaVersion: 2 | 3; raw: string };

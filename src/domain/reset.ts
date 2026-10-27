@@ -34,6 +34,8 @@ export function resetWorkspace(data: Workspace, scope: ResetScope, at: string): 
   }
   if (evaluation) {
     next.battingDays = [];
+    next.defenseDays = [];
+    next.comparisonSelection = null;
     next.assessments = [];
     next.defenseAssessments = [];
     next.defenseEvaluationChoices = [];

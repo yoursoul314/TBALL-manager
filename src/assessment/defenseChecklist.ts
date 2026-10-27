@@ -44,11 +44,12 @@ export function saveDefenseAssessment(
 export function summarizeDefenseAssessments(
   data: Pick<Workspace, 'defenseAssessments'>,
   playerId: string,
+  date?: string,
 ) {
   const rows = data.defenseAssessments
     .filter((r) => r.playerId === playerId)
     .map((r) => r.revisions.at(-1)!)
-    .filter((r) => r.status === 'active');
+    .filter((r) => r.status === 'active' && (!date || r.date === date));
   const abilities = Object.fromEntries(
     ABILITIES.map((k) => {
       let count = 0,

@@ -293,6 +293,22 @@ export function NewGame({
             </span>
           ))}
         </div>
+        <button
+          type="button"
+          disabled={!data.comparisonSelection?.playerIds.length}
+          onClick={() => {
+            const ids = (data.comparisonSelection?.playerIds ?? []).filter((id) =>
+              candidates.some((p) => p.id === id && p.active),
+            );
+            change({ ...draft, loaded: true });
+            select(ids);
+            setFeedback(
+              ids.length + '명 비교 후보를 불러왔습니다. 경기 상태를 선택하고 팀에 배정하세요.',
+            );
+          }}
+        >
+          비교 후보 불러오기
+        </button>
         <button type="button" onClick={recommend}>
           수비 기능 추천 적용 · 초안
         </button>

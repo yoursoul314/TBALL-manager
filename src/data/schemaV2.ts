@@ -12,6 +12,8 @@ type WorkspaceV2 = Omit<
   | 'migrationSource'
   | 'defenseAssessments'
   | 'defenseEvaluationChoices'
+  | 'defenseDays'
+  | 'comparisonSelection'
 > & {
   schemaVersion: 2;
 };

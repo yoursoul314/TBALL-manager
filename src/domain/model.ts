@@ -1,4 +1,8 @@
-import type { DefenseAssessment, DefenseEvaluationChoice } from './defenseAssessment';
+import type {
+  DefenseAssessment,
+  DefenseEvaluationChoice,
+  DefenseAssessmentDay,
+} from './defenseAssessment';
 import type { DefenseStep } from './defense';
 import type { BattingData } from './batting';
 import type { ErrorType, TeamworkCategory } from '../config/recording';
@@ -244,10 +248,17 @@ export interface Selection {
 }
 export interface Workspace extends BattingData {
   defenseAssessments: DefenseAssessment[];
+  defenseDays: DefenseAssessmentDay[];
+  comparisonSelection: {
+    playerIds: string[];
+    note: string;
+    updatedAt: string;
+    status: 'draft';
+  } | null;
   defenseEvaluationChoices: DefenseEvaluationChoice[];
   lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
-  schemaVersion: 8;
-  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7; raw: string };
+  schemaVersion: 9;
+  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

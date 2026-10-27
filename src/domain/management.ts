@@ -112,6 +112,20 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
       kind === 'players'
         ? data.defenseEvaluationChoices.filter((c) => !ids.has(c.playerId))
         : data.defenseEvaluationChoices,
+    defenseDays:
+      kind === 'players'
+        ? data.defenseDays.map((d) => ({
+            ...d,
+            playerIds: d.playerIds.filter((id) => !ids.has(id)),
+          }))
+        : data.defenseDays,
+    comparisonSelection:
+      kind === 'players' && data.comparisonSelection
+        ? {
+            ...data.comparisonSelection,
+            playerIds: data.comparisonSelection.playerIds.filter((id) => !ids.has(id)),
+          }
+        : data.comparisonSelection,
     battingSessions: data.battingSessions.filter((s) => !sessionIds.has(s.id)),
     battingAttempts: data.battingAttempts.filter((a) => !attempts.has(a.id)),
     battingAudit: data.battingAudit.filter((a) =>
