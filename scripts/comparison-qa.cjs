@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
@@ -15,7 +16,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
+  data = () => page.evaluate(() => window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -47,6 +48,7 @@ const check = (s) => {
       }),
     );
   page = await ctx.newPage();
+  await installStorageReader(page);
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
@@ -57,7 +59,7 @@ const check = (s) => {
   await tap('선수 저장');
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v12'));
+    const d = window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12'));
     delete d.defenseDays;
     delete d.comparisonSelection;
     for (const k of Object.keys(d)) if (k.startsWith('_')) delete d[k];
@@ -104,7 +106,7 @@ const check = (s) => {
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = orig;
       if (k === 'tb-manager.workspace.v12')
-        throw new DOMException('QA quota', 'QuotaExceededError');
+        throw new Error('QA write failure');
       return orig.call(this, k, v);
     };
   });

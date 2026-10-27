@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
@@ -25,7 +26,7 @@ async function nav(name) {
   await button.tap();
 }
 const tap = (name) => page.getByRole('button', { name, exact: true }).tap();
-const data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
+const data = () => page.evaluate(() => window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
 async function formFit(name) {
   const r = await page.evaluate(() => {
     const boxes = [
@@ -117,6 +118,7 @@ async function captureBackup(button) {
     };
   });
   page = await ctx.newPage();
+  await installStorageReader(page);
   page.setDefaultTimeout(15000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
@@ -212,7 +214,7 @@ async function captureBackup(button) {
   check('백업 확인 전 초기화 차단·기록만 초기화·선수/사진 보존·새로고침');
   // Simulate the existing v6 device's migration, in this isolated context only.
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v12'));
+    const d = window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12'));
     delete d.lastReset;
     delete d.migrationSource;
     delete d.legacySource;

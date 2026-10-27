@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   http = require('node:http'),
@@ -50,13 +51,14 @@ const server = http.createServer((req, res) => {
   });
   const fixtureCtx = await browser.newContext({ serviceWorkers: 'block' });
   const fixture = await fixtureCtx.newPage();
+  await installStorageReader(fixture);
   await fixture.goto(url);
   await fixture.getByRole('button', { name: '선수 & 팀', exact: true }).click();
   await fixture.getByRole('button', { name: '팀 추가', exact: true }).click();
   await fixture.getByLabel('팀 이름', { exact: true }).fill('QA 업그레이드 보존팀');
   await fixture.getByRole('button', { name: '팀 저장', exact: true }).click();
   const raw = await fixture.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v12'));
+    const d = window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12'));
     for (const key of Object.keys(d)) if (key.startsWith('_')) delete d[key];
     d.schemaVersion = 5;
     return JSON.stringify(d);
@@ -65,6 +67,7 @@ const server = http.createServer((req, res) => {
   phase = 'old';
   const ctx = await browser.newContext();
   page = await ctx.newPage();
+  await installStorageReader(page);
   page.setDefaultTimeout(20000);
   await page.goto(url);
   await page.evaluate(() => navigator.serviceWorker.ready);
@@ -98,7 +101,7 @@ const server = http.createServer((req, res) => {
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'BETA 0.13.1', exact: true }).waitFor();
   const next = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('tb-manager.workspace.v12')),
+    window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')),
   );
   assert.equal(next.schemaVersion, 12);
   assert.deepEqual(next.players, JSON.parse(raw).players);

@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
@@ -15,7 +16,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click();
-const data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
+const data = () => page.evaluate(() => window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
 async function nav(name) {
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
   if (!(await b.isVisible())) await tap('메뉴 열기');
@@ -54,6 +55,7 @@ async function purge() {
       }),
     );
   page = await ctx.newPage();
+  await installStorageReader(page);
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
@@ -64,7 +66,7 @@ async function purge() {
   await tap('선수 저장');
   await page.getByRole('dialog').waitFor({state:'hidden'});
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v12'));
+    const d = window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12'));
     d.players = d.players.map((p, i) => ({
       ...p,
       grade: i < 10 ? 2 : 3,
@@ -191,7 +193,7 @@ async function purge() {
   await page.evaluate(() => {
     window.qaSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
-      if (k === 'tb-manager.workspace.v12') throw new DOMException('QA quota', 'QuotaExceededError');
+      if (k === 'tb-manager.workspace.v12') throw new Error('QA write failure');
       return window.qaSetItem.call(this, k, v);
     };
   });

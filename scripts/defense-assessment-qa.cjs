@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
@@ -15,7 +16,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
+  data = () => page.evaluate(() => window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -47,6 +48,7 @@ const check = (s) => {
       }),
     );
   page = await ctx.newPage();
+  await installStorageReader(page);
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
@@ -64,7 +66,7 @@ const check = (s) => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = original;
-      if (k === 'tb-manager.workspace.v12') throw new DOMException('QA quota', 'QuotaExceededError');
+      if (k === 'tb-manager.workspace.v12') throw new Error('QA write failure');
       return original.call(this, k, v);
     };
   });

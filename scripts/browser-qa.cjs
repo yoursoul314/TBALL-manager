@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 // Isolated synthetic browser QA only. Never use a persistent user profile or storageState.
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -115,7 +116,7 @@ async function download(button, filename) {
   return path.join(out, filename);
 }
 async function workspace() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
+  return page.evaluate(() => window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
 }
 async function photoInfo() {
   return page.evaluate(
@@ -171,6 +172,7 @@ async function photoInfo() {
       await route.fulfill({ path: file }).catch(() => route.abort());
     });
   page = await context.newPage();
+  await installStorageReader(page);
   page.setDefaultTimeout(12000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
@@ -250,7 +252,7 @@ async function photoInfo() {
       };
       Storage.prototype.setItem = function (k, v) {
         if (k === 'tb-manager.workspace.v12')
-          throw new DOMException('QA storage full', 'QuotaExceededError');
+          throw new Error('QA write failure');
         return original.call(this, k, v);
       };
     });

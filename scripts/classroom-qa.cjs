@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
@@ -21,7 +22,7 @@ async function nav(name) {
   await page.locator('.sidebar').getByRole('button', { name, exact: true }).tap();
 }
 async function data() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
+  return page.evaluate(() => window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
 }
 async function fit(name, locators) {
   const rows = [];
@@ -64,6 +65,7 @@ async function fit(name, locators) {
       }),
     );
   page = await context.newPage();
+  await installStorageReader(page);
   page.setDefaultTimeout(12000);
   await page.goto(url, { waitUntil: 'networkidle' });
   assert.equal(await page.evaluate(() => localStorage.length), 0);

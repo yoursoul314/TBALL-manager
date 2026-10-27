@@ -1,3 +1,4 @@
+const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
   assert = require('node:assert/strict');
@@ -15,7 +16,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v12')));
+  data = () => page.evaluate(() => window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -47,6 +48,7 @@ const check = (s) => {
       }),
     );
   page = await ctx.newPage();
+  await installStorageReader(page);
   // Simulate keyboard geometry in an isolated test browser, never user storage.
   await page.addInitScript(() => {
     const viewport = new EventTarget();
@@ -139,7 +141,7 @@ const check = (s) => {
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = original;
       if (k === 'tb-manager.workspace.v12')
-        throw new DOMException('QA quota', 'QuotaExceededError');
+        throw new Error('QA write failure');
       return original.call(this, k, v);
     };
   });
@@ -165,7 +167,7 @@ const check = (s) => {
   // Fresh QA context only: synthetic measured candidates for end-to-end waterfall approval.
   await page.evaluate(() => {
     const k = 'tb-manager.workspace.v12',
-      d = JSON.parse(localStorage.getItem(k)),
+      d = window.__qaDecodeWorkspace(localStorage.getItem(k)),
       at = '2026-10-27T01:00:00Z',
       source = d.fungoAssessments[0].revisions.at(-1);
     d.fungoAssessments = d.players.slice(0, 12).map((p) => ({
