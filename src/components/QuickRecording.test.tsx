@@ -93,6 +93,14 @@ it('마지막 기록 취소는 원본·감사 이력을 남기고 평균에서 �
 });
 it('미저장 선수·탭 이동은 경고하고 저장 공간 오류 후 초안과 원본을 보존한다', async () => {
   const user = await openAssessment();
+  expect(screen.getByRole('button', { name: /기록지 보기/ })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  await user.click(screen.getByRole('button', { name: /기록지 보기/ }));
+  expect(screen.getByRole('list', { name: '회차별 타격 기록' })).toBeVisible();
+  await user.click(screen.getByRole('button', { name: /기록지 숨기기/ }));
+  expect(screen.queryByRole('list', { name: '회차별 타격 기록' })).not.toBeInTheDocument();
   const raw = localStorage.getItem(STORAGE_KEY);
   await user.click(screen.getByRole('button', { name: '정상 타격' }));
   await user.click(screen.getByRole('button', { name: '평가 9점' }));
@@ -212,10 +220,16 @@ it('상세평가 전체 화면 닫기·다시 열기는 회차 초안을 보존�
   const user = await openAssessment();
   await user.click(screen.getByRole('button', { name: '상세 모드' }));
   expect(screen.getByRole('complementary', { name: '회차 기록지' })).toBeInTheDocument();
-  expect(screen.getByRole('button',{name:/기록지 보기/})).toHaveAttribute('aria-expanded','false');
-  await user.click(screen.getByRole('button',{name:/기록지 보기/}));
-  expect(screen.getByRole('button',{name:/기록지 숨기기/})).toHaveAttribute('aria-expanded','true');
-  await user.click(screen.getByRole('button',{name:/기록지 숨기기/}));
+  expect(screen.getByRole('button', { name: /기록지 보기/ })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  await user.click(screen.getByRole('button', { name: /기록지 보기/ }));
+  expect(screen.getByRole('button', { name: /기록지 숨기기/ })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await user.click(screen.getByRole('button', { name: /기록지 숨기기/ }));
   await user.click(screen.getByRole('button', { name: '정상 타격' }));
   await user.click(screen.getByRole('button', { name: '평가 8점' }));
   await user.click(screen.getByRole('button', { name: '좌 원거리' }));

@@ -21,7 +21,7 @@ async function nav(name) {
   await page.locator('.sidebar').getByRole('button', { name, exact: true }).tap();
 }
 async function data() {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v9')));
+  return page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v10')));
 }
 async function fit(name, locators) {
   const rows = [];

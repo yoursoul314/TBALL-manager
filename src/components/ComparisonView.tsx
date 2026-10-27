@@ -1,3 +1,5 @@
+import { ZoneHeatmap } from './ZoneHeatmap';
+import { PairDecisionPanel } from './PairDecisionPanel';
 import { useState } from 'react';
 import type { Workspace } from '../domain/model';
 import { activePlayers } from '../domain/gameLibrary';
@@ -241,19 +243,28 @@ export function ComparisonView({
               계산하지 않습니다. 확정된 TYPE1 v2.0 가중치를 유지합니다.
             </p>
           </Panel>
+          <PairDecisionPanel
+            rows={rows}
+            minimum={minimum}
+            onMinimum={setMinimum}
+            onCandidate={(id) => {
+              setCandidateIds([...new Set([...candidateIds, id])]);
+              changed();
+            }}
+          />
+          <Panel title="기능평가 9구역 비교">
+            <div className="zone-comparison">
+              {rows.map((r) => (
+                <ZoneHeatmap
+                  key={r.player.id}
+                  counts={r.batting.zones.counts}
+                  label={r.player.name + ' · 9구역'}
+                  unlocated={r.batting.observed - r.batting.zones.total}
+                />
+              ))}
+            </div>
+          </Panel>
           <Panel title="관찰에 근거한 장점·보완점">
-            <label>
-              비교 분석 최소 관찰 수
-              <input
-                type="number"
-                min="1"
-                max="1000"
-                value={minimum}
-                onChange={(e) =>
-                  setMinimum(Math.max(1, Math.min(1000, Math.trunc(Number(e.target.value)) || 1)))
-                }
-              />
-            </label>
             <p className="hint">
               같은 출처·배점과 최소 표본을 만족한 비교 학생들의 평균과 비교합니다. 상대적으로 유리한
               지표와 보완 검토 지표이며 절대 등급·최종 종합 순위가 아닙니다. 수동 점수는 관찰 횟수를

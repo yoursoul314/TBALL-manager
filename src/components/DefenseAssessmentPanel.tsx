@@ -214,42 +214,44 @@ export function DefenseAssessmentPanel({
         </div>
       }
     >
-      {navigation && (
-        <div className="assessment-student-navigation">
-          <button disabled={dirty || !navigation.previous} onClick={navigation.previous}>
-            이전 수비 학생
-          </button>
-          <b>
-            {navigation.index}/{navigation.total}명
-          </b>
-          <button disabled={dirty || !navigation.next} onClick={navigation.next}>
-            다음 수비 학생
-          </button>
+      <div className="defense-session-toolbar">
+        {navigation && (
+          <div className="assessment-student-navigation">
+            <button disabled={dirty || !navigation.previous} onClick={navigation.previous}>
+              이전 수비 학생
+            </button>
+            <b>
+              {navigation.index}/{navigation.total}명
+            </b>
+            <button disabled={dirty || !navigation.next} onClick={navigation.next}>
+              다음 수비 학생
+            </button>
+          </div>
+        )}
+        <p className="hint defense-record-hint">
+          한 상황에서 수행한 행동을 각각 체크하세요. 포구 성공을 선택해도 송구·실책 결과가 자동
+          입력되지는 않습니다.
+        </p>
+        <div className="form-row">
+          <label>
+            수비 평가 날짜
+            <input
+              type="date"
+              readOnly={!!managedDay}
+              value={draft.date}
+              onChange={(e) => change({ ...draft, date: e.target.value })}
+            />
+          </label>
+          <label>
+            평가자·수정자
+            <input
+              maxLength={200}
+              value={draft.assessor}
+              onChange={(e) => change({ ...draft, assessor: e.target.value })}
+              placeholder="교사·감독"
+            />
+          </label>
         </div>
-      )}
-      <p className="hint">
-        한 상황에서 수행한 행동을 각각 체크하세요. 포구 성공을 선택해도 송구·실책 결과가 자동
-        입력되지는 않습니다.
-      </p>
-      <div className="form-row">
-        <label>
-          수비 평가 날짜
-          <input
-            type="date"
-            readOnly={!!managedDay}
-            value={draft.date}
-            onChange={(e) => change({ ...draft, date: e.target.value })}
-          />
-        </label>
-        <label>
-          평가자·수정자
-          <input
-            maxLength={200}
-            value={draft.assessor}
-            onChange={(e) => change({ ...draft, assessor: e.target.value })}
-            placeholder="교사·감독"
-          />
-        </label>
       </div>
       <div className="defense-situations" aria-label="수비 평가 상황">
         {Object.entries(DEFENSE_SITUATIONS).map(([v, l]) => (
@@ -264,10 +266,10 @@ export function DefenseAssessmentPanel({
       </div>
       <div className="defense-checklist">
         {ABILITIES.filter(
-          (k) => primary.includes(k) || detail || draft.observations[k] !== null,
+          (k) => focused || primary.includes(k) || detail || draft.observations[k] !== null,
         ).map((k) => (
           <fieldset key={k}>
-            <legend>
+            <legend title={cues[k]}>
               <b>
                 {k} · {ABILITY_LABELS[k]}
               </b>{' '}
@@ -288,14 +290,20 @@ export function DefenseAssessmentPanel({
                     ? '미관찰'
                     : v === 'failure' && ['G', 'F', 'C'].includes(k)
                       ? '놓침'
-                      : outcomeLabels[v]}
+                      : focused && v === 'partial'
+                        ? '부분'
+                        : outcomeLabels[v]}
                 </button>
               ))}
             </div>
           </fieldset>
         ))}
       </div>
-      <button className="detail-toggle" aria-expanded={detail} onClick={() => setDetail(!detail)}>
+      <button
+        className="detail-toggle defense-expand"
+        aria-expanded={detail}
+        onClick={() => setDetail(!detail)}
+      >
         {detail ? '추가 능력 접기' : '첫 반응·수비 범위·판단 등 9능력 펼치기'}
       </button>
       <details className="defense-extra">

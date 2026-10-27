@@ -141,6 +141,12 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
       kind === 'teams' ? !ids.has(s.teamId) : !s.assignments.some((a) => ids.has(a.playerId)),
     ),
   };
+  next.selections = next.selections.map((s) => {
+    if (!s.editedFrom || next.selections.some((old) => old.id === s.editedFrom)) return s;
+    const { editedFrom, ...retained } = s;
+    void editedFrom;
+    return retained;
+  });
   return {
     workspace: parseWorkspace(next),
     photoIds: kind === 'players' ? [...ids] : [],

@@ -15,7 +15,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v9')));
+  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v10')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -50,23 +50,23 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.9.0');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.10.0');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
   await tap('선수 저장');
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v9'));
+    const d = JSON.parse(localStorage.getItem('tb-manager.workspace.v10'));
     delete d.defenseDays;
     delete d.comparisonSelection;
     for (const k of Object.keys(d)) if (k.startsWith('_')) delete d[k];
     d.schemaVersion = 8;
     localStorage.setItem('tb-manager.workspace.v8', JSON.stringify(d));
-    localStorage.removeItem('tb-manager.workspace.v9');
+    localStorage.removeItem('tb-manager.workspace.v10');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 9);
+  assert.equal((await data()).schemaVersion, 10);
   assert.ok(await page.evaluate(() => localStorage.getItem('tb-manager.workspace.v8')));
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
@@ -91,14 +91,20 @@ const check = (s) => {
     J: '상황 판단',
     B: '베이스 처리',
   };
-  await tap('첫 반응·수비 범위·판단 등 9능력 펼치기');
+  if (
+    await page
+      .getByRole('button', { name: '첫 반응·수비 범위·판단 등 9능력 펼치기', exact: true })
+      .isVisible()
+  )
+    await tap('첫 반응·수비 범위·판단 등 9능력 펼치기');
   for (const [k, l] of Object.entries(abilities)) await tap(k + ' ' + l + ' 성공');
   assert.ok(await page.getByRole('button', { name: '다음 수비 학생', exact: true }).isDisabled());
   await page.evaluate(() => {
     const orig = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = orig;
-      if (k === 'tb-manager.workspace.v9') throw new DOMException('QA quota', 'QuotaExceededError');
+      if (k === 'tb-manager.workspace.v10')
+        throw new DOMException('QA quota', 'QuotaExceededError');
       return orig.call(this, k, v);
     };
   });
@@ -120,7 +126,12 @@ const check = (s) => {
       .getAttribute('aria-pressed'),
     'true',
   );
-  await tap('첫 반응·수비 범위·판단 등 9능력 펼치기');
+  if (
+    await page
+      .getByRole('button', { name: '첫 반응·수비 범위·판단 등 9능력 펼치기', exact: true })
+      .isVisible()
+  )
+    await tap('첫 반응·수비 범위·판단 등 9능력 펼치기');
   for (const [k, l] of Object.entries(abilities)) await tap(k + ' ' + l + ' 부분 수행');
   await tap('수비 기록 저장 · 다음 학생');
   await tap('집중 모드 끝내기');

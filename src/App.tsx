@@ -28,6 +28,7 @@ import {
   V6_STORAGE_KEY,
   V7_STORAGE_KEY,
   V8_STORAGE_KEY,
+  V9_STORAGE_KEY,
   downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
@@ -94,6 +95,7 @@ export default function App() {
           e.key === V5_STORAGE_KEY ||
           e.key === V6_STORAGE_KEY ||
           e.key === V8_STORAGE_KEY ||
+          e.key === V9_STORAGE_KEY ||
           e.key === V7_STORAGE_KEY)
       )
         setStale(true);
@@ -144,13 +146,6 @@ export default function App() {
     } catch (error) {
       notify(error instanceof Error ? error.message : '저장 실패', true);
       throw error;
-    }
-  };
-  const safelySave = (next: Workspace) => {
-    try {
-      save(next);
-    } catch {
-      /* Visible error, keep current in-memory data. */
     }
   };
   const game = data.games.find((g) => g.id === gameId) ?? data.games[0];
@@ -408,7 +403,12 @@ export default function App() {
             />
           )}
           {view === 'selection' && (
-            <SelectionView data={data} onSave={safelySave} onProfile={setProfile} />
+            <SelectionView
+              data={data}
+              onSave={save}
+              onProfile={setProfile}
+              onDirtyChange={setAssessmentDirty}
+            />
           )}
           {view === 'settings' && (
             <SettingsView

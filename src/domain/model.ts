@@ -241,7 +241,9 @@ export interface Selection {
   createdAt: string;
   policyVersion: string;
   sourceRevision: number;
-  assignments: { position: Position; playerId: Id; score: number }[];
+  assignments: { position: Position; playerId: Id; score: number | null }[];
+  method?: 'automatic' | 'manual';
+  editedFrom?: Id;
   status: 'draft' | 'approved';
   approvedBy: string | null;
   approvedAt: string | null;
@@ -257,8 +259,8 @@ export interface Workspace extends BattingData {
   } | null;
   defenseEvaluationChoices: DefenseEvaluationChoice[];
   lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
-  schemaVersion: 9;
-  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8; raw: string };
+  schemaVersion: 10;
+  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

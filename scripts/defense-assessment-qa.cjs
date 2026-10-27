@@ -15,7 +15,7 @@ const report = {
   errors: [],
 };
 const tap = (name) => page.getByRole('button', { name, exact: true }).click(),
-  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v9')));
+  data = () => page.evaluate(() => JSON.parse(localStorage.getItem('tb-manager.workspace.v10')));
 async function nav(name) {
   await page.locator('.version').waitFor({ state: 'attached' });
   const b = page.locator('.sidebar').getByRole('button', { name, exact: true });
@@ -50,7 +50,7 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.9.0');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.10.0');
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
   await tap('수비 개인별 이전 기록');
@@ -64,7 +64,7 @@ const check = (s) => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k, v) {
       Storage.prototype.setItem = original;
-      if (k === 'tb-manager.workspace.v9') throw new DOMException('QA quota', 'QuotaExceededError');
+      if (k === 'tb-manager.workspace.v10') throw new DOMException('QA quota', 'QuotaExceededError');
       return original.call(this, k, v);
     };
   });

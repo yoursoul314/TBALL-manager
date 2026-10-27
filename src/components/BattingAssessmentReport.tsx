@@ -1,7 +1,8 @@
+import { ZoneHeatmap } from './ZoneHeatmap';
 import { useId, useState } from 'react';
 import type { Workspace } from '../domain/model';
 import { summarizeBatting } from '../assessment/battingSummary';
-import { CONTACT_LABELS, TRAJECTORY_LABELS, RESULT_LABELS, zoneLabel } from '../config/batting';
+import { CONTACT_LABELS, TRAJECTORY_LABELS, RESULT_LABELS } from '../config/batting';
 import { STRENGTH_LABELS } from '../config/recording';
 export const battingNumber = (value: number | null) =>
   value === null ? '평가 기록 없음' : value.toFixed(1);
@@ -24,7 +25,6 @@ export function BattingAssessmentReport({
   const line = (key: 'average' | 'cumulative') =>
     points.map((d, i) => `${x(i)},${y(d[key]!)}`).join(' ');
   const percent = (n: number | null) => (n === null ? '미관찰' : `${(n * 100).toFixed(1)}%`);
-  const maxZone = Math.max(1, ...Object.values(report.zones.counts));
   return (
     <section className="batting-report" aria-label="타격 기능평가 분석">
       <h3>타격 기능평가 · 성장 기록</h3>
@@ -172,29 +172,11 @@ export function BattingAssessmentReport({
             </details>
           </section>
           <section>
-            <h4>타구 9구역 분포</h4>
-            <div className="batting-heatmap" aria-label="기능평가 타구 히트맵">
-              {(['far', 'middle', 'near'] as const).flatMap((r) =>
-                (['left', 'center', 'right'] as const).map((d) => {
-                  const zone = `${d}-${r}`,
-                    n = report.zones.counts[zone] ?? 0;
-                  return (
-                    <div
-                      key={zone}
-                      style={{ background: `rgba(67, 133, 87, ${0.08 + (0.6 * n) / maxZone})` }}
-                    >
-                      <small>{zoneLabel(zone)}</small>
-                      <b>{n}회</b>
-                      <span>{report.zones.total ? percent(n / report.zones.total) : '미관찰'}</span>
-                    </div>
-                  );
-                }),
-              )}
-            </div>
-            <p className="hint">
-              ⌂ 홈 · 방향을 관찰한 {report.zones.total}개 기준. 거리 기준은 각 세션의 구역 정의를
-              따릅니다. 서로 다른 정의는 단순 비교에 주의하세요.
-            </p>
+            <ZoneHeatmap
+              counts={report.zones.counts}
+              label="기능평가 타구 9구역"
+              unlocated={report.observed - report.zones.total}
+            />
           </section>
         </div>
         <div className="batting-ratios">

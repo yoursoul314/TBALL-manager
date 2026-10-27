@@ -20,12 +20,16 @@ export function Field({
   assignments,
   onPlayer,
   showEmpty = false,
+  onPosition,
+  selectedPosition,
 }: {
   bases?: Bases;
   players: Player[];
   assignments?: Selection['assignments'];
   onPlayer?: (id: string) => void;
   showEmpty?: boolean;
+  onPosition?: (position: Position) => void;
+  selectedPosition?: Position;
 }) {
   const playerName = (id?: string) => players.find((p) => p.id === id)?.name || '비어 있음';
   return (
@@ -86,11 +90,12 @@ export function Field({
             key={a.position}
             className="field-player"
             style={{ left: spots[a.position][0] + '%', top: spots[a.position][1] + '%' }}
-            disabled={!a.playerId}
+            disabled={!onPosition && !a.playerId}
+            aria-pressed={onPosition ? selectedPosition === a.position : undefined}
             aria-label={
               POSITION_LABELS[a.position] + ' ' + (a.playerId ? playerName(a.playerId) : '미배치')
             }
-            onClick={() => onPlayer?.(a.playerId)}
+            onClick={() => (onPosition ? onPosition(a.position) : onPlayer?.(a.playerId))}
           >
             <b>{POSITION_LABELS[a.position]}</b>
             {a.playerId && <PlayerAvatar player={players.find((p) => p.id === a.playerId)} />}

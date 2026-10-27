@@ -94,3 +94,7 @@ battingDays를 별도 배열로 추가하며 일반 이전은 v7 원문과 기�
 ## schema9 날짜별 수비 그룹·검토 후보 (2026-10-27)
 
 v8 원본과 기존 키를 보존하고 신규 tb-manager.workspace.v9에 저장한다. defenseDays:[], comparisonSelection:null을 추가하며 기존 수비/타격/경기 원본 및 이력은 그대로다. v8 입력 원문을 migrationSource.raw에 보존하고 v1~v8 이전 키 변경을 검사한다. 새 스키마 검증·참조·재생을 통과한 경우에만 쓰며 실패하면 기존 저장본을 유지한다. JSON 읽기1~9, 쓰기9, 복구 원문1~9를 지원한다. 사진 저장은 변경하지 않는다. 자세한 초기화/완전삭제/후보 계약은 [v0.9 명세](DEFENSE_DAYS_COMPARE_V9.md) 참조.
+
+## schema10 수동 배치 (2026-10-27)
+
+v9는 원문/이전 키를 보존하고 v10 키로 이전한다. 기존 자료의 값을 바꾸지 않고 Selection에 optional method/editedFrom과 nullable score를 허용한다. 수동 초안은 부분 배치, 승인안은10명으로 검증한다. 새 수동 저장은 이전 승인/추천을 덮어쓰지 않는다. 미측정 점수는null이다. 백업 읽기1~10/쓰기10, 구버전 충돌/용량 실패 시 원본 보호, 사진 보존 계약은 유지한다. [상세 계약](TABLET_ASSESSMENT_V10.md).

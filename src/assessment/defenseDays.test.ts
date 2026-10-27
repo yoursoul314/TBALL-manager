@@ -78,7 +78,7 @@ it('v8 이전·백업·새로고침과 구버전 충돌 검증에서 원문과 �
   };
   const repo = new LocalWorkspaceRepository(storage),
     d = repo.load()!;
-  expect(d.schemaVersion).toBe(9);
+  expect(d.schemaVersion).toBe(10);
   expect(d.migrationSource?.raw).toBe(raw);
   expect(d.assessments).toEqual(old.assessments);
   expect(d.defenseDays).toEqual([]);

@@ -384,9 +384,7 @@ export function BattingAssessmentPanel({
             title={`${round}회차 기록`}
             eyebrow={`${SESSION_LABELS[session.status]} · ${session.targetAttempts}회 중`}
           >
-            <div
-              className={'attempt-workbench' + (detailMode && !sheetOpen ? ' sheet-collapsed' : '')}
-            >
+            <div className={'attempt-workbench' + (!sheetOpen ? ' sheet-collapsed' : '')}>
               <div className="attempt-editor-pane">
                 <AttemptEditor
                   key={`${session.id}/${round}/${attempt?.updatedAt ?? ''}/${attempt?.status ?? ''}`}
@@ -486,7 +484,7 @@ export function BattingAssessmentPanel({
                 )}
               </div>
               <aside className="attempt-sheet-pane" aria-label="회차 기록지">
-                {detailMode ? (
+                {
                   <button
                     type="button"
                     aria-expanded={sheetOpen}
@@ -495,11 +493,9 @@ export function BattingAssessmentPanel({
                     {sheetOpen ? '기록지 숨기기' : '기록지 보기'} · {records.length}/
                     {session.targetAttempts}회
                   </button>
-                ) : (
-                  <h3>타격 평가 기록지</h3>
-                )}
+                }
                 <div
-                  hidden={detailMode && !sheetOpen}
+                  hidden={!sheetOpen}
                   className="attempt-sheet"
                   role="list"
                   aria-label="회차별 타격 기록"
@@ -521,21 +517,15 @@ export function BattingAssessmentPanel({
                         <b>
                           {n}회차 {a?.status === 'cancelled' ? '· 취소' : ''}
                         </b>
-                        <span>
-                          방향{' '}
+                        <span className="sheet-result">
+                          {a?.result ? RESULT_LABELS[a.result] : '미측정'}
+                        </span>
+                        <span className="sheet-zone">
                           {a?.directionZone
                             ? zoneLabel(a.directionZone)
                             : a?.direction
-                              ? DIRECTION_LABELS[a.direction] + ' · 거리 미관찰'
-                              : '미관찰'}
-                        </span>
-                        <span>
-                          유형 {a?.trajectory ? TRAJECTORY_LABELS[a.trajectory] : '—'} / 강도{' '}
-                          {a?.intensity ? STRENGTH_LABELS[a.intensity] : '—'}
-                        </span>
-                        <span>
-                          정확성 {a?.contactQuality ? CONTACT_LABELS[a.contactQuality] : '—'} / 결과{' '}
-                          {a?.result ? RESULT_LABELS[a.result] : '미측정'}
+                              ? DIRECTION_LABELS[a.direction]
+                              : '방향 미관찰'}
                         </span>
                         <strong>
                           {a?.score ?? '미평가'}

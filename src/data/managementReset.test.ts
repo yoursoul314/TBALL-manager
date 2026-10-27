@@ -25,7 +25,7 @@ it('v6 기록/팀 삭제 상태를 보존하고 v7 백업으로 왕복한다', (
   localStorage.setItem(V6_STORAGE_KEY, raw);
   const repo = new LocalWorkspaceRepository(localStorage),
     data = repo.load()!;
-  expect(data.schemaVersion).toBe(9);
+  expect(data.schemaVersion).toBe(10);
   expect(data.players).toEqual(old.players);
   expect(data.teams).toEqual(old.teams);
   expect(localStorage.getItem(V6_STORAGE_KEY)).toBe(raw);
