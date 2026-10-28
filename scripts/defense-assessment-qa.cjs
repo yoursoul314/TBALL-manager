@@ -52,7 +52,7 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.13.1');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.13.2');
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
   await tap('수비 개인별 이전 기록');

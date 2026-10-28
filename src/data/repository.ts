@@ -1,3 +1,15 @@
+import {
+  recoverBrowserStorage,
+  pendingStorageMove,
+  storedArchiveId,
+  RECOVERY_PENDING,
+  moveMarker,
+} from './recoverStorage';
+import {
+  withRecoveryLock,
+  recoveryArchiveStore,
+  type RecoveryArchiveStore,
+} from './recoveryArchive';
 import { decodeStorageText, writeStorageText, MAX_BACKUP_BYTES } from './storageCodec';
 import type { Workspace } from '../domain/model';
 import { parseWorkspace } from './schema';
@@ -22,8 +34,10 @@ export interface WorkspaceRepository {
 export class LocalWorkspaceRepository implements WorkspaceRepository {
   constructor(
     private storage: Pick<Storage, 'getItem' | 'setItem'> & Partial<Pick<Storage, 'removeItem'>>,
+    private archives: RecoveryArchiveStore = recoveryArchiveStore,
   ) {}
   load(persistMigration = true): Workspace | null {
+    if (pendingStorageMove(this.storage)) throw Error(RECOVERY_PENDING);
     const raw = this.storage.getItem(STORAGE_KEY);
     const legacyRaw = this.storage.getItem(LEGACY_STORAGE_KEY);
     const v11Raw = this.storage.getItem(V11_STORAGE_KEY);
@@ -238,6 +252,8 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       STORAGE_KEY,
       JSON.stringify({
         ...validated,
+        _storageArchiveId: storedArchiveId(this.storage),
+        _archiveCleanupPending: this.hasPendingArchiveCleanup() ? true : undefined,
         _legacyBaseline: this.storage.getItem(LEGACY_STORAGE_KEY),
         _v2Baseline: this.storage.getItem(V2_STORAGE_KEY),
         _v3Baseline: this.storage.getItem(V3_STORAGE_KEY),
@@ -255,6 +271,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
   }
   resetAll(workspace: Workspace, expectedRevision: number) {
     if (!this.storage.removeItem) throw new Error('전체 초기화를 지원하지 않는 저장소입니다');
+    const archiveId = storedArchiveId(this.storage);
     const keys = [
       LEGACY_STORAGE_KEY,
       V2_STORAGE_KEY,
@@ -275,10 +292,13 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       const saved = this.save(workspace, expectedRevision);
       written = true;
       for (const key of keys.slice(0, -1)) this.storage.removeItem(key);
-      this.storage.setItem(
+      writeStorageText(
+        this.storage,
         STORAGE_KEY,
         JSON.stringify({
           ...saved,
+          _storageArchiveId: archiveId,
+          _archiveCleanupPending: true,
           _legacyBaseline: null,
           _v2Baseline: null,
           _v3Baseline: null,
@@ -305,6 +325,51 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       }
       throw error;
     }
+  }
+  hasPendingRecovery() {
+    return Boolean(pendingStorageMove(this.storage));
+  }
+  hasStorageArchive() {
+    return this.hasPendingRecovery() || Boolean(storedArchiveId(this.storage));
+  }
+  recoverStorage() {
+    return withRecoveryLock(() =>
+      recoverBrowserStorage(this.storage, () => this.load(false), this.archives),
+    );
+  }
+  async inspectStoredWorkspace() {
+    const pending = pendingStorageMove(this.storage);
+    if (!pending) return this.load(false);
+    const row = await this.archives.get(moveMarker(pending.raw)!.archiveId);
+    if (!row) throw Error('원본 보관본을 찾을 수 없습니다');
+    return parseWorkspace(JSON.parse(decodeStorageText(row.target)));
+  }
+  async exportRecoveryWithArchives() {
+    return JSON.stringify(
+      { ...JSON.parse(this.recoverySnapshot()), archives: await this.archives.all() },
+      null,
+      2,
+    );
+  }
+  hasPendingArchiveCleanup() {
+    const raw = this.storage.getItem(STORAGE_KEY);
+    return Boolean(
+      raw && !moveMarker(raw) && JSON.parse(decodeStorageText(raw))._archiveCleanupPending,
+    );
+  }
+  finishArchiveCleanup() {
+    return withRecoveryLock(() => this.clearArchivedOriginals());
+  }
+  private async clearArchivedOriginals() {
+    if (!this.hasPendingArchiveCleanup()) return;
+    await this.archives.clear();
+    const raw = this.storage.getItem(STORAGE_KEY);
+    if (!raw || moveMarker(raw)) throw Error('원본 정리 중 저장 상태가 바뀌었습니다');
+    const next = JSON.parse(decodeStorageText(raw));
+    if (!next._archiveCleanupPending) return;
+    delete next._storageArchiveId;
+    delete next._archiveCleanupPending;
+    writeStorageText(this.storage, STORAGE_KEY, JSON.stringify(next));
   }
   recoverySnapshot() {
     return JSON.stringify(

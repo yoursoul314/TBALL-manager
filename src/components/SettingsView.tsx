@@ -17,6 +17,7 @@ export function SettingsView({
   onReset,
   onCheckUpdate,
   updateChecking,
+  onRecoveryBackup,
 }: {
   data: Workspace;
   onSave: (d: Workspace) => void;
@@ -24,6 +25,7 @@ export function SettingsView({
   onReset: (scope: ResetScope) => Promise<void>;
   onCheckUpdate: () => void;
   updateChecking: boolean;
+  onRecoveryBackup?: () => Promise<void>;
 }) {
   const [restoring, setRestoring] = useState<Workspace | null>(null);
   const backup = () =>
@@ -68,6 +70,17 @@ export function SettingsView({
             기기를 바꾸려면 JSON 백업을 내보내고 새 기기에서 복원하세요. 앱 삭제나 브라우저 데이터
             삭제 전에 백업을 보관하세요.
           </p>
+          {onRecoveryBackup && (
+            <button
+              onClick={() =>
+                void onRecoveryBackup().catch((e) =>
+                  onNotify(e instanceof Error ? e.message : String(e), true),
+                )
+              }
+            >
+              보관 원본 포함 백업
+            </button>
+          )}
           <div className="button-row">
             <button className="primary" onClick={backup}>
               <Download size={17} />

@@ -1,3 +1,4 @@
+import { MemoryRecoveryArchiveStore } from './data/recoveryArchive';
 import { StorageRecoveryView } from './components/StorageRecoveryView';
 import { ComparisonView } from './components/ComparisonView';
 import { planPermanentDeletion } from './domain/management';
@@ -32,6 +33,7 @@ import {
   V9_STORAGE_KEY,
   V10_STORAGE_KEY,
   V11_STORAGE_KEY,
+  downloadFile,
 } from './data/repository';
 import { createDemoWorkspace } from './data/seed';
 import { replayGame } from './engine/game';
@@ -51,7 +53,10 @@ import { resetWorkspace, type ResetScope } from './domain/reset';
 import { photoRepository } from './data/photos';
 import { restorePhotosAndWorkspace } from './data/photoBackup';
 const previewMode = new URLSearchParams(location.search).get('preview') === '1';
-const repository = new LocalWorkspaceRepository(previewMode ? sessionStorage : localStorage);
+const repository = new LocalWorkspaceRepository(
+  previewMode ? sessionStorage : localStorage,
+  previewMode ? new MemoryRecoveryArchiveStore() : undefined,
+);
 const navigation = [
   { id: 'dashboard', name: '대시보드', icon: LayoutDashboard },
   { id: 'players', name: '선수 & 팀', icon: Users },
@@ -118,6 +123,14 @@ export default function App() {
     const timer = setTimeout(() => setNotice(null), 7000);
     return () => clearTimeout(timer);
   }, [notice]);
+  useEffect(() => {
+    if (!loaded.data) return;
+    void repository
+      .finishArchiveCleanup()
+      .catch((error) =>
+        setNotice({ message: '보관 원본 정리 재시도 실패: ' + String(error), error: true }),
+      );
+  }, [loaded.data]);
   if (!data) return <StorageRecoveryView error={loaded.error} repository={repository} />;
   const notify = (message: string, error = false) => setNotice({ message, error });
   const save = (next: Workspace) => {
@@ -326,6 +339,7 @@ export default function App() {
                   plan.workspace,
                   (next) => setData(repository.resetAll(next, data.revision)),
                 );
+                await repository.finishArchiveCleanup();
                 setProfile(null);
                 setGameId('');
                 setMatchOpened(false);
@@ -402,6 +416,16 @@ export default function App() {
               onNotify={notify}
               onCheckUpdate={() => void update.check()}
               updateChecking={update.checking}
+              onRecoveryBackup={
+                repository.hasStorageArchive()
+                  ? async () =>
+                      downloadFile(
+                        'TB-Manager-recovery-with-archives.json',
+                        await repository.exportRecoveryWithArchives(),
+                        'application/json',
+                      )
+                  : undefined
+              }
               onReset={async (scope: ResetScope) => {
                 if (stale || assessmentDirty || matchDirty)
                   throw new Error('미저장 입력 또는 다른 탭의 변경을 먼저 확인하세요');
@@ -411,6 +435,7 @@ export default function App() {
                     setData(repository.resetAll(empty, data.revision)),
                   );
                 else save(next);
+                if (scope === 'all') await repository.finishArchiveCleanup();
                 setGameId('');
                 setMatchOpened(false);
                 setProfile(null);

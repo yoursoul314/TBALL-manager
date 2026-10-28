@@ -237,3 +237,8 @@ npm run check = 타입 검사 + Vitest + 프로덕션/PWA 빌드. RULE01~08, 가
 ## BETA 0.13.1 저장 용량 보완
 
 [중첩 원본 무손실 압축·quota 복구 계약과 검증](STORAGE_QUOTA_V131.md). schema12와 기존 기록·척도는 유지합니다.
+
+
+## BETA 0.13.2 저장 공간 복구
+
+[기기 원본 보관 → 검증 → 중단 가능한 공간 복구 계약](STORAGE_RECOVERY_V132.md). schema12, 경기·평가·사진 및 JSON 백업 호환성은 유지한다. 명시적 복구에서만 이전 키를 검증된 IndexedDB 보관본으로 옮긴다.
