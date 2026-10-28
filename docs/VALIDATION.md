@@ -260,4 +260,4 @@ WebKit iPad 가로1024×768/세로768×1024 수비 집중 화면에서 저장 �
 
 ## BETA 0.14.3 (2026-10-28)
 
-57 files / 310 tests passed; npm run check의 타입 검사·테스트·빌드 성공. 삭제 날짜 재생성·평균/횟수·삭제 이력·펑고 새 ID·v13 이전/백업·실패 보존을 검증했다. scripts/assessment-recreate-qa.cjs의 가상 학생 WebKit iPad 가로/세로 5개 종단 흐름 통과(콘솔 오류0). 규칙/가중치 SHA256 불변. 상세: ASSESSMENT_RECREATE_V143.md. 실제 iPad 저장 용량과 홈 화면 PWA 업데이트 상태는 현장 확인 항목이다.
+57 files / 311 tests passed; npm run check의 타입 검사·테스트·빌드 성공. 삭제 날짜 재생성·평균/횟수·삭제 이력·펑고 새 ID·v13 이전/백업·실패 보존을 검증했다. scripts/assessment-recreate-qa.cjs의 가상 학생 WebKit iPad 가로/세로 5개 종단 흐름 통과(콘솔 오류0). 규칙/가중치 SHA256 불변. 상세: ASSESSMENT_RECREATE_V143.md. 실제 iPad 저장 용량과 홈 화면 PWA 업데이트 상태는 현장 확인 항목이다.

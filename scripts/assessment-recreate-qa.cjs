@@ -185,6 +185,14 @@ async function confirm(restore = false) {
   assert.equal(d.fungoAssessments.length, 2);
   assert.deepEqual(d.fungoAssessments[0], deleted.fungoAssessments[0]);
   assert.equal(d.fungoAssessments[1].revisions[0].manual.G, 4);
+  await tap('학생 점수 비교');
+  assert.deepEqual(
+    await page
+      .getByRole('row', { name: /샘플 선수 01/ })
+      .getByRole('cell')
+      .allTextContents(),
+    ['4.0', '미측정', '미측정', '미측정', '미측정', '5.0'],
+  );
   report.checks.push('펑고 같은 날짜는 빈 입력에서 새 ID로 기록, 이전 5변수 원본/취소 이력 유지');
   assert.equal(d.schemaVersion, 14);
   assert.equal(d.assessmentManagement.dayHistory.filter((h) => h.restart).length, 3);

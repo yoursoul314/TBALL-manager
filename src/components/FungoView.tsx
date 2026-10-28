@@ -329,9 +329,7 @@ function FungoViewContent({
                 </thead>
                 <tbody>
                   {students.map((p) => {
-                    const v = data.fungoAssessments
-                        .find((r) => r.playerId === p.id && r.revisions[0].date === date)
-                        ?.revisions.at(-1),
+                    const v = currentFungoRecord(data, p.id, date)?.revisions.at(-1),
                       s = v && v.status === 'active' ? fungoScores(v) : null;
                     return (
                       <tr key={p.id}>

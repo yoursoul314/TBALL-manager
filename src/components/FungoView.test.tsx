@@ -1,18 +1,24 @@
+import { setAssessmentDateArchived } from '../assessment/management';
 import { afterEach, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { FungoView } from './FungoView';
 import { SelectionView } from './SelectionView';
 import { PlayerEditor } from './PlayerEditor';
-import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
+import {
+  createAssessmentTestWorkspace as createDemoWorkspace,
+  chooseTestAssessor,
+} from '../test/assessment';
 import { parseWorkspace } from '../data/schema';
 import { fungoScores, blankFungo } from '../domain/fungo';
-import { saveFungo } from '../assessment/fungo';
+import { saveFungo, saveFungoDay } from '../assessment/fungo';
 import { createBattingSession, recordBattingAttempt, blankAttempt } from '../assessment/batting';
 import { QUALITY_RUBRIC } from '../config/battingQuality';
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 const fill = (name: string, value: string) =>
-  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name)
+    ? chooseTestAssessor(name, value)
+    : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(cleanup);
 it('날짜 다중 학생·5구 관찰→정밀 조정·저장 실패 보존·다음 학생·수정·취소', () => {
   let saved = createDemoWorkspace(),
@@ -137,4 +143,38 @@ it('선수 1·2지망 편집 입력 제공', () => {
   fill('2지망 포지션', '1B');
   expect(screen.getByLabelText('1지망 포지션')).toHaveValue('SS');
   expect(screen.getByLabelText('2지망 포지션')).toHaveValue('1B');
+});
+
+it('삭제한 날짜 새 펑고의 입력·비교표는 이전 취소 점수 대신 신규 기록을 표시', () => {
+  const date = '2026-10-28',
+    at = '2026-10-28T01:00:00Z';
+  const m = (id: string) => ({ id, at, actor: 'QA', reason: id });
+  let d = saveFungoDay(
+    createDemoWorkspace(),
+    { date, assessor: 'QA', playerIds: ['green-1'] },
+    m('day'),
+  );
+  const input = {
+    ...blankFungo(date, 'QA'),
+    mode: 'precise' as const,
+    manual: { G: 8, F: 7, C: 9, T_acc: 8, T_pow: 7 },
+  };
+  d = saveFungo(d, 'green-1', input, { id: 'old', revisionId: 'old-r', at, reason: '원본' });
+  d = setAssessmentDateArchived(d, 'fungo', date, true, m('delete'));
+  d = saveFungoDay(d, d.fungoDays[0], m('restart'));
+  d = saveFungo(
+    d,
+    'green-1',
+    { ...input, manual: { G: 4, F: 5, C: 6, T_acc: 3, T_pow: 2 } },
+    { id: 'new', revisionId: 'new-r', at, reason: '신규' },
+  );
+  render(<FungoView data={d} onSave={() => {}} />);
+  expect(screen.getByLabelText('정밀 G')).toHaveValue(4);
+  click('학생 점수 비교');
+  const row = screen.getByRole('row', { name: /샘플 선수 01/ });
+  expect(
+    within(row)
+      .getAllByRole('cell')
+      .map((c) => c.textContent),
+  ).toEqual(['4.0', '5.0', '6.0', '3.0', '2.0', '미측정']);
 });
