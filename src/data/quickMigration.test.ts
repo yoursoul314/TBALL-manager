@@ -42,7 +42,7 @@ it('v3 원문·수동 평가·세션·회차·감사 이력을 변경 없이 보
   localStorage.setItem(V3_STORAGE_KEY, raw);
   const repo = new LocalWorkspaceRepository(localStorage),
     d = repo.load()!;
-  expect(d.schemaVersion).toBe(13);
+  expect(d.schemaVersion).toBe(14);
   expect(d.migrationSource?.raw).toBe(raw);
   expect(localStorage.getItem(V3_STORAGE_KEY)).toBe(raw);
   expect(d.assessments).toEqual(source.assessments);

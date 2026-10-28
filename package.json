@@ -1,7 +1,7 @@
 {
   "name": "tball-manager",
   "private": true,
-  "version": "0.14.2",
+  "version": "0.14.3",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"

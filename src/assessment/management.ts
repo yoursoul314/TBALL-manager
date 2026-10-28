@@ -1,5 +1,9 @@
 import type { Workspace } from '../domain/model';
-import type { AssessmentKind, AssessmentRecordKind } from '../domain/assessmentManagement';
+import type {
+  AssessmentDayRestart,
+  AssessmentKind,
+  AssessmentRecordKind,
+} from '../domain/assessmentManagement';
 import { assessmentDayArchived, assertAssessmentDayOpen } from '../domain/assessmentManagement';
 import { parseWorkspace } from '../data/schema';
 export type ManagementMeta = { id: string; at: string; actor: string; reason: string };
@@ -209,6 +213,14 @@ export function setAssessmentRecordArchived(
     if (data.battingSessions.find((s) => s.id === a.sessionId)?.status === 'cancelled')
       throw Error('삭제된 세션을 먼저 복원하세요');
   }
+  if (
+    kind === 'fungo' &&
+    !archived &&
+    assessmentRecords(data, 'fungo').some(
+      (r) => r.id !== id && r.date === row.date && r.playerId === row.playerId && !r.archived,
+    )
+  )
+    throw Error('같은 학생·날짜의 새 펑고 평가가 있습니다. 해당 기록을 삭제한 후 복원하세요');
   if (kind === 'defense' && !archived) {
     const target = data.defenseDays.find((d) => d.date === row.date)?.targetAttempts;
     const count = assessmentRecords(data, 'defense').filter(
@@ -262,4 +274,42 @@ export function setAssessmentDateArchived(
       ],
     },
   });
+}
+
+/** Open a fresh generation without restoring or modifying any previous record. */
+export function prepareNewAssessmentDay(
+  data: Workspace,
+  kind: AssessmentKind,
+  date: string,
+  m: ManagementMeta,
+): Workspace {
+  const rows = assessmentRecords(data, kind).filter((r) => r.date === date);
+  const day = (
+    kind === 'batting' ? data.battingDays : kind === 'defense' ? data.defenseDays : data.fungoDays
+  ).find((d) => d.date === date);
+  const archived = assessmentDayArchived(data, kind, date);
+  // Legacy evaluations may have records but no shared date settings yet.
+  if (!archived && !day && (!rows.length || rows.some((r) => !r.archived))) return data;
+  if (!archived && (!rows.length || rows.some((r) => !r.archived)))
+    throw Error('이미 등록된 평가 날짜입니다. 해당 날짜를 선택하세요');
+  const restart = {
+    kind,
+    day: structuredClone(day ?? null),
+    recordIds: rows.map((r) => r.id),
+  } as AssessmentDayRestart;
+  const history = data.assessmentManagement.dayHistory;
+  return {
+    ...data,
+    assessmentManagement: {
+      ...data.assessmentManagement,
+      dayHistory: [
+        ...history,
+        // Individual deletions may leave the date open. Close that generation first.
+        ...(!archived
+          ? [{ ...m, id: m.id + '-close', kind, date, archived: true, affected: [] }]
+          : []),
+        { ...m, kind, date, archived: false, affected: [], restart },
+      ],
+    },
+  };
 }

@@ -1,4 +1,12 @@
 import type { Workspace } from './model';
+import type { BattingAssessmentDay } from './batting';
+import type { DefenseAssessmentDay } from './defenseAssessment';
+import type { FungoDay } from './fungo';
+export type AssessmentDayRestart = { recordIds: string[] } & (
+  | { kind: 'batting'; day: BattingAssessmentDay | null }
+  | { kind: 'defense'; day: DefenseAssessmentDay | null }
+  | { kind: 'fungo'; day: FungoDay | null }
+);
 export type AssessmentKind = 'batting' | 'defense' | 'fungo';
 export type AssessmentRecordKind = AssessmentKind | 'batting-attempt';
 export interface AssessmentManagerData {
@@ -12,6 +20,8 @@ export interface AssessmentManagerData {
     actor: string;
     reason: string;
     affected: { id: string; revisionId: string }[];
+    /** New evaluation on a deleted date; records remain cancelled. */
+    restart?: AssessmentDayRestart;
   }[];
 }
 export function assessmentDayArchived(

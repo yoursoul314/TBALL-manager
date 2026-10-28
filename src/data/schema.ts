@@ -106,10 +106,28 @@ export const defenseSequenceSchema = z
     }),
   )
   .max(100);
+const defenseDaySchema = z.object({
+  date: z.iso.date(),
+  targetAttempts: z.number().int().min(1).max(200).nullable().default(null),
+  assessor: z.string().trim().min(1).max(200),
+  purpose: z.string().trim().min(1).max(200),
+  note,
+  playerIds: z.array(id).max(2000),
+  createdAt: z.iso.datetime(),
+});
+const battingDaySchema = z.object({
+  rubricVersion: z.enum(['manual-ten-v1', 'quality-six-v1']).optional(),
+  date: z.iso.date(),
+  targetAttempts: z.number().int().min(1).max(200),
+  assessor: z.string().trim().min(1).max(200),
+  purpose: z.string().trim().min(1).max(200),
+  note,
+  createdAt: z.iso.datetime(),
+});
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(13),
+      schemaVersion: z.literal(14),
       assessmentManagement: z
         .object({
           assessors: z
@@ -133,6 +151,25 @@ export function parseWorkspace(input: unknown): Workspace {
                 actor: z.string().trim().min(1).max(200),
                 reason: note.min(1),
                 affected: z.array(z.object({ id, revisionId: id })).max(100000),
+                restart: z
+                  .discriminatedUnion('kind', [
+                    z.object({
+                      kind: z.literal('batting'),
+                      day: battingDaySchema.nullable(),
+                      recordIds: z.array(id).max(100000),
+                    }),
+                    z.object({
+                      kind: z.literal('defense'),
+                      day: defenseDaySchema.nullable(),
+                      recordIds: z.array(id).max(100000),
+                    }),
+                    z.object({
+                      kind: z.literal('fungo'),
+                      day: fungoDaysSchema.element.nullable(),
+                      recordIds: z.array(id).max(100000),
+                    }),
+                  ])
+                  .optional(),
               }),
             )
             .max(20000),
@@ -140,19 +177,7 @@ export function parseWorkspace(input: unknown): Workspace {
         .default({ assessors: [], dayHistory: [] }),
       fungoDays: fungoDaysSchema.default([]),
       fungoAssessments: fungoAssessmentsSchema.default([]),
-      defenseDays: z
-        .array(
-          z.object({
-            date: z.iso.date(),
-            targetAttempts: z.number().int().min(1).max(200).nullable().default(null),
-            assessor: z.string().trim().min(1).max(200),
-            purpose: z.string().trim().min(1).max(200),
-            note,
-            playerIds: z.array(id).max(2000),
-            createdAt: z.iso.datetime(),
-          }),
-        )
-        .max(20000),
+      defenseDays: z.array(defenseDaySchema).max(20000),
       comparisonSelection: z
         .object({
           playerIds: z.array(id).max(2000),
@@ -174,19 +199,7 @@ export function parseWorkspace(input: unknown): Workspace {
         )
         .max(100000)
         .default([]),
-      battingDays: z
-        .array(
-          z.object({
-            rubricVersion: z.enum(['manual-ten-v1', 'quality-six-v1']).optional(),
-            date: z.iso.date(),
-            targetAttempts: z.number().int().min(1).max(200),
-            assessor: z.string().trim().min(1).max(200),
-            purpose: z.string().trim().min(1).max(200),
-            note,
-            createdAt: z.iso.datetime(),
-          }),
-        )
-        .max(20000),
+      battingDays: z.array(battingDaySchema).max(20000),
       lastReset: z
         .object({ at: z.iso.datetime(), scope: z.enum(['games', 'evaluations', 'records', 'all']) })
         .optional(),
@@ -204,6 +217,7 @@ export function parseWorkspace(input: unknown): Workspace {
             z.literal(10),
             z.literal(11),
             z.literal(12),
+            z.literal(13),
           ]),
           raw: z.string(),
         })
@@ -313,6 +327,15 @@ export function parseWorkspace(input: unknown): Workspace {
       new Set(h.affected.map((r) => r.id)).size !== h.affected.length
     )
       throw Error('평가 날짜 삭제 이력 연결 오류');
+    if (
+      h.restart &&
+      (h.archived ||
+        h.affected.length ||
+        h.restart.kind !== h.kind ||
+        (h.restart.day && h.restart.day.date !== h.date) ||
+        new Set(h.restart.recordIds).size !== h.restart.recordIds.length)
+    )
+      throw Error('평가 날짜 새 시작 이력 오류');
     deletedDates.set(key, h.archived);
   }
   for (const s of base.battingSessions)
@@ -340,10 +363,11 @@ export function parseWorkspace(input: unknown): Workspace {
       throw Error('펑고 평가 학생 오류');
   for (const r of header.fungoAssessments) {
     const pair = r.playerId + '/' + r.revisions[0].date;
-    if (!ids.has(r.playerId) || fungoIds.has(r.id) || fungoPairs.has(pair))
+    const active = r.revisions.at(-1)!.status === 'active';
+    if (!ids.has(r.playerId) || fungoIds.has(r.id) || (active && fungoPairs.has(pair)))
       throw Error('펑고 기록 참조·중복 오류');
     fungoIds.add(r.id);
-    fungoPairs.add(pair);
+    if (active) fungoPairs.add(pair);
     for (const v of r.revisions) {
       if (revisionIds.has(v.id) || v.date !== r.revisions[0].date)
         throw Error('펑고 수정 이력 오류');
@@ -444,7 +468,7 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 13,
+    schemaVersion: 14,
     assessmentManagement: header.assessmentManagement,
     selections: header.selections,
     fungoDays: header.fungoDays,

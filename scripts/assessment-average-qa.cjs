@@ -158,7 +158,7 @@ async function profile(expected, label) {
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
   report.version = await page.locator('.version').textContent();
-  assert.equal(report.version, 'BETA 0.14.2');
+  assert.equal(report.version, 'BETA 0.14.3');
   await nav('기능평가 & 팀워크');
   await tap('평가자·기록 관리');
   await page.getByLabel('등록할 평가자', { exact: true }).fill(actor);

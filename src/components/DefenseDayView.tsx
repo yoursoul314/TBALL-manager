@@ -146,6 +146,9 @@ function DefenseDayViewContent({
               );
             }}
           >
+            <p className="hint">
+              삭제한 날짜도 새로 만들 수 있습니다. 이전 삭제 기록은 복원되지 않습니다.
+            </p>
             <fieldset className="plain-fieldset" disabled={dirty}>
               <div className="form-row">
                 <label>

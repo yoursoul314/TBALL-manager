@@ -1,4 +1,5 @@
 import { assertAssessmentDayOpen, assessmentDayArchived } from '../domain/assessmentManagement';
+import { prepareNewAssessmentDay, type ManagementMeta } from './management';
 import { summarizeDefenseAssessments } from './defenseChecklist';
 import type { Workspace } from '../domain/model';
 import type { DefenseAssessmentDay } from '../domain/defenseAssessment';
@@ -17,12 +18,19 @@ export function defenseDates(data: Workspace) {
 export function createDefenseDay(
   data: Workspace,
   day: Omit<DefenseAssessmentDay, 'targetAttempts'> & { targetAttempts?: number | null },
+  meta: ManagementMeta = {
+    id: crypto.randomUUID(),
+    at: day.createdAt,
+    actor: day.assessor,
+    reason: '같은 날짜 새 평가 생성',
+  },
 ) {
-  assertAssessmentDayOpen(data, 'defense', day.date);
   if (!day.assessor.trim()) throw Error('등록된 평가자를 터치해 선택하세요');
-  if (data.defenseDays.some((d) => d.date === day.date))
-    throw new Error('이미 생성한 수비 평가 날짜입니다');
-  const next = parseWorkspace({ ...data, defenseDays: [...data.defenseDays, day] });
+  const prepared = prepareNewAssessmentDay(data, 'defense', day.date, meta);
+  const next = parseWorkspace({
+    ...prepared,
+    defenseDays: [...prepared.defenseDays.filter((d) => d.date !== day.date), day],
+  });
   return setDefenseTarget(next, day.date, day.targetAttempts ?? null);
 }
 export function addDefenseParticipants(data: Workspace, date: string, ids: string[]) {
@@ -43,7 +51,7 @@ export function defenseParticipants(data: Workspace, date: string) {
     ...new Set([
       ...(data.defenseDays.find((d) => d.date === date)?.playerIds ?? []),
       ...data.defenseAssessments
-        .filter((r) => r.revisions.at(-1)!.date === date)
+        .filter((r) => r.revisions.at(-1)!.date === date && r.revisions.at(-1)!.status === 'active')
         .map((r) => r.playerId),
     ]),
   ];

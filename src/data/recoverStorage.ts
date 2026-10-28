@@ -122,7 +122,7 @@ export async function recoverBrowserStorage(
   }
   const archivedTarget = JSON.parse(decodeStorageText(row.target));
   const writeTarget =
-    archivedTarget.schemaVersion === 12
+    archivedTarget.schemaVersion === 12 || archivedTarget.schemaVersion === 13
       ? encodeStorageText(
           JSON.stringify({ ...archivedTarget, ...migrateWorkspace(archivedTarget) }),
           true,

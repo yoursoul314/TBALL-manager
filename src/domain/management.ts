@@ -93,6 +93,16 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
   );
   const next: Workspace = {
     ...data,
+    assessmentManagement: {
+      ...data.assessmentManagement,
+      dayHistory: data.assessmentManagement.dayHistory.map((h) => {
+        if (kind !== 'players' || !h.restart || h.restart.kind === 'batting' || !h.restart.day)
+          return h;
+        const restart = structuredClone(h.restart);
+        if (restart.day) restart.day.playerIds = restart.day.playerIds.filter((id) => !ids.has(id));
+        return { ...h, restart };
+      }),
+    },
     migrationSource: undefined,
     legacySource: undefined,
     players:

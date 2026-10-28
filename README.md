@@ -10,7 +10,11 @@
 - 검증 결과: [docs/VALIDATION.md](docs/VALIDATION.md)
 - 학생·엔트리·공수 통합 기록 v3: [docs/ROSTER_DEFENSE_V3.md](docs/ROSTER_DEFENSE_V3.md)
 
-감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 유지하며 현재 schema13으로 기존 원문을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 유지하며 현재 schema14로 기존 원문을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+
+## BETA 0.14.3 · 삭제한 날짜에 새 평가
+
+타격·수비·펑고 평가를 삭제한 뒤 같은 날짜로 다시 생성할 수 있습니다. 이전 기록은 삭제 상태로 보존하고 새 점수·횟수만 반영합니다. [사용 순서·저장 이전·검증](docs/ASSESSMENT_RECREATE_V143.md).
 
 ## BETA 0.14 · 평가 삭제·복원 및 평가자 터치 선택
 

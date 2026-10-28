@@ -38,7 +38,9 @@ function BattingDayViewContent({
   const saving = useRef(false);
   const day = data.battingDays.find((d) => d.date === date);
   const participants = players.filter((p) =>
-    data.battingSessions.some((s) => s.date === date && s.playerId === p.id),
+    data.battingSessions.some(
+      (s) => s.date === date && s.playerId === p.id && s.status !== 'cancelled',
+    ),
   );
   const playerId = participants.some((p) => p.id === selectedId)
     ? selectedId
@@ -117,7 +119,9 @@ function BattingDayViewContent({
                     {d} ·{' '}
                     {
                       new Set(
-                        data.battingSessions.filter((s) => s.date === d).map((s) => s.playerId),
+                        data.battingSessions
+                          .filter((s) => s.date === d && s.status !== 'cancelled')
+                          .map((s) => s.playerId),
                       ).size
                     }
                     명
@@ -180,7 +184,8 @@ function BattingDayViewContent({
             >
               <p className="hint">
                 날짜와 공통 설정을 한 번 저장한 뒤 평가 학생을 선택합니다. 기존 학생별 기록과 점수는
-                그대로 유지됩니다.
+                그대로 유지됩니다. 삭제한 날짜도 새로 만들 수 있으며 이전 기록은 삭제 상태로
+                남습니다.
               </p>
               <fieldset disabled={dirty} className="plain-fieldset">
                 <div className="form-row">

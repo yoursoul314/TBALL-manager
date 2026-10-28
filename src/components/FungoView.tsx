@@ -1,6 +1,6 @@
 import { lastAssessorName } from '../data/assessmentPreferences';
 import { AssessmentDateActions } from './AssessmentRecordManager';
-import { assertAssessmentDayOpen, assessmentDayArchived } from '../domain/assessmentManagement';
+import { assessmentDayArchived } from '../domain/assessmentManagement';
 import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../domain/model';
@@ -11,7 +11,7 @@ import {
   FUNGO_LABELS,
   type FungoInput,
 } from '../domain/fungo';
-import { saveFungo } from '../assessment/fungo';
+import { saveFungo, saveFungoDay, currentFungoRecord } from '../assessment/fungo';
 import { summarizeBatting } from '../assessment/battingSummary';
 import { QUALITY_RUBRIC } from '../config/battingQuality';
 import { activePlayers } from '../domain/gameLibrary';
@@ -42,6 +42,7 @@ function FungoViewContent({
     ),
     [assessor, setAssessor] = useState(() => lastAssessorName(data)),
     [newDate, setNewDate] = useState(localDate()),
+    [editingDate, setEditingDate] = useState<string | null>(null),
     [ids, setIds] = useState<string[]>([]),
     [filter, setFilter] = useState(emptyStudentFilter),
     [tab, setTab] = useState<'record' | 'compare' | 'history'>('record'),
@@ -54,9 +55,7 @@ function FungoViewContent({
       players.find((p) => p.id === id) ? [players.find((p) => p.id === id)!] : [],
     ),
     student = students[Math.min(index, Math.max(0, students.length - 1))];
-  const row = data.fungoAssessments.find(
-      (r) => r.playerId === student?.id && r.revisions[0].date === date,
-    ),
+  const row = currentFungoRecord(data, student?.id, date),
     revision = row?.revisions.at(-1);
   const callback = useRef(onDirtyChange);
   callback.current = onDirtyChange;
@@ -110,6 +109,7 @@ function FungoViewContent({
             navigate(() => {
               setSetup(true);
               setNewDate(localDate());
+              setEditingDate(null);
               setAssessor(lastAssessorName(data));
               setIds([]);
             })
@@ -123,6 +123,7 @@ function FungoViewContent({
               navigate(() => {
                 setSetup(true);
                 setNewDate(day.date);
+                setEditingDate(day.date);
                 setAssessor(day.assessor);
                 setIds(day.playerIds);
               })
@@ -140,6 +141,7 @@ function FungoViewContent({
           onRemoved={() => {
             setDate('');
             setSetup(true);
+            setEditingDate(null);
             setIds([]);
             setFocused(false);
           }}
@@ -152,16 +154,19 @@ function FungoViewContent({
             onSubmit={(e) => {
               e.preventDefault();
               try {
-                assertAssessmentDayOpen(data, 'fungo', newDate);
-                if (!assessor.trim()) throw Error('등록된 평가자를 터치해 선택하세요');
-                if (!ids.length) throw Error('평가 학생을 선택하세요');
-                onSave({
-                  ...data,
-                  fungoDays: [
-                    ...data.fungoDays.filter((d) => d.date !== newDate),
+                onSave(
+                  saveFungoDay(
+                    data,
                     { date: newDate, assessor, playerIds: ids },
-                  ],
-                });
+                    {
+                      id: crypto.randomUUID(),
+                      at: new Date().toISOString(),
+                      actor: assessor,
+                      reason: editingDate ? '평가 학생 변경' : '같은 날짜 새 평가 생성',
+                    },
+                    editingDate !== null,
+                  ),
+                );
                 setDate(newDate);
                 setIndex(0);
                 setSetup(false);
@@ -172,6 +177,11 @@ function FungoViewContent({
               }
             }}
           >
+            {!editingDate && (
+              <p className="hint">
+                삭제한 날짜도 새로 만들 수 있습니다. 이전 삭제 기록은 복원되지 않습니다.
+              </p>
+            )}
             <div className="form-row">
               <label>
                 새 펑고 날짜
@@ -180,6 +190,7 @@ function FungoViewContent({
                   aria-label="새 펑고 날짜"
                   type="date"
                   value={newDate}
+                  readOnly={editingDate !== null}
                   onChange={(e) => setNewDate(e.target.value)}
                 />
               </label>

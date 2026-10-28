@@ -1,4 +1,6 @@
 import { assertAssessmentDayOpen } from '../domain/assessmentManagement';
+import { prepareNewAssessmentDay, type ManagementMeta } from './management';
+import type { FungoDay } from '../domain/fungo';
 import type { Workspace } from '../domain/model';
 import {
   fungoScores,
@@ -15,9 +17,7 @@ export function saveFungo(
   cancel = false,
 ) {
   assertAssessmentDayOpen(data, 'fungo', input.date);
-  const old = data.fungoAssessments.find(
-    (r) => r.playerId === playerId && r.revisions[0].date === input.date,
-  );
+  const old = currentFungoRecord(data, playerId, input.date);
   if (cancel && !old) throw Error('취소할 기록이 없습니다');
   if (!cancel && Object.values(fungoScores(input)).every((n) => n === null))
     throw Error('관찰 점수 또는 정밀 점수를 입력하세요');
@@ -51,4 +51,32 @@ export function latestFungo(data: Workspace, playerId: string) {
     .sort((a, b) => a.date.localeCompare(b.date) || a.at.localeCompare(b.at))
     .at(-1);
   return { scores: latest ? fungoScores(latest) : blankFungoScores(), revision: latest ?? null };
+}
+
+export function currentFungoRecord(data: Workspace, playerId: string | undefined, date: string) {
+  const rows = data.fungoAssessments.filter(
+    (r) => r.playerId === playerId && r.revisions[0].date === date,
+  );
+  const previousIds = new Set(
+    data.assessmentManagement.dayHistory
+      .filter((h) => h.kind === 'fungo' && h.date === date)
+      .flatMap((h) => h.restart?.recordIds ?? []),
+  );
+  return (
+    rows.find((r) => r.revisions.at(-1)!.status === 'active') ??
+    rows.filter((r) => !previousIds.has(r.id)).at(-1)
+  );
+}
+export function saveFungoDay(data: Workspace, day: FungoDay, meta: ManagementMeta, edit = false) {
+  if (!day.assessor.trim()) throw Error('등록된 평가자를 터치해 선택하세요');
+  if (!day.playerIds.length) throw Error('평가 학생을 선택하세요');
+  if (edit) {
+    assertAssessmentDayOpen(data, 'fungo', day.date);
+    if (!data.fungoDays.some((d) => d.date === day.date)) throw Error('평가 날짜가 없습니다');
+  }
+  const next = edit ? data : prepareNewAssessmentDay(data, 'fungo', day.date, meta);
+  return parseWorkspace({
+    ...next,
+    fungoDays: [...next.fungoDays.filter((d) => d.date !== day.date), day],
+  });
 }

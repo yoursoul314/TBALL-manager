@@ -50,7 +50,7 @@ async function nav(name) {
   await installStorageReader(page);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.2');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.3');
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
   await page.getByLabel('새 수비 평가 날짜', { exact: true }).fill('2026-10-28');

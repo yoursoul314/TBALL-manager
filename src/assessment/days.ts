@@ -1,14 +1,25 @@
 import { assertAssessmentDayOpen, assessmentDayArchived } from '../domain/assessmentManagement';
+import { prepareNewAssessmentDay, type ManagementMeta } from './management';
 import type { Workspace } from '../domain/model';
 import type { BattingAssessmentDay, BattingAssessmentSession } from '../domain/batting';
 import { parseWorkspace } from '../data/schema';
 import type { ChangeMeta } from './batting';
-export function createAssessmentDay(data: Workspace, day: BattingAssessmentDay): Workspace {
-  assertAssessmentDayOpen(data, 'batting', day.date);
+export function createAssessmentDay(
+  data: Workspace,
+  day: BattingAssessmentDay,
+  meta: ManagementMeta = {
+    id: crypto.randomUUID(),
+    at: day.createdAt,
+    actor: day.assessor,
+    reason: '같은 날짜 새 평가 생성',
+  },
+): Workspace {
   if (!day.assessor.trim()) throw Error('등록된 평가자를 터치해 선택하세요');
-  if (data.battingDays.some((d) => d.date === day.date))
-    throw new Error('이미 등록된 평가 날짜입니다. 해당 날짜를 선택하세요');
-  return parseWorkspace({ ...data, battingDays: [...data.battingDays, day] });
+  const next = prepareNewAssessmentDay(data, 'batting', day.date, meta);
+  return parseWorkspace({
+    ...next,
+    battingDays: [...next.battingDays.filter((d) => d.date !== day.date), day],
+  });
 }
 export function startDayAssessments(
   data: Workspace,
