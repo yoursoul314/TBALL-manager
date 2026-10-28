@@ -1,3 +1,4 @@
+import { LAST_ASSESSOR_KEY } from './assessmentPreferences';
 import {
   recoverBrowserStorage,
   pendingStorageMove,
@@ -277,6 +278,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
     if (!this.storage.removeItem) throw new Error('전체 초기화를 지원하지 않는 저장소입니다');
     const archiveId = storedArchiveId(this.storage);
     const keys = [
+      LAST_ASSESSOR_KEY,
       LEGACY_STORAGE_KEY,
       V2_STORAGE_KEY,
       V3_STORAGE_KEY,

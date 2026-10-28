@@ -171,7 +171,7 @@ function DefenseDayViewContent({
                     required
                   />
                 </label>
-                <AssessorPicker label="수비 공통 평가자" name="assessor" />
+                <AssessorPicker label="수비 공통 평가자" name="assessor" remember />
                 <AssessmentPurposePicker label="수비 평가 목적" defaultValue="수비 평가" />
               </div>
               <label>
@@ -311,10 +311,10 @@ function DefenseDayViewContent({
               onSavedNext: () => {
                 if (index < participants.length - 1) {
                   setSelectedId(participants[index + 1].id);
-                  setMessage('저장했습니다. 다음 학생으로 이동했습니다.');
+                  setMessage('할당된 수비 횟수를 완료해 다음 학생으로 이동했습니다.');
                 } else
                   setMessage(
-                    '마지막 학생의 기록을 저장했습니다. 필요한 상황을 추가 기록할 수 있습니다.',
+                    '마지막 학생의 할당된 수비 횟수를 완료했습니다. 학생별 진행 현황을 확인하세요.',
                   );
               },
             }}

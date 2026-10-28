@@ -2,6 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 import type { Workspace } from '../domain/model';
 import { registerAssessor, setAssessorArchived } from '../assessment/management';
 import { Modal } from './ui';
+import { lastAssessorName, rememberAssessor } from '../data/assessmentPreferences';
 const Context = createContext<{ data: Workspace; onSave: (d: Workspace) => void } | null>(null);
 export function AssessmentProvider({
   data,
@@ -86,6 +87,7 @@ export function AssessorPicker({
   defaultValue = '',
   onChange,
   disabled = false,
+  remember = false,
 }: {
   label: string;
   name?: string;
@@ -93,12 +95,18 @@ export function AssessorPicker({
   defaultValue?: string;
   onChange?: (v: string) => void;
   disabled?: boolean;
+  /** Only new evaluation forms opt in; existing records and audit actors stay explicit. */
+  remember?: boolean;
 }) {
   const ctx = useContext(Context),
-    [local, setLocal] = useState(defaultValue),
-    [open, setOpen] = useState(false);
-  const selected = value ?? local,
-    rows = ctx?.data.assessmentManagement.assessors.filter((a) => !a.archivedAt) ?? [];
+    [local, setLocal] = useState(
+      () => defaultValue || (remember && ctx ? lastAssessorName(ctx.data) : ''),
+    ),
+    [open, setOpen] = useState(false),
+    [memoryError, setMemoryError] = useState(false);
+  const rows = ctx?.data.assessmentManagement.assessors.filter((a) => !a.archivedAt) ?? [];
+  const selected =
+    value ?? (remember && !defaultValue && !rows.some((a) => a.name === local) ? '' : local);
   const choices = [
     ...rows.map((a) => a.name),
     ...(selected && !rows.some((a) => a.name === selected) ? [selected] : []),
@@ -106,6 +114,10 @@ export function AssessorPicker({
   const choose = (v: string) => {
     setLocal(v);
     onChange?.(v);
+    if (remember) {
+      const assessor = rows.find((a) => a.name === v);
+      if (assessor) setMemoryError(!rememberAssessor(assessor.id));
+    }
   };
   return (
     <div className="assessor-picker" role="group" aria-label={label}>
@@ -129,6 +141,12 @@ export function AssessorPicker({
         </button>
       </div>
       {!selected && <small>등록한 평가자를 선택하세요.</small>}
+      {remember && selected && !memoryError && (
+        <small>마지막 선택을 기억합니다. 이름을 터치해 변경할 수 있습니다.</small>
+      )}
+      {memoryError && (
+        <small role="status">현재 선택은 적용됐지만 다음 실행을 위한 기억에 실패했습니다.</small>
+      )}
       {open && (
         <Modal title="평가자 등록·관리" onClose={() => setOpen(false)}>
           <AssessorManager />

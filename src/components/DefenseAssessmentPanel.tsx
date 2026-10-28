@@ -162,7 +162,7 @@ function DefenseAssessmentPanelContent({
     setError('');
     draftId.current = crypto.randomUUID();
   };
-  const save = (cancel = false, nextStudent = false) => {
+  const save = (cancel = false) => {
     if (saving.current) return;
     if (!draft.assessor.trim()) {
       setError('평가자·수정자를 입력하세요');
@@ -202,7 +202,10 @@ function DefenseAssessmentPanelContent({
             ? '목표 횟수를 완료했습니다. 다음 학생으로 이동하거나 수비 횟수를 늘릴 수 있습니다.'
             : '저장했습니다. 다음 상황을 기록하세요.',
       );
-      if (nextStudent && !editing && !cancel) navigation?.onSavedNext();
+      // Advance only after a NEW observation has been persisted and the assigned count is met.
+      // Corrections/cancellations and legacy dates without a target never move the student.
+      if (!editing && !cancel && defenseProgress(next, playerId, draft.date).complete)
+        navigation?.onSavedNext();
     } catch (e) {
       setError(e instanceof Error ? e.message : '저장하지 못했습니다. 입력은 유지됩니다.');
     } finally {
@@ -247,7 +250,7 @@ function DefenseAssessmentPanelContent({
         )}
         <p className="hint defense-record-hint">
           한 상황에서 수행한 행동을 각각 체크하세요. 포구 성공을 선택해도 송구·실책 결과가 자동
-          입력되지는 않습니다.
+          입력되지는 않습니다. 할당된 횟수를 모두 저장하면 다음 학생으로 이동합니다.
         </p>
         <div className="form-row">
           <label>
@@ -398,21 +401,12 @@ function DefenseAssessmentPanelContent({
         </p>
       )}
       <div className="defense-save-row">
-        {navigation && !editing && (
-          <button
-            className="primary"
-            disabled={progress.complete}
-            onClick={() => save(false, true)}
-          >
-            수비 기록 저장 · 다음 학생
-          </button>
-        )}
-        <button
-          className={navigation && !editing ? '' : 'primary'}
-          disabled={!editing && progress.complete}
-          onClick={() => save()}
-        >
-          {editing ? '수비 기록 정정 저장' : '수비 기록 저장 · 다음 상황'}
+        <button className="primary" disabled={!editing && progress.complete} onClick={() => save()}>
+          {editing
+            ? '수비 기록 정정 저장'
+            : navigation?.next && progress.target !== null && progress.count + 1 === progress.target
+              ? '수비 기록 저장 · 다음 학생'
+              : '수비 기록 저장 · 다음 상황'}
         </button>
         <button onClick={clear} disabled={!dirty && !editing}>
           입력 되돌리기

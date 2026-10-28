@@ -74,7 +74,7 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.1');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.2');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');

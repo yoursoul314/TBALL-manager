@@ -25,6 +25,9 @@ export function DefenseAttemptPlan({
       <strong aria-label="수비 기록 진행">
         {progress.count} / {progress.target ?? '미설정'}회
         {progress.complete ? ' · 완료' : ' · 진행'}
+        {!progress.complete &&
+          progress.target !== null &&
+          ' · 남은 ' + (progress.target - progress.count) + '회'}
       </strong>
       <button
         type="button"

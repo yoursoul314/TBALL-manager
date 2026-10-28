@@ -1,3 +1,4 @@
+import { lastAssessorName } from '../data/assessmentPreferences';
 import { AssessmentDateActions } from './AssessmentRecordManager';
 import { assertAssessmentDayOpen, assessmentDayArchived } from '../domain/assessmentManagement';
 import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
@@ -39,7 +40,7 @@ function FungoViewContent({
     [setup, setSetup] = useState(
       !data.fungoDays.some((d) => !assessmentDayArchived(data, 'fungo', d.date)),
     ),
-    [assessor, setAssessor] = useState(''),
+    [assessor, setAssessor] = useState(() => lastAssessorName(data)),
     [newDate, setNewDate] = useState(localDate()),
     [ids, setIds] = useState<string[]>([]),
     [filter, setFilter] = useState(emptyStudentFilter),
@@ -109,7 +110,7 @@ function FungoViewContent({
             navigate(() => {
               setSetup(true);
               setNewDate(localDate());
-              setAssessor('');
+              setAssessor(lastAssessorName(data));
               setIds([]);
             })
           }
@@ -182,7 +183,12 @@ function FungoViewContent({
                   onChange={(e) => setNewDate(e.target.value)}
                 />
               </label>
-              <AssessorPicker label="펑고 평가자" value={assessor} onChange={setAssessor} />
+              <AssessorPicker
+                label="펑고 평가자"
+                value={assessor}
+                onChange={setAssessor}
+                remember
+              />
             </div>
             <StudentFilters
               players={players}

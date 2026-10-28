@@ -22,7 +22,7 @@ it('수비 집중 모드는 펼치기 없이 9능력을 모두 보여주고 저�
   );
   expect(screen.getAllByRole('button', { name: /^[GFCALQMJB] .* 미관찰$/ })).toHaveLength(9);
   fireEvent.click(screen.getByRole('button', { name: 'Q 첫 반응 성공' }));
-  fireEvent.click(screen.getByRole('button', { name: '수비 기록 저장 · 다음 학생' }));
+  fireEvent.click(screen.getByRole('button', { name: '수비 기록 저장 · 다음 상황' }));
   expect(next).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Q 첫 반응 성공' })).toHaveAttribute(
     'aria-pressed',

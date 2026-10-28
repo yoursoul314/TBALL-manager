@@ -214,8 +214,8 @@ function BattingDayViewContent({
                       required
                     />
                   </label>
-                  <AssessorPicker label="공통 평가자" name="assessor" />
-                  <AssessmentPurposePicker label="공통 평가 목적" />
+                  <AssessorPicker label="공통 평가자" name="assessor" remember />
+                  <AssessmentPurposePicker label="공통 평가 목적" defaultValue="타격 평가" />
                 </div>
                 <label>
                   공통 메모

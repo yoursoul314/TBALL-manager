@@ -1,19 +1,24 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { useState } from 'react';
-import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
+import {
+  createAssessmentTestWorkspace as createDemoWorkspace,
+  chooseTestAssessor,
+} from '../test/assessment';
 import { createDefenseDay, addDefenseParticipants } from '../assessment/defenseDays';
 import { DefenseDayView } from './DefenseDayView';
 import { ComparisonView } from './ComparisonView';
 import { NewGame } from './NewGame';
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 const change = (name: string, value: string) =>
-  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name)
+    ? chooseTestAssessor(name, value)
+    : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
-it('날짜 생성 후 여러 학생을 추가하고 저장 성공 시만 다음 학생으로 이동하며 관찰을 초기화한다', () => {
+it('학생당2회 완료 후에만 다음 학생으로 이동하고 저장 실패·마지막 학생을 보호한다', () => {
   let saved = createDemoWorkspace(),
     fail = false;
   function Harness() {
@@ -32,16 +37,29 @@ it('날짜 생성 후 여러 학생을 추가하고 저장 성공 시만 다음 
   render(<Harness />);
   change('새 수비 평가 날짜', '2026-10-27');
   change('수비 공통 평가자', 'QA');
+  change('학생당 수비 횟수', '2');
   click('수비 평가 날짜 생성');
-  fireEvent.click(screen.getByLabelText('샘플 선수 01 수비 평가 대상 선택'));
-  fireEvent.click(screen.getByLabelText('샘플 선수 02 수비 평가 대상 선택'));
+  for (const n of ['01', '02'])
+    fireEvent.click(screen.getByLabelText('샘플 선수 ' + n + ' 수비 평가 대상 선택'));
   click('선택 학생 수비 평가 시작');
-  expect(saved.defenseDays[0].playerIds).toEqual(['green-1', 'green-2']);
   click('G 땅볼 성공');
-  expect(screen.getByRole('button', { name: '다음 수비 학생' })).toBeDisabled();
+  click('수비 기록 저장 · 다음 상황');
+  expect(saved.defenseAssessments).toHaveLength(1);
+  expect(
+    screen.getByRole('heading', { name: '수비 상황 체크리스트 · 샘플 선수 01' }),
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText('수비 기록 진행')).toHaveTextContent('남은 1회');
+  expect(screen.getByRole('button', { name: 'G 땅볼 미관찰' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  click('G 땅볼 성공');
   fail = true;
   click('수비 기록 저장 · 다음 학생');
-  expect(saved.defenseAssessments).toHaveLength(0);
+  expect(saved.defenseAssessments).toHaveLength(1);
+  expect(
+    screen.getByRole('heading', { name: '수비 상황 체크리스트 · 샘플 선수 01' }),
+  ).toBeInTheDocument();
   expect(screen.getByRole('alert')).toHaveTextContent('저장 공간 오류');
   expect(screen.getByRole('button', { name: 'G 땅볼 성공' })).toHaveAttribute(
     'aria-pressed',
@@ -49,7 +67,7 @@ it('날짜 생성 후 여러 학생을 추가하고 저장 성공 시만 다음 
   );
   fail = false;
   click('수비 기록 저장 · 다음 학생');
-  expect(saved.defenseAssessments[0].playerId).toBe('green-1');
+  expect(saved.defenseAssessments.map((r) => r.playerId)).toEqual(['green-1', 'green-1']);
   expect(
     screen.getByRole('heading', { name: '수비 상황 체크리스트 · 샘플 선수 02' }),
   ).toBeInTheDocument();
@@ -57,9 +75,20 @@ it('날짜 생성 후 여러 학생을 추가하고 저장 성공 시만 다음 
     'aria-pressed',
     'true',
   );
-  click('G 땅볼 실패');
-  click('수비 기록 저장 · 다음 학생');
-  expect(saved.defenseAssessments[1].playerId).toBe('green-2');
+  for (let i = 0; i < 2; i++) {
+    click('G 땅볼 실패');
+    click('수비 기록 저장 · 다음 상황');
+  }
+  expect(saved.defenseAssessments.map((r) => r.playerId)).toEqual([
+    'green-1',
+    'green-1',
+    'green-2',
+    'green-2',
+  ]);
+  expect(
+    screen.getByRole('heading', { name: '수비 상황 체크리스트 · 샘플 선수 02' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '수비 기록 저장 · 다음 상황' })).toBeDisabled();
   click('집중 모드 끝내기');
   expect(screen.getByText('100.0')).toBeInTheDocument();
   expect(screen.getByText('0.0')).toBeInTheDocument();

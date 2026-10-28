@@ -74,7 +74,7 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.1');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.2');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
@@ -177,7 +177,7 @@ const check = (s) => {
       return orig.call(this, k, v);
     };
   });
-  await tap('수비 기록 저장 · 다음 학생');
+  await page.getByRole('button', { name: /^수비 기록 저장 ·/ }).click();
   assert.equal((await data()).defenseAssessments.length, 0);
   assert.equal(
     await page
@@ -185,7 +185,7 @@ const check = (s) => {
       .getAttribute('aria-pressed'),
     'true',
   );
-  await tap('수비 기록 저장 · 다음 학생');
+  await page.getByRole('button', { name: /^수비 기록 저장 ·/ }).click();
   await page
     .getByRole('heading', { name: '수비 상황 체크리스트 · 샘플 선수 02', exact: true })
     .waitFor();
@@ -202,7 +202,7 @@ const check = (s) => {
   )
     await tap('첫 반응·수비 범위·판단 등 9능력 펼치기');
   for (const [k, l] of Object.entries(abilities)) await tap(k + ' ' + l + ' 부분 수행');
-  await tap('수비 기록 저장 · 다음 학생');
+  await page.getByRole('button', { name: /^수비 기록 저장 ·/ }).click();
   await tap('이전 수비 학생');
   assert.match(await page.getByLabel('수비 기록 진행').textContent(), /1 \/ 1회 · 완료/);
   assert.ok(
