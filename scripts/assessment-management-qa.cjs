@@ -1,0 +1,33 @@
+// Synthetic fixtures in an isolated browser only.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {installStorageReader}=require('./qa-storage.cjs'),{chooseAssessor}=require('./qa-assessors.cjs');
+const pw=require(process.env.PLAYWRIGHT_MODULE||'playwright'),engine=process.argv[2]||'webkit',url=process.env.QA_URL||'https://yoursoul314.github.io/TBALL-manager/';
+const out=path.resolve(process.env.QA_OUTPUT||'test-results/assessment-management',engine);fs.mkdirSync(out,{recursive:true});
+const report={engine,source:process.env.QA_DIST?'local-dist':'deployed',checks:[],errors:[]};let browser,page;
+const tap=name=>page.getByRole('button',{name,exact:true}).click();
+async function nav(name){let b=page.locator('.sidebar').getByRole('button',{name,exact:true});if(!await b.isVisible())await tap('메뉴 열기');await b.click();}
+const data=()=>page.evaluate(()=>window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')));
+async function confirm(restore=false){await chooseAssessor(page,'처리 평가자','가상 기록원');await tap(restore?'복원 확인':'삭제 확인');await page.getByRole('dialog').waitFor({state:'hidden'});}
+(async()=>{
+ browser=await pw[engine].launch({headless:true,...(process.env.QA_BROWSER_PATH?{executablePath:process.env.QA_BROWSER_PATH}:{})});const ctx=await browser.newContext({...pw.devices['iPad (gen 7) landscape'],viewport:{width:1024,height:768},deviceScaleFactor:1,serviceWorkers:'block'});
+ if(process.env.QA_DIST)await ctx.route(url+'**',r=>r.fulfill({path:path.resolve(process.env.QA_DIST,new URL(r.request().url()).pathname.replace('/TBALL-manager/','')||'index.html')}));
+ page=await ctx.newPage();page.setDefaultTimeout(20000);await installStorageReader(page);page.on('pageerror',e=>report.errors.push(e.message));await page.goto(url,{waitUntil:'networkidle'});assert.equal(await page.locator('.version').textContent(),'BETA 0.14.0');
+ await nav('기능평가 & 팀워크');await tap('평가자·기록 관리');await page.getByLabel('등록할 평가자',{exact:true}).fill('가상 기록원');await tap('평가자 등록 저장');
+ assert.equal((await data()).assessmentManagement.assessors.length,1);
+ await tap('타격 상세평가');await page.getByLabel('새 평가 날짜',{exact:true}).fill('2026-10-28');await page.getByLabel('공통 타격 횟수',{exact:true}).fill('1');await chooseAssessor(page,'공통 평가자','가상 기록원');await page.getByLabel('공통 평가 목적',{exact:true}).fill('삭제·복원 QA');await tap('평가 날짜 생성');await page.getByLabel('샘플 선수 01 평가 대상 선택',{exact:true}).check();await tap('선택 학생 평가 시작');await tap('5점 장타성 정타(배럴)');await tap('기록 저장 · 다음 회차');await tap('전체 화면 닫기');
+ const batting=await data();assert.equal(batting.battingAttempts[0].score,5);
+ await tap('수비 체크리스트');await page.getByLabel('새 수비 평가 날짜',{exact:true}).fill('2026-10-28');await chooseAssessor(page,'수비 공통 평가자','가상 기록원');await tap('수비 평가 날짜 생성');await page.getByLabel('샘플 선수 01 수비 평가 대상 선택',{exact:true}).check();await tap('선택 학생 수비 평가 시작');await tap('G 땅볼 성공');await tap('수비 기록 저장 · 다음 상황');await tap('집중 모드 끝내기');
+ await tap('펑고 5변수 평가');await page.getByLabel('새 펑고 날짜',{exact:true}).fill('2026-10-28');await chooseAssessor(page,'펑고 평가자','가상 기록원');await page.getByLabel('샘플 선수 01 · 1번',{exact:true}).check();await tap('펑고 날짜 · 학생 저장 (1명)');await tap('정밀 모드');await page.getByLabel('정밀 G',{exact:true}).fill('8');await tap('펑고 기록 저장');await tap('전체 화면 닫기');
+ const original=await data();assert.equal(original.assessmentManagement.assessors.length,1);report.checks.push('One registered evaluator selected by touch for batting, defense and fungo; records saved');
+ await tap('평가자·기록 관리');
+ for(const [kind,label,array]of [['batting','타격 세션','battingSessions'],['defense','수비 상황','defenseAssessments'],['fungo','펑고 기록','fungoAssessments']]){
+  await tap(label);await tap('선택 날짜 삭제');await confirm();let d=await data();assert.equal(d.assessmentManagement.dayHistory.at(-1).kind,kind);assert.equal(d.assessmentManagement.dayHistory.at(-1).archived,true);assert.equal(kind==='batting'?d[array][0].status:d[array][0].revisions.at(-1).status,'cancelled');
+  await tap('선택 날짜 복원');await confirm(true);d=await data();assert.equal(kind==='batting'?d[array][0].status:d[array][0].revisions.at(-1).status,kind==='batting'?'in-progress':'active');
+ }
+ const restored=await data();assert.deepEqual(restored.battingAttempts,original.battingAttempts);assert.deepEqual(restored.defenseAssessments[0].revisions[0],original.defenseAssessments[0].revisions[0]);assert.deepEqual(restored.fungoAssessments[0].revisions[0],original.fungoAssessments[0].revisions[0]);assert.deepEqual(restored.events,original.events);report.checks.push('Three date groups delete and restore; original values/audits/events retained');
+ await tap('타격 회차');const beforeFailure=await data();await tap('기록 삭제');await chooseAssessor(page,'처리 평가자','가상 기록원');
+ await page.evaluate(()=>{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){Storage.prototype.setItem=set;if(k==='tb-manager.workspace.v12')throw Error('QA write failure');return set.call(this,k,v);};});await tap('삭제 확인');await page.getByRole('dialog').getByRole('alert').waitFor();assert.deepEqual(await data(),beforeFailure);await tap('삭제 확인');await page.getByRole('dialog').waitFor({state:'hidden'});assert.equal((await data()).battingAttempts[0].status,'cancelled');await tap('삭제한 기록');await tap('기록 복원');await confirm(true);assert.equal((await data()).battingAttempts[0].status,'active');report.checks.push('Individual round deletion, failure keeps source/dialog, retry and restore');
+ for(const [width,height]of [[1024,768],[820,1180],[1440,900]]){await page.setViewportSize({width,height});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:path.join(out,'management-'+width+'.png')});}
+ await tap('가상 기록원 사용 중지');assert((await data()).assessmentManagement.assessors[0].archivedAt);await tap('가상 기록원 사용 복원');assert.equal((await data()).assessmentManagement.assessors[0].archivedAt,null);
+ const final=await data();await page.reload({waitUntil:'networkidle'});assert.deepEqual(await data(),final);report.checks.push('Registry suspension/restoration, tablet/PC layout and persistence after reload');assert.deepEqual(report.errors,[]);report.status='passed';
+})().catch(async e=>{report.status='failed';report.failure=e.stack;process.exitCode=1;console.error(e);if(page){report.pageText=(await page.locator('body').innerText()).slice(0,5000);await page.screenshot({path:path.join(out,'failure.png')});}}).finally(async()=>{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));if(browser)await browser.close();console.log(JSON.stringify(report));});

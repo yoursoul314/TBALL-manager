@@ -193,7 +193,7 @@ async function captureBackup(button) {
   await page.setViewportSize({ width: 1180, height: 820 });
   await nav('규칙 & 설정');
   await tap('앱 업데이트 확인');
-  await page.getByText('현재 BETA 0.13.2입니다.', { exact: true }).waitFor();
+  await page.getByText('현재 BETA 0.14.0입니다.', { exact: true }).waitFor();
   await formFit('settings');
   const before = await data();
   await tap('초기화 준비');
@@ -224,7 +224,7 @@ async function captureBackup(button) {
     localStorage.removeItem('tb-manager.workspace.v12');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 12);
+  assert.equal((await data()).schemaVersion, 13);
   assert(await page.evaluate(() => !!localStorage.getItem('tb-manager.workspace.v6')));
   await nav('규칙 & 설정');
   await tap('전체 초기화 · 선수/팀/사진 포함');

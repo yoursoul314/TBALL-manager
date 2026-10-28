@@ -1,3 +1,4 @@
+import { assertAssessmentDayOpen } from '../domain/assessmentManagement';
 import type { Workspace } from '../domain/model';
 import {
   fungoScores,
@@ -13,6 +14,7 @@ export function saveFungo(
   meta: { id: string; revisionId: string; at: string; reason: string },
   cancel = false,
 ) {
+  assertAssessmentDayOpen(data, 'fungo', input.date);
   const old = data.fungoAssessments.find(
     (r) => r.playerId === playerId && r.revisions[0].date === input.date,
   );

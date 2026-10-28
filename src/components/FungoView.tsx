@@ -1,3 +1,6 @@
+import { AssessmentDateActions } from './AssessmentRecordManager';
+import { assertAssessmentDayOpen, assessmentDayArchived } from '../domain/assessmentManagement';
+import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../domain/model';
 import {
@@ -17,7 +20,7 @@ import { StudentFilters } from './StudentFilters';
 import { useVisibleViewport } from './useVisibleViewport';
 import { Panel } from './ui';
 const show = (n: number | null) => (n === null ? '미측정' : n.toFixed(1));
-export function FungoView({
+function FungoViewContent({
   data,
   onSave,
   onDirtyChange,
@@ -28,9 +31,14 @@ export function FungoView({
 }) {
   const players = activePlayers(data),
     [focused, setFocused] = useState(true),
-    [date, setDate] = useState(data.fungoDays.at(-1)?.date ?? localDate()),
+    [date, setDate] = useState(
+      data.fungoDays.filter((d) => !assessmentDayArchived(data, 'fungo', d.date)).at(-1)?.date ??
+        localDate(),
+    ),
     [index, setIndex] = useState(0),
-    [setup, setSetup] = useState(!data.fungoDays.length),
+    [setup, setSetup] = useState(
+      !data.fungoDays.some((d) => !assessmentDayArchived(data, 'fungo', d.date)),
+    ),
     [assessor, setAssessor] = useState(''),
     [newDate, setNewDate] = useState(localDate()),
     [ids, setIds] = useState<string[]>([]),
@@ -38,7 +46,9 @@ export function FungoView({
     [tab, setTab] = useState<'record' | 'compare' | 'history'>('record'),
     [dirty, setDirty] = useState(false),
     [message, setMessage] = useState('');
-  const day = data.fungoDays.find((d) => d.date === date),
+  const day = data.fungoDays.find(
+      (d) => d.date === date && !assessmentDayArchived(data, 'fungo', d.date),
+    ),
     students = (day?.playerIds ?? []).flatMap((id) =>
       players.find((p) => p.id === id) ? [players.find((p) => p.id === id)!] : [],
     ),
@@ -87,9 +97,11 @@ export function FungoView({
             }
           >
             <option value="">날짜 선택</option>
-            {data.fungoDays.map((d) => (
-              <option key={d.date}>{d.date}</option>
-            ))}
+            {data.fungoDays
+              .filter((d) => !assessmentDayArchived(data, 'fungo', d.date))
+              .map((d) => (
+                <option key={d.date}>{d.date}</option>
+              ))}
           </select>
         </label>
         <button
@@ -118,6 +130,19 @@ export function FungoView({
             평가 학생 변경
           </button>
         )}
+        <AssessmentDateActions
+          data={data}
+          kind="fungo"
+          date={date}
+          disabled={dirty}
+          onSave={onSave}
+          onRemoved={() => {
+            setDate('');
+            setSetup(true);
+            setIds([]);
+            setFocused(false);
+          }}
+        />
       </div>
       {message && <p role="alert">{message}</p>}
       {setup ? (
@@ -126,6 +151,8 @@ export function FungoView({
             onSubmit={(e) => {
               e.preventDefault();
               try {
+                assertAssessmentDayOpen(data, 'fungo', newDate);
+                if (!assessor.trim()) throw Error('등록된 평가자를 터치해 선택하세요');
                 if (!ids.length) throw Error('평가 학생을 선택하세요');
                 onSave({
                   ...data,
@@ -155,16 +182,7 @@ export function FungoView({
                   onChange={(e) => setNewDate(e.target.value)}
                 />
               </label>
-              <label>
-                펑고 평가자
-                <input
-                  required
-                  maxLength={200}
-                  aria-label="펑고 평가자"
-                  value={assessor}
-                  onChange={(e) => setAssessor(e.target.value)}
-                />
-              </label>
+              <AssessorPicker label="펑고 평가자" value={assessor} onChange={setAssessor} />
             </div>
             <StudentFilters
               players={players}
@@ -408,15 +426,11 @@ function FungoEditor({
         </div>
         {page === 'notes' ? (
           <div className="form-row">
-            <label>
-              평가자
-              <input
-                required
-                value={draft.assessor}
-                maxLength={200}
-                onChange={(e) => patch({ assessor: e.target.value })}
-              />
-            </label>
+            <AssessorPicker
+              label="평가자"
+              value={draft.assessor}
+              onChange={(assessor) => patch({ assessor })}
+            />
             <label>
               펑고 메모
               <textarea
@@ -587,5 +601,13 @@ function FungoEditor({
         </button>
       </div>
     </div>
+  );
+}
+
+export function FungoView(props: Parameters<typeof FungoViewContent>[0]) {
+  return (
+    <AssessmentProvider data={props.data} onSave={props.onSave}>
+      <FungoViewContent {...props} />
+    </AssessmentProvider>
   );
 }

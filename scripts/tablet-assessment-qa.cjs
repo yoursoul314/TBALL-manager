@@ -1,3 +1,4 @@
+const { chooseAssessor } = require('./qa-assessors.cjs');
 const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -73,7 +74,7 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.13.2');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.0');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
@@ -88,12 +89,12 @@ const check = (s) => {
     localStorage.removeItem('tb-manager.workspace.v12');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 12);
+  assert.equal((await data()).schemaVersion, 13);
   assert.ok(await page.evaluate(() => localStorage.getItem('tb-manager.workspace.v10')));
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
   await page.getByLabel('새 수비 평가 날짜', { exact: true }).fill('2026-10-27');
-  await page.getByLabel('수비 공통 평가자', { exact: true }).fill('가상 QA');
+  await chooseAssessor(page, '수비 공통 평가자', '가상 QA');
   await page.getByLabel('학생당 수비 횟수', { exact: true }).fill('1');
   await tap('수비 평가 날짜 생성');
   await page.reload({ waitUntil: 'networkidle' });
@@ -255,7 +256,7 @@ const check = (s) => {
   );
   await nav('기능평가 & 팀워크');
   await page.getByLabel('새 평가 날짜', { exact: true }).fill('2026-10-27');
-  await page.getByLabel('공통 평가자', { exact: true }).fill('가상 QA');
+  await chooseAssessor(page, '공통 평가자', '가상 QA');
   await page.getByLabel('공통 평가 목적', { exact: true }).fill('타격');
   await page.getByLabel('날짜 평가 척도',{exact:true}).selectOption('manual-ten-v1');
   await tap('평가 날짜 생성');

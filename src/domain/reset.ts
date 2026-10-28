@@ -33,6 +33,7 @@ export function resetWorkspace(data: Workspace, scope: ResetScope, at: string): 
     next.legacyTeamwork = data.legacyTeamwork.filter((t) => !t.gameId);
   }
   if (evaluation) {
+    next.assessmentManagement = { ...data.assessmentManagement, dayHistory: [] };
     next.battingDays = [];
     next.defenseDays = [];
     next.fungoDays = [];
@@ -49,6 +50,7 @@ export function resetWorkspace(data: Workspace, scope: ResetScope, at: string): 
     next.selections = [];
   }
   if (scope === 'all') {
+    next.assessmentManagement = { assessors: [], dayHistory: [] };
     next.migrationSource = undefined;
     next.legacySource = undefined;
     next.players = [];

@@ -4,12 +4,12 @@ import { useState } from 'react';
 import App from '../App';
 import { BattingDayView } from './BattingDayView';
 import { NewGame } from './NewGame';
-import { createDemoWorkspace } from '../data/seed';
+import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
 import { createAssessmentDay } from '../assessment/days';
 import { STORAGE_KEY } from '../data/repository';
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 const change = (name: string, value: string) =>
-  fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(() => {
   cleanup();
   localStorage.clear();

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Workspace as CurrentWorkspace } from '../domain/model';
 export type WorkspaceV4 = Omit<
   CurrentWorkspace,
+  | 'assessmentManagement'
   | 'schemaVersion'
   | 'migrationSource'
   | 'fungoDays'

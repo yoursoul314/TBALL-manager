@@ -102,7 +102,7 @@ it('v7 원문·개인별 평가를 보존하고 v8 빈 날짜 목록으로 이�
     },
   });
   const next = repo.load()!;
-  expect(next.schemaVersion).toBe(12);
+  expect(next.schemaVersion).toBe(13);
   expect(next.battingDays).toEqual([]);
   expect(next.players).toEqual(original.players);
   expect(next.games).toEqual(original.games);

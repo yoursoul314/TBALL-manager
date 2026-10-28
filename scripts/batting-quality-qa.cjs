@@ -1,3 +1,4 @@
+const { chooseAssessor } = require('./qa-assessors.cjs');
 const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -73,14 +74,14 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.13.2');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.0');
 
   // Create genuine legacy observations via the preserved editor, then emulate v11 storage.
   await nav('기능평가 & 팀워크');
   await tap('개인별 이전 기록');
   await page.getByLabel('평가 날짜', { exact: true }).fill('2026-10-26');
   await page.getByLabel('세션 평가 척도', { exact: true }).selectOption('manual-ten-v1');
-  await page.getByLabel('세션 평가자', { exact: true }).fill('가상 QA');
+  await chooseAssessor(page, '세션 평가자', '가상 QA');
   await page.getByLabel('평가 목적', { exact: true }).fill('이전 평가');
   await tap('평가 세션 생성');
   await tap('정상 타격');
@@ -102,7 +103,7 @@ const check = (s) => {
   });
   await page.reload({ waitUntil: 'networkidle' });
   const migrated = await data();
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 13);
   assert.deepEqual(migrated.battingAttempts, old.battingAttempts);
   assert.deepEqual(migrated.battingAudit, old.battingAudit);
   assert.deepEqual(
@@ -114,7 +115,7 @@ const check = (s) => {
   await tap('새 평가 날짜 만들기');
   await page.getByLabel('새 평가 날짜', { exact: true }).fill('2026-10-28');
   await page.getByLabel('공통 타격 횟수', { exact: true }).fill('6');
-  await page.getByLabel('공통 평가자', { exact: true }).fill('가상 QA');
+  await chooseAssessor(page, '공통 평가자', '가상 QA');
   await page.getByLabel('공통 평가 목적', { exact: true }).fill('타구 질');
   assert.equal(
     await page.getByLabel('날짜 평가 척도', { exact: true }).inputValue(),

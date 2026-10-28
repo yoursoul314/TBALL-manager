@@ -109,7 +109,35 @@ export const defenseSequenceSchema = z
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(12),
+      schemaVersion: z.literal(13),
+      assessmentManagement: z
+        .object({
+          assessors: z
+            .array(
+              z.object({
+                id,
+                name: z.string().trim().min(1).max(200),
+                createdAt: z.iso.datetime(),
+                archivedAt: z.iso.datetime().nullable(),
+              }),
+            )
+            .max(1000),
+          dayHistory: z
+            .array(
+              z.object({
+                id,
+                kind: z.enum(['batting', 'defense', 'fungo']),
+                date: z.iso.date(),
+                archived: z.boolean(),
+                at: z.iso.datetime(),
+                actor: z.string().trim().min(1).max(200),
+                reason: note.min(1),
+                affected: z.array(z.object({ id, revisionId: id })).max(100000),
+              }),
+            )
+            .max(20000),
+        })
+        .default({ assessors: [], dayHistory: [] }),
       fungoDays: fungoDaysSchema.default([]),
       fungoAssessments: fungoAssessmentsSchema.default([]),
       defenseDays: z
@@ -175,6 +203,7 @@ export function parseWorkspace(input: unknown): Workspace {
             z.literal(9),
             z.literal(10),
             z.literal(11),
+            z.literal(12),
           ]),
           raw: z.string(),
         })
@@ -268,6 +297,36 @@ export function parseWorkspace(input: unknown): Workspace {
       };
     return e;
   }) as GameEvent[];
+  const registry = header.assessmentManagement;
+  if (
+    new Set(registry.assessors.map((a) => a.id)).size !== registry.assessors.length ||
+    new Set(registry.assessors.map((a) => a.name)).size !== registry.assessors.length
+  )
+    throw Error('평가자 중복');
+  if (new Set(registry.dayHistory.map((h) => h.id)).size !== registry.dayHistory.length)
+    throw Error('평가 날짜 삭제 이력 중복');
+  const deletedDates = new Map<string, boolean>();
+  for (const h of registry.dayHistory) {
+    const key = h.kind + '/' + h.date;
+    if (
+      (deletedDates.get(key) ?? false) === h.archived ||
+      new Set(h.affected.map((r) => r.id)).size !== h.affected.length
+    )
+      throw Error('평가 날짜 삭제 이력 연결 오류');
+    deletedDates.set(key, h.archived);
+  }
+  for (const s of base.battingSessions)
+    if (deletedDates.get('batting/' + s.date) && s.status !== 'cancelled')
+      throw Error('삭제된 날짜의 활성 타격 세션');
+  for (const [kind, rows] of [
+    ['defense', header.defenseAssessments],
+    ['fungo', header.fungoAssessments],
+  ] as const)
+    for (const r of rows) {
+      const v = r.revisions.at(-1)!;
+      if (deletedDates.get(kind + '/' + v.date) && v.status !== 'cancelled')
+        throw Error('삭제된 날짜의 활성 수비 기록');
+    }
   const ids = new Set(players.map((p) => p.id));
   for (const p of players)
     if (p.pref1 && p.pref1 === p.pref2) throw Error('1·2지망 포지션은 다르게 선택하세요');
@@ -385,7 +444,8 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 12,
+    schemaVersion: 13,
+    assessmentManagement: header.assessmentManagement,
     selections: header.selections,
     fungoDays: header.fungoDays,
     fungoAssessments: header.fungoAssessments,

@@ -1,3 +1,5 @@
+import { AssessmentRecordManager } from './AssessmentRecordManager';
+import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { FungoView } from './FungoView';
 import { DefenseDayView } from './DefenseDayView';
 import { defenseEvaluation } from '../evaluation/defense';
@@ -23,7 +25,9 @@ export function AssessmentView({
   const players = activePlayers(data);
   const [selectedId, setPlayerId] = useState(players[0]?.id ?? '');
   const playerId = players.some((p) => p.id === selectedId) ? selectedId : (players[0]?.id ?? '');
-  const [tab, setTab] = useState<'batting' | 'defense' | 'fungo' | 'skill' | 'teamwork'>('batting');
+  const [tab, setTab] = useState<'batting' | 'defense' | 'fungo' | 'skill' | 'teamwork' | 'manage'>(
+    'batting',
+  );
   const [defenseMode, setDefenseMode] = useState<'day' | 'individual'>('day');
   const [battingMode, setBattingMode] = useState<'day' | 'individual'>('day');
   const [dirty, setDirty] = useState(false);
@@ -46,12 +50,15 @@ export function AssessmentView({
   const latest = data.assessments.filter((a) => a.playerId === playerId).at(-1);
   const defense = defenseEvaluation(data, playerId);
   const current = players.find((p) => p.id === playerId);
-  if (!current)
+  if (!current && tab !== 'manage')
     return (
-      <Empty>등록된 선수가 없습니다. 선수 & 팀에서 선수를 등록하거나 복원한 뒤 평가하세요.</Empty>
+      <Empty>
+        등록된 선수가 없습니다. 선수 & 팀에서 선수를 등록하거나 복원한 뒤 평가하세요.
+        <button onClick={() => setTab('manage')}>평가자·기록 관리</button>
+      </Empty>
     );
   return (
-    <>
+    <AssessmentProvider data={data} onSave={onSave}>
       <div className="page-title">
         <div>
           <div className="eyebrow">GROWTH & ASSESSMENT</div>
@@ -63,6 +70,9 @@ export function AssessmentView({
         <Badge tone="amber">실측 환산표 TODO</Badge>
       </div>
       <div className="tabs">
+        <button className={tab === 'manage' ? 'active' : ''} onClick={() => changeTab('manage')}>
+          평가자·기록 관리
+        </button>
         <button className={tab === 'batting' ? 'active' : ''} onClick={() => changeTab('batting')}>
           타격 상세평가
         </button>
@@ -123,7 +133,9 @@ export function AssessmentView({
       {warning &&
         ((tab === 'batting' && battingMode === 'day') ||
           (tab === 'defense' && defenseMode === 'day')) && <p role="alert">{warning}</p>}
-      {tab === 'fungo' ? (
+      {tab === 'manage' ? (
+        <AssessmentRecordManager data={data} onSave={onSave} />
+      ) : tab === 'fungo' ? (
         <>
           {warning && <p role="alert">{warning}</p>}
           <FungoView
@@ -193,9 +205,9 @@ export function AssessmentView({
             </div>
             {warning && <p role="alert">{warning}</p>}
             <div className="assessment-person">
-              <span className="avatar large">{String(current.number).padStart(2, '0')}</span>
-              <h2>{current.name}</h2>
-              <p>{data.teams.find((t) => t.id === current.teamId)?.name ?? '공통 명단'}</p>
+              <span className="avatar large">{String(current?.number).padStart(2, '0')}</span>
+              <h2>{current?.name}</h2>
+              <p>{data.teams.find((t) => t.id === current?.teamId)?.name ?? '공통 명단'}</p>
             </div>
             <div className="callout">
               <ClipboardCheck size={20} />
@@ -247,6 +259,10 @@ export function AssessmentView({
                 onSubmit={(e) => {
                   e.preventDefault();
                   const f = new FormData(e.currentTarget);
+                  if (!String(f.get('assessor') ?? '').trim()) {
+                    setWarning('등록된 평가자를 터치해 선택하세요');
+                    return;
+                  }
                   const nullable = (k: string) =>
                     String(f.get(k)).trim() === '' ? null : Number(f.get(k));
                   onSave({
@@ -321,10 +337,7 @@ export function AssessmentView({
                       defaultValue={latest?.runningSkill ?? ''}
                     />
                   </label>
-                  <label>
-                    평가자
-                    <input name="assessor" required placeholder="교사·감독 이름" />
-                  </label>
+                  <AssessorPicker label="평가자" name="assessor" />
                 </div>
                 <button className="primary">
                   <Check size={17} />
@@ -337,6 +350,6 @@ export function AssessmentView({
           )}
         </div>
       )}
-    </>
+    </AssessmentProvider>
   );
 }

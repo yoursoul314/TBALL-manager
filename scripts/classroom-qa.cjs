@@ -1,3 +1,4 @@
+const { chooseAssessor } = require('./qa-assessors.cjs');
 const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -144,7 +145,7 @@ async function fit(name, locators) {
   await nav('기능평가 & 팀워크');
   if(await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).count()) await page.getByRole('button',{name:'개인별 이전 기록',exact:true}).click();
   await page.getByLabel('평가 날짜', { exact: true }).fill('2026-10-26');
-  await page.getByLabel('세션 평가자', { exact: true }).fill('QA 감독');
+  await chooseAssessor(page, '세션 평가자', 'QA 감독');
   await page.getByLabel('평가 목적', { exact: true }).fill('전체 화면 검증');
   await page.getByLabel('세션 평가 척도',{exact:true}).selectOption('manual-ten-v1');
   await page.getByRole('button', { name: '평가 세션 생성', exact: true }).tap();

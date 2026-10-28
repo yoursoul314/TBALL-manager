@@ -202,7 +202,7 @@ it('v11 JSON·원본·기존 관찰·감사 보존, v12 왕복·실패/다른 �
   };
   const repo = new LocalWorkspaceRepository(storage),
     m = repo.load()!;
-  expect(m.schemaVersion).toBe(12);
+  expect(m.schemaVersion).toBe(13);
   expect(m.battingAudit).toEqual(obj.battingAudit);
   expect(m.battingAttempts).toEqual(obj.battingAttempts);
   expect(m.battingSessions).toEqual(obj.battingSessions);

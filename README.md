@@ -1,6 +1,6 @@
 # TB Manager | 티볼 통합 매니지먼트 시스템
 
-중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA** v0.13입니다.
+중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA** v0.14입니다.
 
 - 웹앱: https://yoursoul314.github.io/TBALL-manager/
 - 저장소: https://github.com/yoursoul314/TBALL-manager
@@ -10,7 +10,11 @@
 - 검증 결과: [docs/VALIDATION.md](docs/VALIDATION.md)
 - 학생·엔트리·공수 통합 기록 v3: [docs/ROSTER_DEFENSE_V3.md](docs/ROSTER_DEFENSE_V3.md)
 
-감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 유지하며 현재 schema12로 기존 원문을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 유지하며 현재 schema13으로 기존 원문을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+
+## BETA 0.14 · 평가 삭제·복원 및 평가자 터치 선택
+
+타격·수비·펑고 날짜 전체와 개별 기록을 삭제/복원할 수 있습니다. **평가자·기록 관리**에서 평가자를 한 번 등록하면 각 평가에서 이름 버튼으로 선택합니다. 삭제는 평균/추천에서 제외하고 원본·정정 이력을 보존합니다. 내부 schema13을 기존 저장 키에 원자적으로 이전하여 중복 키를 추가하지 않습니다. [사용 순서·이전 계약·파일 목록](docs/ASSESSMENT_MANAGEMENT_V14.md).
 
 ## BETA 0.13.2 · 공간이 없는 기기의 원본 보관 복구
 

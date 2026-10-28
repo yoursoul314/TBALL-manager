@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { render, screen, cleanup, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
-import { createDemoWorkspace } from '../data/seed';
+import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
 import { LocalWorkspaceRepository, STORAGE_KEY } from '../data/repository';
 import { createBattingSession, recordBattingAttempt, blankAttempt } from '../assessment/batting';
 import { summarizeBatting } from '../assessment/battingSummary';
@@ -14,11 +14,12 @@ afterEach(() => {
 });
 it('날짜별 회차 입력·저장·새로고침 후 유지·정정과 프로필 누적 평균이 연결된다', async () => {
   const user = userEvent.setup();
+  new LocalWorkspaceRepository(localStorage).save(createDemoWorkspace(), 0);
   let app = render(<App />);
   await user.click(screen.getByRole('button', { name: '기능평가 & 팀워크' }));
   await user.click(screen.getByRole('button', { name: '개인별 이전 기록' }));
   fireEvent.change(screen.getByLabelText('평가 날짜'), { target: { value: '2026-10-20' } });
-  fireEvent.change(screen.getByLabelText('세션 평가자'), { target: { value: '가상 코치' } });
+  chooseTestAssessor('세션 평가자','가상 코치');
   fireEvent.change(screen.getByLabelText('평가 목적'), { target: { value: '테스트 연습' } });
   fireEvent.change(screen.getByLabelText('세션 평가 척도'), { target: { value: 'manual-ten-v1' } });
   await user.click(screen.getByRole('button', { name: '평가 세션 생성' }));

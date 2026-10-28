@@ -1,14 +1,14 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { useState } from 'react';
-import { createDemoWorkspace } from '../data/seed';
+import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
 import { createDefenseDay, addDefenseParticipants } from '../assessment/defenseDays';
 import { DefenseDayView } from './DefenseDayView';
 import { ComparisonView } from './ComparisonView';
 import { NewGame } from './NewGame';
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 const change = (name: string, value: string) =>
-  fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();

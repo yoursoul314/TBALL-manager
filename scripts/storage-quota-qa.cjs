@@ -1,3 +1,4 @@
+const { chooseAssessor } = require('./qa-assessors.cjs');
 // Synthetic, isolated context only. Never use the user's storage/profile.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {decompressFromUTF16}=require('lz-string');
@@ -16,10 +17,10 @@ const data=async()=>decode(await page.evaluate(()=>localStorage.getItem('tb-mana
  if(process.env.QA_DIST)await ctx.route(url+'**',r=>r.fulfill({path:path.resolve(process.env.QA_DIST,new URL(r.request().url()).pathname.replace('/TBALL-manager/','')||'index.html')}));
  page=await ctx.newPage();page.setDefaultTimeout(30000);page.on('pageerror',e=>report.errors.push(e.message));
  await page.goto(url,{waitUntil:'networkidle'});
- assert.equal(await page.locator('.version').textContent(),'BETA 0.13.2');
+ assert.equal(await page.locator('.version').textContent(),'BETA 0.14.0');
  await nav('기능평가 & 팀워크');await tap('개인별 이전 기록');
  await page.getByLabel('평가 날짜',{exact:true}).fill('2026-10-26');await page.getByLabel('세션 평가 척도',{exact:true}).selectOption('manual-ten-v1');
- await page.getByLabel('세션 평가자',{exact:true}).fill('가상 QA');await page.getByLabel('평가 목적',{exact:true}).fill('용량 재현');
+ await chooseAssessor(page, '세션 평가자', '가상 QA');await page.getByLabel('평가 목적',{exact:true}).fill('용량 재현');
  await tap('평가 세션 생성');await tap('정상 타격');await tap('평가 8점');await tap('기록 저장 · 다음 회차');
  const baseline=await data();
  const setup=await page.evaluate(()=>{

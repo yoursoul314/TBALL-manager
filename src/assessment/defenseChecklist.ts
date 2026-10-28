@@ -1,3 +1,4 @@
+import { assertAssessmentDayOpen } from '../domain/assessmentManagement';
 import { ABILITIES, type Ability } from '../config/positions';
 import type { DefenseInput, DefenseOutcome, DefenseRevision } from '../domain/defenseAssessment';
 import type { Workspace } from '../domain/model';
@@ -12,6 +13,7 @@ export function saveDefenseAssessment(
   existingId?: string,
   cancel = false,
 ): Workspace {
+  assertAssessmentDayOpen(data, 'defense', input.date);
   if (!data.players.some((p) => p.id === playerId && !p.archivedAt))
     throw new Error('등록된 평가 선수가 없습니다');
   const old = existingId

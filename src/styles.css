@@ -6255,3 +6255,15 @@ label {
 .storage-recovery pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .recovery-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
 .storage-recovery button, .storage-recovery summary { min-height: 48px; padding: 12px 16px; }
+
+/* Registered evaluators and reversible assessment management */
+.assessor-picker { min-width:0; display:grid; gap:6px; }
+.assessor-picker>span {font-weight:700;}
+.assessor-buttons,.assessor-list {display:flex;gap:8px;flex-wrap:wrap;}
+.assessor-buttons button,.assessment-management-records button,.assessor-manager button {min-height:48px;min-width:48px;white-space:normal;}
+.assessor-buttons button[aria-pressed="true"] {background:var(--green, #245742);color:white;border:2px solid #173c2e;}
+.assessor-list>div {display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.assessment-management-records {display:grid;gap:8px;}
+.assessment-management-records article {display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #dce4dc;padding:10px;border-radius:12px;}
+.assessment-management-records article>div {display:grid;min-width:0;overflow-wrap:anywhere;}
+.assessor-manager .form-row>* {min-width:0;}

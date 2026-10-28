@@ -1,3 +1,5 @@
+import { AssessmentDateActions } from './AssessmentRecordManager';
+import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { QUALITY_RUBRIC, LEGACY_RUBRIC, rubricOf, rubricLabel } from '../config/battingQuality';
 import type { BattingRubric } from '../domain/batting';
 import { useState, useRef } from 'react';
@@ -11,7 +13,7 @@ import { StudentFilters } from './StudentFilters';
 import { PlayerAvatar } from './PlayerAvatar';
 import { BattingAssessmentPanel } from './BattingAssessmentPanel';
 import { Panel } from './ui';
-export function BattingDayView({
+function BattingDayViewContent({
   data,
   onSave,
   onDirtyChange,
@@ -134,6 +136,18 @@ export function BattingDayView({
               새 평가 날짜 만들기
             </button>
           </div>
+          <AssessmentDateActions
+            data={data}
+            kind="batting"
+            date={date}
+            disabled={dirty}
+            onSave={onSave}
+            onRemoved={() => {
+              setDate(dates.filter((d) => d !== date)[0] ?? '');
+              setCreating(false);
+              setSelectedId('');
+            }}
+          />
           {(creating || (date && !day)) && (
             <form
               key={creating ? 'new' : date}
@@ -199,10 +213,7 @@ export function BattingDayView({
                       required
                     />
                   </label>
-                  <label>
-                    공통 평가자
-                    <input name="assessor" maxLength={200} required placeholder="평가자 별칭" />
-                  </label>
+                  <AssessorPicker label="공통 평가자" name="assessor" />
                   <label>
                     공통 평가 목적
                     <input
@@ -414,5 +425,13 @@ export function BattingDayView({
         </p>
       )}
     </div>
+  );
+}
+
+export function BattingDayView(props: Parameters<typeof BattingDayViewContent>[0]) {
+  return (
+    <AssessmentProvider data={props.data} onSave={props.onSave}>
+      <BattingDayViewContent {...props} />
+    </AssessmentProvider>
   );
 }

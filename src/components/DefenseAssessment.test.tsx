@@ -3,11 +3,11 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { useState } from 'react';
 import { DefenseAssessmentPanel } from './DefenseAssessmentPanel';
 import { AssessmentView } from './AssessmentView';
-import { createDemoWorkspace } from '../data/seed';
+import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
 import type { Workspace } from '../domain/model';
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 const change = (name: string, value: string) =>
-  fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -72,7 +72,7 @@ it('저장 실패는 체크·수정 입력을 유지하고 미저장 선수 전�
     'aria-pressed',
     'true',
   );
-  expect(screen.getByLabelText('평가자·수정자')).toHaveValue('QA');
+  expect(within(screen.getByRole('group',{name:'평가자·수정자'})).getByRole('button',{name:'✓ QA'})).toHaveAttribute('aria-pressed','true');
   click('입력 되돌리기');
   click('다음 선수');
   expect(screen.getByLabelText('선수 선택')).toHaveValue('green-2');

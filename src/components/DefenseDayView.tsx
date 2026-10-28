@@ -1,3 +1,5 @@
+import { AssessmentDateActions } from './AssessmentRecordManager';
+import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { useState, useRef } from 'react';
 import type { Workspace } from '../domain/model';
 import { activePlayers } from '../domain/gameLibrary';
@@ -17,7 +19,7 @@ import { PlayerAvatar } from './PlayerAvatar';
 import { DefenseAssessmentPanel } from './DefenseAssessmentPanel';
 import { DefenseScoreTable } from './DefenseScoreTable';
 import { Panel } from './ui';
-export function DefenseDayView({
+function DefenseDayViewContent({
   data,
   onSave,
   onDirtyChange,
@@ -103,6 +105,18 @@ export function DefenseDayView({
             새 수비 날짜 만들기
           </button>
         </div>
+        <AssessmentDateActions
+          data={data}
+          kind="defense"
+          date={date}
+          disabled={dirty}
+          onSave={onSave}
+          onRemoved={() => {
+            setDate(dates.filter((d) => d !== date)[0] ?? '');
+            setCreating(false);
+            setSelectedId('');
+          }}
+        />
         {(creating || (date && !day)) && (
           <form
             key={creating ? 'new' : date}
@@ -156,10 +170,7 @@ export function DefenseDayView({
                     required
                   />
                 </label>
-                <label>
-                  수비 공통 평가자
-                  <input name="assessor" required maxLength={200} />
-                </label>
+                <AssessorPicker label="수비 공통 평가자" name="assessor" />
                 <label>
                   수비 평가 목적
                   <input name="purpose" required defaultValue="수비 기능평가" maxLength={200} />
@@ -351,5 +362,13 @@ export function DefenseDayView({
         </>
       )}
     </div>
+  );
+}
+
+export function DefenseDayView(props: Parameters<typeof DefenseDayViewContent>[0]) {
+  return (
+    <AssessmentProvider data={props.data} onSave={props.onSave}>
+      <DefenseDayViewContent {...props} />
+    </AssessmentProvider>
   );
 }

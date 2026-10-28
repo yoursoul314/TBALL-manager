@@ -242,3 +242,8 @@ npm run check = 타입 검사 + Vitest + 프로덕션/PWA 빌드. RULE01~08, 가
 ## BETA 0.13.2 저장 공간 복구
 
 [기기 원본 보관 → 검증 → 중단 가능한 공간 복구 계약](STORAGE_RECOVERY_V132.md). schema12, 경기·평가·사진 및 JSON 백업 호환성은 유지한다. 명시적 복구에서만 이전 키를 검증된 IndexedDB 보관본으로 옮긴다.
+
+
+## BETA 0.14 평가 삭제·평가자 등록
+
+[내부 schema13, 기존 키 유지 원자적 이전, JSON1~13, 평가 원본 보존 삭제·복원 계약](ASSESSMENT_MANAGEMENT_V14.md). 평가자 명단과 날짜 삭제 이력을 추가하며 경기 규칙·가중치·사진은 변경하지 않는다.

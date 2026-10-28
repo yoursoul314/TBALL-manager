@@ -1,3 +1,4 @@
+import { migrateWorkspace } from './migration';
 import type { Workspace } from '../domain/model';
 import { parseWorkspace } from './schema';
 import { encodeStorageText, decodeStorageText } from './storageCodec';
@@ -65,7 +66,7 @@ function validateArchive(row: RecoveryArchive, id: string) {
     throw Error('원본 보관파일 검증 실패. 저장 데이터를 변경하지 않았습니다.');
   const target = JSON.parse(decodeStorageText(row.target));
   if (target._storageArchiveId !== id) throw Error('복구 대상 원본 ID 불일치');
-  return parseWorkspace(target);
+  return migrateWorkspace(target);
 }
 /** Preserve all raw keys in committed IndexedDB, then use a tiny in-place journal.
  * No empty-key window: a journal or the verified target always survives a reload.
@@ -119,6 +120,14 @@ export async function recoverBrowserStorage(
       throw Error('복구 표식을 안전하게 저장할 공간이 없습니다. 원본을 유지합니다.');
     storage.setItem(anchorKey, marker); // Atomic replacement releases space without losing the archive link.
   }
+  const archivedTarget = JSON.parse(decodeStorageText(row.target));
+  const writeTarget =
+    archivedTarget.schemaVersion === 12
+      ? encodeStorageText(
+          JSON.stringify({ ...archivedTarget, ...migrateWorkspace(archivedTarget) }),
+          true,
+        )
+      : row.target;
   const marker = markerText(row.id);
   // A restarted move accepts only the archived values, our journal, already removed keys, or our exact target.
   for (const key of RECOVERY_KEYS) {
@@ -127,7 +136,7 @@ export async function recoverBrowserStorage(
       raw !== null &&
       raw !== row.originals[key] &&
       !(key === row.anchorKey && raw === marker) &&
-      !(key === CURRENT_KEY && raw === row.target)
+      !(key === CURRENT_KEY && (raw === row.target || raw === writeTarget))
     )
       throw conflict();
   }
@@ -141,11 +150,12 @@ export async function recoverBrowserStorage(
   if (
     current !== null &&
     current !== row.target &&
+    current !== writeTarget &&
     !(row.anchorKey === CURRENT_KEY && current === marker)
   )
     throw conflict();
-  if (current !== row.target) storage.setItem(CURRENT_KEY, row.target);
-  if (storage.getItem(CURRENT_KEY) !== row.target)
+  if (current !== writeTarget) storage.setItem(CURRENT_KEY, writeTarget);
+  if (storage.getItem(CURRENT_KEY) !== writeTarget)
     throw Error('복구 저장본 확인 실패. 원본 보관본을 유지합니다.');
   if (row.anchorKey !== CURRENT_KEY) {
     const raw = storage.getItem(row.anchorKey);

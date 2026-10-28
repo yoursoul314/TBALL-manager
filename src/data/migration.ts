@@ -5,29 +5,36 @@ import { migrateWorkspaceV4 } from './migrationV4';
 export function migrateWorkspace(input: unknown, originalText?: string): Workspace {
   if (!input || typeof input !== 'object' || !('schemaVersion' in input))
     throw new Error('저장 데이터의 스키마 버전이 없습니다');
-  if (input.schemaVersion === 12) return parseWorkspace(input);
+  if (input.schemaVersion === 13) return parseWorkspace(input);
+  if (input.schemaVersion === 12)
+    return parseWorkspace({
+      ...input,
+      schemaVersion: 13,
+      assessmentManagement: { assessors: [], dayHistory: [] },
+      migrationSource: { schemaVersion: 12, raw: originalText ?? JSON.stringify(input) },
+    });
   if (input.schemaVersion === 11)
     return parseWorkspace({
       ...input,
-      schemaVersion: 12,
+      schemaVersion: 13,
       migrationSource: { schemaVersion: 11, raw: originalText ?? JSON.stringify(input) },
     });
   if (input.schemaVersion === 10)
     return parseWorkspace({
       ...input,
-      schemaVersion: 12,
+      schemaVersion: 13,
       migrationSource: { schemaVersion: 10, raw: originalText ?? JSON.stringify(input) },
     });
   if (input.schemaVersion === 9)
     return parseWorkspace({
       ...input,
-      schemaVersion: 12,
+      schemaVersion: 13,
       migrationSource: { schemaVersion: 9, raw: originalText ?? JSON.stringify(input) },
     });
   if (input.schemaVersion === 8)
     return parseWorkspace({
       ...input,
-      schemaVersion: 12,
+      schemaVersion: 13,
       defenseDays: [],
       comparisonSelection: null,
       migrationSource: { schemaVersion: 8, raw: originalText ?? JSON.stringify(input) },
@@ -35,7 +42,7 @@ export function migrateWorkspace(input: unknown, originalText?: string): Workspa
   if (input.schemaVersion === 5 || input.schemaVersion === 6 || input.schemaVersion === 7)
     return parseWorkspace({
       ...input,
-      schemaVersion: 12,
+      schemaVersion: 13,
       defenseDays: [],
       comparisonSelection: null,
       battingDays: [],
@@ -49,7 +56,7 @@ export function migrateWorkspace(input: unknown, originalText?: string): Workspa
   const old = migrateWorkspaceV4(input, originalText);
   return parseWorkspace({
     ...old,
-    schemaVersion: 12,
+    schemaVersion: 13,
     defenseDays: [],
     comparisonSelection: null,
     battingDays: [],

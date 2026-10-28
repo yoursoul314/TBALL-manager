@@ -1,3 +1,4 @@
+import { assertAssessmentDayOpen } from '../domain/assessmentManagement';
 import type { Workspace } from '../domain/model';
 import type {
   BattingAssessmentSession as Session,
@@ -57,6 +58,8 @@ export function createBattingSession(
   input: SessionInput,
   meta: ChangeMeta,
 ): Workspace {
+  assertAssessmentDayOpen(data, 'batting', input.date);
+  if (!input.assessor.trim()) throw Error('등록된 평가자를 터치해 선택하세요');
   const session: Session = {
     ...input,
     id: meta.id,
@@ -91,6 +94,8 @@ export function reviseBattingSession(
 ): Workspace {
   const before = data.battingSessions.find((s) => s.id === id);
   if (!before) throw new Error('평가 세션 없음');
+  assertAssessmentDayOpen(data, 'batting', before.date);
+  assertAssessmentDayOpen(data, 'batting', patch.date ?? before.date);
   const after: Session = { ...before, ...patch, updatedAt: meta.at };
   if (after.date !== before.date)
     after.sessionNumber = nextNumber(data, after.playerId, after.date, id);
@@ -146,6 +151,7 @@ export function recordBattingAttempt(
   const session = data.battingSessions.find((s) => s.id === sessionId);
   if (!session || session.status !== 'in-progress')
     throw new Error('진행 중인 세션에서 기록하세요');
+  assertAssessmentDayOpen(data, 'batting', session.date);
   // Missing rounds may be saved explicitly as unmeasured; new records are entered in order.
   if (
     attemptNumber > 1 &&
@@ -185,6 +191,11 @@ export function reviseBattingAttempt(
 ): Workspace {
   const before = data.battingAttempts.find((a) => a.id === id);
   if (!before) throw new Error('평가 회차 없음');
+  assertAssessmentDayOpen(
+    data,
+    'batting',
+    data.battingSessions.find((s) => s.id === before.sessionId)!.date,
+  );
   if (data.battingSessions.find((s) => s.id === before.sessionId)?.status === 'cancelled')
     throw new Error('취소 세션은 먼저 진행 중으로 복원하세요');
   const after: Attempt = { ...before, ...normalized(input), updatedAt: meta.at };

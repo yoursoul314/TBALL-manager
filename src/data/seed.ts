@@ -19,9 +19,11 @@ export function createDemoWorkspace(): Workspace {
     })),
   );
   return {
-    schemaVersion: 12,
+    schemaVersion: 13,
+    assessmentManagement: { assessors: [], dayHistory: [] },
     defenseDays: [],
-    fungoDays:[],fungoAssessments:[],
+    fungoDays: [],
+    fungoAssessments: [],
     comparisonSelection: null,
     defenseAssessments: [],
     defenseEvaluationChoices: [],

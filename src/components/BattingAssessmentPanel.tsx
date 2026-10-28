@@ -1,3 +1,7 @@
+import { AssessmentDeleteAction } from './AssessmentRecordManager';
+import { setAssessmentRecordArchived } from '../assessment/management';
+import { assessmentDayArchived } from '../domain/assessmentManagement';
+import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { QualityAttemptEditor } from './QualityAttemptEditor';
 import {
   QUALITY_RUBRIC,
@@ -46,7 +50,7 @@ const changeMeta = (actor: string, reason: string): ChangeMeta => ({
   actor,
   reason,
 });
-export function BattingAssessmentPanel({
+function BattingAssessmentPanelContent({
   data,
   playerId,
   onSave,
@@ -183,7 +187,11 @@ export function BattingAssessmentPanel({
   );
   const records = data.battingAttempts.filter((a) => a.sessionId === session?.id);
   const dates = [
-    ...new Set(data.battingSessions.filter((s) => s.playerId === playerId).map((s) => s.date)),
+    ...new Set(
+      data.battingSessions
+        .filter((s) => s.playerId === playerId && !assessmentDayArchived(data, 'batting', s.date))
+        .map((s) => s.date),
+    ),
   ]
     .sort()
     .reverse();
@@ -441,10 +449,7 @@ export function BattingAssessmentPanel({
                         required
                       />
                     </label>
-                    <label>
-                      세션 평가자
-                      <input name="assessor" maxLength={200} required placeholder="평가자 별칭" />
-                    </label>
+                    <AssessorPicker label="세션 평가자" name="assessor" />
                     <label>
                       평가 목적
                       <input
@@ -468,6 +473,24 @@ export function BattingAssessmentPanel({
           )}
           {session && (
             <>
+              <AssessmentDeleteAction
+                label={session.status === 'cancelled' ? '세션 복원' : '세션 삭제'}
+                restore={session.status === 'cancelled'}
+                disabled={dirty || assessmentDayArchived(data, 'batting', date)}
+                description={session.date + ' · ' + session.sessionNumber + '차 타격 세션 전체'}
+                onConfirm={(m) => {
+                  onSave(
+                    setAssessmentRecordArchived(
+                      data,
+                      'batting',
+                      session.id,
+                      session.status !== 'cancelled',
+                      m,
+                    ),
+                  );
+                  setFeedback('세션 상태를 변경했습니다. 원본은 보존됩니다.');
+                }}
+              />
               <details>
                 <summary>세션 진행·구역 기준 확인</summary>
                 <p className="callout">
@@ -823,10 +846,7 @@ function SessionEditor({
           </label>
         </div>
         <div className="form-row">
-          <label>
-            평가자 변경
-            <input name="assessor" required maxLength={200} defaultValue={s.assessor} />
-          </label>
+          <AssessorPicker label="평가자 변경" name="assessor" defaultValue={s.assessor} />
           <label>
             목적 변경
             <input name="purpose" required maxLength={200} defaultValue={s.purpose} />
@@ -837,10 +857,7 @@ function SessionEditor({
           <textarea name="note" maxLength={2000} defaultValue={s.note} />
         </label>
         <div className="form-row">
-          <label>
-            세션 수정자
-            <input name="actor" required maxLength={200} defaultValue={s.assessor} />
-          </label>
+          <AssessorPicker label="세션 수정자" name="actor" defaultValue={s.assessor} />
           <label>
             세션 수정 사유
             <input name="reason" required maxLength={2000} />
@@ -1083,16 +1100,7 @@ function AttemptEditor({
           </details>
           {attempt && (
             <div className="form-row attempt-correction" hidden={focused && !extras}>
-              <label>
-                기록·수정자
-                <input
-                  name="actor"
-                  aria-required="true"
-                  value={actor}
-                  onChange={(e) => setActor(e.target.value)}
-                  maxLength={200}
-                />
-              </label>
+              <AssessorPicker label="기록·수정자" name="actor" value={actor} onChange={setActor} />
               <label>
                 회차 수정 사유
                 <input
@@ -1175,5 +1183,13 @@ function AttemptEditor({
         </div>
       </fieldset>
     </form>
+  );
+}
+
+export function BattingAssessmentPanel(props: Parameters<typeof BattingAssessmentPanelContent>[0]) {
+  return (
+    <AssessmentProvider data={props.data} onSave={props.onSave}>
+      <BattingAssessmentPanelContent {...props} />
+    </AssessmentProvider>
   );
 }

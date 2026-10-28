@@ -10,6 +10,7 @@ type WorkspaceV2 = Omit<
   | keyof BattingData
   | 'fungoDays'
   | 'fungoAssessments'
+  | 'assessmentManagement'
   | 'schemaVersion'
   | 'migrationSource'
   | 'defenseAssessments'

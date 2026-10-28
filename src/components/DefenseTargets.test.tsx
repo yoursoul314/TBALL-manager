@@ -1,11 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { useState } from 'react';
-import { createDemoWorkspace } from '../data/seed';
+import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
 import { DefenseDayView } from './DefenseDayView';
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 const fill = (name: string, value: string) =>
-  fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();

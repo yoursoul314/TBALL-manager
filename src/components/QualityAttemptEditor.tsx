@@ -1,3 +1,4 @@
+import { AssessorPicker } from './AssessorPicker';
 import { useRef, useState } from 'react';
 import type {
   BattingAssessmentAttempt as Attempt,
@@ -185,19 +186,15 @@ export function QualityAttemptEditor({
                   }}
                 />
               </label>
-              <label>
-                기록·수정자
-                <input
-                  aria-required="true"
-                  maxLength={200}
-                  value={actor}
-                  onChange={(e) => {
-                    setActor(e.target.value);
-                    setDirty(true);
-                    onDirty(true);
-                  }}
-                />
-              </label>
+              <AssessorPicker
+                label="기록·수정자"
+                value={actor}
+                onChange={(v) => {
+                  setActor(v);
+                  setDirty(true);
+                  onDirty(true);
+                }}
+              />
               <label>
                 회차 상태
                 <select

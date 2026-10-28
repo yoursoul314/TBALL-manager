@@ -1,3 +1,4 @@
+const { chooseAssessor } = require('./qa-assessors.cjs');
 const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -52,11 +53,11 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.13.2');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.0');
   await nav('기능평가 & 팀워크');
   await tap('수비 체크리스트');
   await tap('수비 개인별 이전 기록');
-  await page.getByLabel('평가자·수정자', { exact: true }).fill('가상 QA');
+  await chooseAssessor(page, '평가자·수정자', '가상 QA');
   await tap('G 땅볼 성공');
   await tap('A 송구 정확도 실패');
   await page.getByText('실책·메모·시범 배점 설정', { exact: true }).click();
@@ -150,7 +151,7 @@ const check = (s) => {
   assert.deepEqual(d.defenseAssessments[0].revisions[0], r.revisions[0]);
   assert.equal(await section.getByText('미측정', { exact: true }).count(), 9);
   check('새로고침 보존 / 능력별 시범 점수 / 원본 유지 정정·취소 재계산');
-  await page.getByLabel('평가자·수정자', { exact: true }).fill('가상 QA');
+  await chooseAssessor(page, '평가자·수정자', '가상 QA');
   await tap('G 땅볼 성공');
   await tap('수비 기록 저장 · 다음 상황');
   await nav('선수 & 팀');

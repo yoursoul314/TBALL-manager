@@ -1,3 +1,4 @@
+const { chooseAssessor } = require('./qa-assessors.cjs');
 const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -73,7 +74,7 @@ const check = (s) => {
   page.setDefaultTimeout(20000);
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.version').textContent(), 'BETA 0.13.2');
+  assert.equal(await page.locator('.version').textContent(), 'BETA 0.14.0');
 
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
@@ -84,7 +85,7 @@ const check = (s) => {
   await nav('기능평가 & 팀워크');
   await tap('펑고 5변수 평가');
   await page.getByLabel('새 펑고 날짜', { exact: true }).fill('2026-10-27');
-  await page.getByLabel('펑고 평가자', { exact: true }).fill('가상 QA');
+  await chooseAssessor(page, '펑고 평가자', '가상 QA');
   await page.getByLabel('샘플 선수 01 · 1번', { exact: true }).check();
   await page.getByLabel('샘플 선수 02 · 2번', { exact: true }).check();
   await tap('펑고 날짜 · 학생 저장 (2명)');

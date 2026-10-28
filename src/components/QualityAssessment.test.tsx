@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
-import { createDemoWorkspace } from '../data/seed';
+import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
 import { createBattingSession } from '../assessment/batting';
 import { BattingAssessmentPanel } from './BattingAssessmentPanel';
 import { summarizeBatting } from '../assessment/battingSummary';
@@ -10,7 +10,7 @@ import { LocalWorkspaceRepository } from '../data/repository';
 import App from '../App';
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 const fill = (name: string, value: string) =>
-  fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(() => {
   cleanup();
   localStorage.clear();
@@ -99,6 +99,7 @@ it('6단계·9구역·실패 입력 유지·다음 회차 초기화·0/음수 �
   view.unmount();
 });
 it('날짜 생성의 기본 척도는6단계이며 다중 학생 세션에 같은 버전 저장', () => {
+  if(!localStorage.getItem('tb-manager.workspace.v12'))new LocalWorkspaceRepository(localStorage).save(createDemoWorkspace(),0);
   render(<App />);
   click('기능평가 & 팀워크');
   fill('새 평가 날짜', '2026-10-28');

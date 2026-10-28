@@ -52,7 +52,7 @@ it('v10 날짜 목표는 null로 이전하며 원문·사진 참조·평가·경
   };
   const repo = new LocalWorkspaceRepository(storage),
     d = repo.load()!;
-  expect(d.schemaVersion).toBe(12);
+  expect(d.schemaVersion).toBe(13);
   expect(d.defenseDays[0].targetAttempts).toBeNull();
   expect(d.migrationSource?.raw).toBe(raw);
   expect(map.get(V10_STORAGE_KEY)).toBe(raw);

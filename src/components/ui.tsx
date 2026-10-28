@@ -63,7 +63,7 @@ export function Modal({
     >
       <div className="modal-heading">
         <h2 id={titleId}>{title}</h2>
-        <button className="icon-btn" aria-label="닫기" onClick={onClose}>
+        <button type="button" className="icon-btn" aria-label="닫기" onClick={onClose}>
           <X size={20} />
         </button>
       </div>

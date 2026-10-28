@@ -1,3 +1,4 @@
+const { chooseAssessor } = require('./qa-assessors.cjs');
 const { installStorageReader } = require('./qa-storage.cjs');
 const fs = require('node:fs'),
   path = require('node:path'),
@@ -60,7 +61,7 @@ async function purge() {
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
   report.version = await page.locator('.version').textContent();
-  assert.equal(report.version, 'BETA 0.13.2');
+  assert.equal(report.version, 'BETA 0.14.0');
   await nav('선수 & 팀');
   await tap('샘플 선수 01 정보 수정');
   await tap('선수 저장');
@@ -79,7 +80,7 @@ async function purge() {
     localStorage.removeItem('tb-manager.workspace.v12');
   });
   await page.reload({ waitUntil: 'networkidle' });
-  assert.equal((await data()).schemaVersion, 12);
+  assert.equal((await data()).schemaVersion, 13);
   assert(await page.evaluate(() => !!localStorage.getItem('tb-manager.workspace.v7')));
   check('v7 원문 보존 이전·학년/반 가상 자료');
   await nav('선수 & 팀');
@@ -134,7 +135,7 @@ async function purge() {
   check('경기 학년·반 필터·필터 밖 선택 유지·각 팀 10명 일괄 배정');
   await nav('기능평가 & 팀워크');
   await page.getByLabel('새 평가 날짜', { exact: true }).fill('2026-10-26');
-  await page.getByLabel('공통 평가자', { exact: true }).fill('QA');
+  await chooseAssessor(page, '공통 평가자', 'QA');
   await page.getByLabel('공통 평가 목적', { exact: true }).fill('학급 타격 평가');
   await page.getByLabel('공통 타격 횟수', { exact: true }).fill('2');
   await page.getByLabel('날짜 평가 척도',{exact:true}).selectOption('manual-ten-v1');

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FungoView } from './FungoView';
 import { SelectionView } from './SelectionView';
 import { PlayerEditor } from './PlayerEditor';
-import { createDemoWorkspace } from '../data/seed';
+import { createAssessmentTestWorkspace as createDemoWorkspace, chooseTestAssessor } from '../test/assessment';
 import { parseWorkspace } from '../data/schema';
 import { fungoScores, blankFungo } from '../domain/fungo';
 import { saveFungo } from '../assessment/fungo';
@@ -12,7 +12,7 @@ import { createBattingSession, recordBattingAttempt, blankAttempt } from '../ass
 import { QUALITY_RUBRIC } from '../config/battingQuality';
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 const fill = (name: string, value: string) =>
-  fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
+  /평가자|기록·수정자/.test(name) ? chooseTestAssessor(name,value) : fireEvent.change(screen.getByLabelText(name, { exact: true }), { target: { value } });
 afterEach(cleanup);
 it('날짜 다중 학생·5구 관찰→정밀 조정·저장 실패 보존·다음 학생·수정·취소', () => {
   let saved = createDemoWorkspace(),

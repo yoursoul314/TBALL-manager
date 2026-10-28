@@ -217,3 +217,23 @@ it('전체 초기화는 표식 쓰기 전 중단된 미연결 원본 보관본�
   await f.repo.finishArchiveCleanup();
   expect(await f.archives.all()).toHaveLength(0);
 });
+
+it('이전 BETA 0.13.2에서 중단된 schema12 원본 보관본도 v13으로 이어서 복구', async () => {
+  const f = setup();
+  f.failWrite(true);
+  await expect(f.repo.recoverStorage()).rejects.toThrow();
+  const [row] = await f.archives.all();
+  const target = JSON.parse(decodeStorageText(row.target));
+  target.schemaVersion = 12;
+  delete target.assessmentManagement;
+  row.target = JSON.stringify(target);
+  await f.archives.clear();
+  await f.archives.put(row);
+  f.failWrite(false);
+  f.capacity(Infinity);
+  const result = await f.repo.recoverStorage();
+  expect(result.schemaVersion).toBe(13);
+  expect(f.repo.load()!.battingAttempts).toEqual(f.data.battingAttempts);
+  expect(JSON.parse(decodeStorageText(f.rows.get(STORAGE_KEY)!)).schemaVersion).toBe(13);
+  expect((await f.archives.all())[0].target).toBe(row.target);
+});

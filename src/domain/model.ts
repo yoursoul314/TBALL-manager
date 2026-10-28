@@ -1,3 +1,4 @@
+import type { AssessmentManagerData } from './assessmentManagement';
 import type { FungoAssessment, FungoDay } from './fungo';
 import type {
   DefenseAssessment,
@@ -264,6 +265,7 @@ export interface Selection {
   approvedAt: string | null;
 }
 export interface Workspace extends BattingData {
+  assessmentManagement: AssessmentManagerData;
   fungoDays: FungoDay[];
   fungoAssessments: FungoAssessment[];
   defenseAssessments: DefenseAssessment[];
@@ -276,8 +278,8 @@ export interface Workspace extends BattingData {
   } | null;
   defenseEvaluationChoices: DefenseEvaluationChoice[];
   lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
-  schemaVersion: 12;
-  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; raw: string };
+  schemaVersion: 13;
+  migrationSource?: { schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12; raw: string };
   legacyTeamwork: LegacyTeamworkObservation[];
   legacySource?: { schemaVersion: 1; raw: string };
   revision: number;

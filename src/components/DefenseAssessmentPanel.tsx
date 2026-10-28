@@ -1,3 +1,4 @@
+import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { DefenseAttemptPlan } from './DefenseAttemptPlan';
 import { defenseProgress } from '../assessment/defenseDays';
 import { chooseDefenseEvaluation, defenseEvaluation } from '../evaluation/defense';
@@ -84,7 +85,7 @@ export function DefenseAssessmentReport({ data, playerId }: { data: Workspace; p
     </section>
   );
 }
-export function DefenseAssessmentPanel({
+function DefenseAssessmentPanelContent({
   data,
   playerId,
   onSave,
@@ -258,15 +259,11 @@ export function DefenseAssessmentPanel({
               onChange={(e) => change({ ...draft, date: e.target.value })}
             />
           </label>
-          <label>
-            평가자·수정자
-            <input
-              maxLength={200}
-              value={draft.assessor}
-              onChange={(e) => change({ ...draft, assessor: e.target.value })}
-              placeholder="교사·감독"
-            />
-          </label>
+          <AssessorPicker
+            label="평가자·수정자"
+            value={draft.assessor}
+            onChange={(assessor) => change({ ...draft, assessor })}
+          />
         </div>
       </div>
       <DefenseAttemptPlan
@@ -535,5 +532,13 @@ export function DefenseAssessmentPanel({
         )}
       </details>
     </Panel>
+  );
+}
+
+export function DefenseAssessmentPanel(props: Parameters<typeof DefenseAssessmentPanelContent>[0]) {
+  return (
+    <AssessmentProvider data={props.data} onSave={props.onSave}>
+      <DefenseAssessmentPanelContent {...props} />
+    </AssessmentProvider>
   );
 }
