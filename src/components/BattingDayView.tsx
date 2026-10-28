@@ -1,3 +1,4 @@
+import { AssessmentPurposePicker } from './AssessmentPurposePicker';
 import { AssessmentDateActions } from './AssessmentRecordManager';
 import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { QUALITY_RUBRIC, LEGACY_RUBRIC, rubricOf, rubricLabel } from '../config/battingQuality';
@@ -214,15 +215,7 @@ function BattingDayViewContent({
                     />
                   </label>
                   <AssessorPicker label="공통 평가자" name="assessor" />
-                  <label>
-                    공통 평가 목적
-                    <input
-                      name="purpose"
-                      maxLength={200}
-                      required
-                      placeholder="예: 타격 기능평가"
-                    />
-                  </label>
+                  <AssessmentPurposePicker label="공통 평가 목적" />
                 </div>
                 <label>
                   공통 메모

@@ -11,7 +11,7 @@ async function confirm(restore=false){await chooseAssessor(page,'처리 평가�
 (async()=>{
  browser=await pw[engine].launch({headless:true,...(process.env.QA_BROWSER_PATH?{executablePath:process.env.QA_BROWSER_PATH}:{})});const ctx=await browser.newContext({...pw.devices['iPad (gen 7) landscape'],viewport:{width:1024,height:768},deviceScaleFactor:1,serviceWorkers:'block'});
  if(process.env.QA_DIST)await ctx.route(url+'**',r=>r.fulfill({path:path.resolve(process.env.QA_DIST,new URL(r.request().url()).pathname.replace('/TBALL-manager/','')||'index.html')}));
- page=await ctx.newPage();page.setDefaultTimeout(20000);await installStorageReader(page);page.on('pageerror',e=>report.errors.push(e.message));await page.goto(url,{waitUntil:'networkidle'});assert.equal(await page.locator('.version').textContent(),'BETA 0.14.0');
+ page=await ctx.newPage();page.setDefaultTimeout(20000);await installStorageReader(page);page.on('pageerror',e=>report.errors.push(e.message));await page.goto(url,{waitUntil:'networkidle'});assert.equal(await page.locator('.version').textContent(),'BETA 0.14.1');
  await nav('기능평가 & 팀워크');await tap('평가자·기록 관리');await page.getByLabel('등록할 평가자',{exact:true}).fill('가상 기록원');await tap('평가자 등록 저장');
  assert.equal((await data()).assessmentManagement.assessors.length,1);
  await tap('타격 상세평가');await page.getByLabel('새 평가 날짜',{exact:true}).fill('2026-10-28');await page.getByLabel('공통 타격 횟수',{exact:true}).fill('1');await chooseAssessor(page,'공통 평가자','가상 기록원');await page.getByLabel('공통 평가 목적',{exact:true}).fill('삭제·복원 QA');await tap('평가 날짜 생성');await page.getByLabel('샘플 선수 01 평가 대상 선택',{exact:true}).check();await tap('선택 학생 평가 시작');await tap('5점 장타성 정타(배럴)');await tap('기록 저장 · 다음 회차');await tap('전체 화면 닫기');

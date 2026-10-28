@@ -100,7 +100,7 @@ const server = http.createServer((req, res) => {
       });
   });
   await page.reload({ waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'BETA 0.14.0', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'BETA 0.14.1', exact: true }).waitFor();
   const next = await page.evaluate(() =>
     window.__qaDecodeWorkspace(localStorage.getItem('tb-manager.workspace.v12')),
   );
@@ -118,7 +118,7 @@ const server = http.createServer((req, res) => {
   await page.getByRole('button', { name: '정상 타격', exact: true }).click();
   await page.getByRole('button', { name: '평가 8점', exact: true }).click();
   future = true;
-  await page.getByRole('button', { name: 'BETA 0.14.0', exact: true }).click();
+  await page.getByRole('button', { name: 'BETA 0.14.1', exact: true }).click();
   await page.getByRole('button', { name: '새 버전 적용', exact: true }).waitFor();
   assert(await page.getByRole('button', { name: '새 버전 적용', exact: true }).isDisabled());
   report.checks.push('미저장 평가 입력 중 업데이트 적용 차단·강제 새로고침 없음');

@@ -6267,3 +6267,14 @@ label {
 .assessment-management-records article {display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #dce4dc;padding:10px;border-radius:12px;}
 .assessment-management-records article>div {display:grid;min-width:0;overflow-wrap:anywhere;}
 .assessor-manager .form-row>* {min-width:0;}
+
+.assessment-purpose-picker { display: grid; gap: 8px; min-width: 0; }
+.assessment-purpose-picker .assessor-buttons button { min-width: 96px; min-height: 48px; }
+.assessment-purpose-picker input { width: 100%; min-width: 0; }
+
+.form-row > .assessor-picker,
+.form-row > .assessment-purpose-picker { flex: 1 1 220px; max-width: 100%; }
+@media (max-width: 600px) {
+  .form-row > .assessor-picker,
+  .form-row > .assessment-purpose-picker { flex-basis: 100%; }
+}

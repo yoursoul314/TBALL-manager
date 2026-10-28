@@ -193,7 +193,7 @@ async function captureBackup(button) {
   await page.setViewportSize({ width: 1180, height: 820 });
   await nav('규칙 & 설정');
   await tap('앱 업데이트 확인');
-  await page.getByText('현재 BETA 0.14.0입니다.', { exact: true }).waitFor();
+  await page.getByText('현재 BETA 0.14.1입니다.', { exact: true }).waitFor();
   await formFit('settings');
   const before = await data();
   await tap('초기화 준비');

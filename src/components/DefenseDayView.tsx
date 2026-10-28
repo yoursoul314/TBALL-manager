@@ -1,3 +1,4 @@
+import { AssessmentPurposePicker } from './AssessmentPurposePicker';
 import { AssessmentDateActions } from './AssessmentRecordManager';
 import { AssessorPicker, AssessmentProvider } from './AssessorPicker';
 import { useState, useRef } from 'react';
@@ -171,10 +172,7 @@ function DefenseDayViewContent({
                   />
                 </label>
                 <AssessorPicker label="수비 공통 평가자" name="assessor" />
-                <label>
-                  수비 평가 목적
-                  <input name="purpose" required defaultValue="수비 기능평가" maxLength={200} />
-                </label>
+                <AssessmentPurposePicker label="수비 평가 목적" defaultValue="수비 평가" />
               </div>
               <label>
                 수비 공통 메모
