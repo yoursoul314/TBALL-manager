@@ -1,4 +1,4 @@
-import { setAssessmentDateArchived } from '../assessment/management';
+import { setAssessmentDateArchived, setAssessmentRecordArchived } from '../assessment/management';
 import { afterEach, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
@@ -168,7 +168,7 @@ it('삭제한 날짜 새 펑고의 입력·비교표는 이전 취소 점수 대
     { ...input, manual: { G: 4, F: 5, C: 6, T_acc: 3, T_pow: 2 } },
     { id: 'new', revisionId: 'new-r', at, reason: '신규' },
   );
-  render(<FungoView data={d} onSave={() => {}} />);
+  const view = render(<FungoView data={d} onSave={() => {}} />);
   expect(screen.getByLabelText('정밀 G')).toHaveValue(4);
   click('학생 점수 비교');
   const row = screen.getByRole('row', { name: /샘플 선수 01/ });
@@ -177,4 +177,22 @@ it('삭제한 날짜 새 펑고의 입력·비교표는 이전 취소 점수 대
       .getAllByRole('cell')
       .map((c) => c.textContent),
   ).toEqual(['4.0', '5.0', '6.0', '3.0', '2.0', '미측정']);
+  const before = structuredClone(d);
+  expect(() => setAssessmentRecordArchived(d, 'fungo', 'old', false, m('conflict'))).toThrow(
+    '새 펑고',
+  );
+  expect(d).toEqual(before);
+  d = setAssessmentRecordArchived(d, 'fungo', 'new', true, m('cancel-new'));
+  d = setAssessmentRecordArchived(d, 'fungo', 'old', false, m('restore-old'));
+  view.rerender(<FungoView data={d} onSave={() => {}} />);
+  expect(
+    within(screen.getByRole('row', { name: /샘플 선수 01/ }))
+      .getAllByRole('cell')
+      .map((c) => c.textContent),
+  ).toEqual(['8.0', '7.0', '9.0', '8.0', '7.0', '미측정']);
+  click('5구 기록');
+  expect(screen.getByLabelText('정밀 G')).toHaveValue(8);
+  expect(d.fungoAssessments.find((r) => r.id === 'new')?.revisions.at(-1)?.status).toBe(
+    'cancelled',
+  );
 });

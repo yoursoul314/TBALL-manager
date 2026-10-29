@@ -599,6 +599,7 @@ export function Profile({
       | 'hits'
       | 'atBats'
       | 'runs'
+      | 'rbi'
       | 'fieldingAttempts'
       | 'fieldingSuccesses'
       | 'violations',
@@ -746,6 +747,10 @@ export function Profile({
           <div>
             <small>득점</small>
             <b>{sum('runs')}</b>
+          </div>
+          <div>
+            <small>타점 (RBI)</small>
+            <b>{sum('rbi')}</b>
           </div>
           <div>
             <small>수비 성공</small>

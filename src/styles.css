@@ -6272,6 +6272,14 @@ label {
 .assessment-purpose-picker .assessor-buttons button { min-width: 96px; min-height: 48px; }
 .assessment-purpose-picker input { width: 100%; min-width: 0; }
 
+.rbi-decision { margin:8px 0; padding:10px; border:1px solid #98b6a8; border-radius:10px; }
+.rbi-decision button { min-width:90px; min-height:48px; }
+.rbi-decision button[aria-pressed="true"] { background:#245742; color:white; border:2px solid #173c2e; }
+.rbi-decision small { display:block; margin-top:6px; }
+.rbi-summary { font-weight:700; }
+.paper-entry-guide { border:1px solid #98b6a8; background:#edf6ee; padding:12px; border-radius:12px; margin:10px 0; }
+.paper-entry-guide p { margin:6px 0; }
+
 .form-row > .assessor-picker,
 .form-row > .assessment-purpose-picker { flex: 1 1 220px; max-width: 100%; }
 @media (max-width: 600px) {

@@ -46,6 +46,7 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
   await user.type(dialog.getByLabelText('수정자 별칭'), '테스트 기록원');
   await user.type(dialog.getByLabelText('수정 사유'), '타격 결과 확인');
   await user.click(dialog.getByRole('button', { name: '홈런' }));
+  await user.click(dialog.getByRole('button', { name: '타점 인정' }));
   await user.click(dialog.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
   await user.click(dialog.getByLabelText('심판 타임 선언 확인'));
   await user.click(dialog.getByRole('button', { name: '수정 이력 저장 · 전체 경기 재계산' }));

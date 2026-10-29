@@ -19,6 +19,7 @@ export function PlayDetailsEditor({
   observations,
   onObservations,
   lockedDetailIds = new Set<string>(),
+  rbiInRunnerStep = false,
 }: {
   data: Workspace;
   game: Game;
@@ -29,6 +30,7 @@ export function PlayDetailsEditor({
   observations: FieldingObservation[];
   onObservations: (v: FieldingObservation[]) => void;
   lockedDetailIds?: Set<string>;
+  rbiInRunnerStep?: boolean;
 }) {
   const defenders = game.rosters[side === 'away' ? 'home' : 'away'];
   const name = (id: string) => data.players.find((p) => p.id === id)?.name || id;
@@ -83,11 +85,13 @@ export function PlayDetailsEditor({
         진루는 안타 종류를 유지한 채 실책과 진루 구간을 연결합니다.
       </p>
       <div className="button-row detail-add">
-        {Object.entries(detailNames).map(([type, label]) => (
-          <button type="button" key={type} onClick={() => add(type as PlayDetail['type'])}>
-            + {label}
-          </button>
-        ))}
+        {Object.entries(detailNames)
+          .filter(([type]) => !rbiInRunnerStep || type !== 'RBI')
+          .map(([type, label]) => (
+            <button type="button" key={type} onClick={() => add(type as PlayDetail['type'])}>
+              + {label}
+            </button>
+          ))}
       </div>
       {details.map((d, index) => (
         <fieldset className="detail-card" key={d.id} disabled={lockedDetailIds.has(d.id)}>

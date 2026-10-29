@@ -7,6 +7,7 @@ import {
   defenseDates,
   defenseProgress,
   defenseParticipants,
+  setDefenseTarget,
 } from './defenseDays';
 import { createBattingSession, recordBattingAttempt, blankAttempt } from './batting';
 import {
@@ -471,4 +472,72 @@ it('새 시작 이력의 종류·날짜·중복 ID 위변조는 백업 검증에
   const bad = structuredClone(d);
   bad.assessmentManagement.dayHistory.at(-1)!.restart!.day!.date = '2026-10-29';
   expect(() => parseWorkspace(bad)).toThrow('새 시작 이력');
+});
+
+it('동일 날짜 새 타격 2회와 복원한 이전 1회는 회차 가중 평균으로 한 번씩만 집계·백업 재열기', () => {
+  let d = batting();
+  const oldId = d.battingSessions[0].id;
+  const originals = structuredClone(d.battingAttempts);
+  d = setAssessmentDateArchived(d, 'batting', date, true, m('delete'));
+  d = createAssessmentDay(d, d.battingDays[0], m('restart'));
+  d = startDayAssessments(d, date, ['green-1'], m('new-session'));
+  const next = d.battingSessions.at(-1)!;
+  for (let i = 1; i <= 2; i++)
+    d = recordBattingAttempt(
+      d,
+      next.id,
+      i,
+      { ...blankAttempt(), result: 'fair', score: 2 },
+      m('new-attempt' + i),
+    );
+  expect(summarizeBatting(d, 'green-1')).toMatchObject({ count: 2, average: 2, score: 20 });
+  d = setAssessmentRecordArchived(d, 'batting', oldId, false, m('restore-old'));
+  const summary = summarizeBatting(d, 'green-1');
+  expect(summary).toMatchObject({ count: 3, total: 12, average: 4, score: 40 });
+  expect(summary.daily).toHaveLength(1);
+  expect(summary.daily[0]).toMatchObject({ count: 3, average: 4 });
+  expect(() => setAssessmentRecordArchived(d, 'batting', oldId, false, m('again'))).toThrow();
+  expect(d.battingAttempts.slice(0, 2)).toEqual(originals);
+  const restored = readBackup(serializeBackup(d));
+  expect(summarizeBatting(restored, 'green-1').score).toBe(40);
+  expect(new Set(restored.battingSessions.map((s) => s.id)).size).toBe(
+    restored.battingSessions.length,
+  );
+});
+
+it('새 수비 기록 이후 이전 기록 복원은 횟수 초과 차단, 목표 확대 후 각각 한 번 집계', () => {
+  let d = defense();
+  const originals = structuredClone(d.defenseAssessments);
+  d = setAssessmentDateArchived(d, 'defense', date, true, m('delete'));
+  d = createDefenseDay(d, { ...d.defenseDays[0], targetAttempts: 1 }, m('restart'));
+  d = saveDefenseAssessment(
+    d,
+    'green-1',
+    {
+      date,
+      assessor: 'QA',
+      situation: 'ground',
+      observations: { ...emptyDefenseObservations(), G: 'failure' },
+      error: null,
+      note: '',
+      rubric: DEFAULT_DEFENSE_RUBRIC,
+    },
+    { id: 'new', revisionId: 'new-v', at, author: 'QA', reason: '신규' },
+  );
+  const before = structuredClone(d);
+  expect(() => setAssessmentRecordArchived(d, 'defense', 'r0', false, m('blocked'))).toThrow(
+    '수비 횟수',
+  );
+  expect(d).toEqual(before);
+  d = setDefenseTarget(d, date, 2);
+  d = setAssessmentRecordArchived(d, 'defense', 'r0', false, m('restore-old'));
+  expect(defenseProgress(d, 'green-1', date)).toEqual({ count: 2, target: 2, complete: true });
+  expect(summarizeDefenseAssessments(d, 'green-1').abilities.G).toMatchObject({
+    count: 2,
+    score: 50,
+  });
+  expect(d.defenseAssessments[0].revisions[0]).toEqual(originals[0].revisions[0]);
+  expect(
+    summarizeDefenseAssessments(readBackup(serializeBackup(d)), 'green-1').abilities.G.score,
+  ).toBe(50);
 });

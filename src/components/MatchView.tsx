@@ -1,4 +1,5 @@
 import { PlayerAvatar } from './PlayerAvatar';
+import { ScorebookPrint } from './ScorebookPrint';
 import { gamePlayers, gameTeamName } from '../domain/roster';
 import { HistoryEditor } from './HistoryEditor';
 import { DefenseEditor } from './DefenseEditor';
@@ -48,6 +49,8 @@ export function MatchView({
   const [finish, setFinish] = useState(false);
   const [history, setHistory] = useState<string | null>(null);
   const [defense, setDefense] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [paperEntry, setPaperEntry] = useState(false);
   const names = (id: Id) => data.players.find((p) => p.id === id)?.name || id;
   const teamName = (side: Side) => gameTeamName(game, data, side);
   const score = scoreboard(state);
@@ -72,10 +75,35 @@ export function MatchView({
               경기일 수정
             </button>
           )}
+          <button onClick={() => setPrinting(true)}>기록지 인쇄</button>
+          <button aria-pressed={paperEntry} onClick={() => setPaperEntry(!paperEntry)}>
+            종이 기록 입력 안내
+          </button>
           <Badge>
             {state.status === 'finished' ? '종료' : state.ball === 'live' ? '플레이 중' : '볼 데드'}
           </Badge>
         </header>
+        {paperEntry && (
+          <aside className="paper-entry-guide" aria-label="종이 기록 입력 안내">
+            <b>
+              경기 ID {game.id} · 입력 완료 {state.plays.length}타석
+            </b>
+            <p>
+              {state.status === 'finished'
+                ? '경기가 종료됐습니다. 아래 플레이 기록에서 수정할 타석을 선택하세요.'
+                : `다음 입력: ${state.inning}회 ${state.side === 'away' ? '초' : '말'} / ${state.appearances + 1}번 ${names(current)}`}
+            </p>
+            <p>
+              종이의 순번과 타자를 확인한 뒤 스트라이크·파울 → 타격 결과 → 주자별 실제 결과·타점 →
+              당시 심판 타임 확인 → 플레이 확정 순서로 입력하세요. 교체·임시주자·수비 변경은 적힌
+              시점에 입력합니다.
+            </p>
+            <p>
+              이미 입력한 타석은 아래 「타순·플레이 기록 보기 → 플레이 수정 · 이력」에서 정정하세요.
+              원본은 보존됩니다. 종이 사진 자동 인식은 지원하지 않습니다.
+            </p>
+          </aside>
+        )}
         <div className="match-status">
           <div className="scoreboard">
             <div className="team-score">
@@ -418,6 +446,13 @@ export function MatchView({
                         <b>
                           {playResultLabel(p)}
                           {p.runs.length > 0 ? ' · ' + p.runs.length + '득점' : ''}
+                          {p.runs.length > 0
+                            ? ' · ' +
+                              (p.details ?? []).filter(
+                                (d) => d.type === 'RBI' && p.runs.includes(d.runnerId),
+                              ).length +
+                              '타점'
+                            : ''}
                         </b>
                         {p.result !== 'strikeout' && (
                           <button
@@ -442,6 +477,7 @@ export function MatchView({
           </div>
         </details>
       </section>
+      {printing && <ScorebookPrint data={data} game={game} onClose={() => setPrinting(false)} />}
       {history && (
         <HistoryEditor
           data={data}

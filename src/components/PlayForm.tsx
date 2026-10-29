@@ -87,6 +87,30 @@ export function PlayForm({
   const [strength, setStrength] = useState<Strength | null>(initial?.strength ?? null);
   const [fielding, setFielding] = useState<FieldingObservation[]>(initial?.fielding ?? []);
   const [details, setDetails] = useState<PlayDetail[]>(initial?.details ?? []);
+  const [noRbi, setNoRbi] = useState<string[]>(
+    initial?.outcomes
+      .filter(
+        (o) =>
+          o.to === 'home' &&
+          !initial.details?.some((d) => d.type === 'RBI' && d.runnerId === o.playerId),
+      )
+      .map((o) => o.playerId) ?? [],
+  );
+  const rollback =
+    state.live!.lastBatter &&
+    outcomes.some(
+      (o) =>
+        o.playerId === state.live!.batterId &&
+        o.to === 'out' &&
+        o.outReason === 'force' &&
+        o.outAt === 1,
+    );
+  const credited = (id: string) => details.some((d) => d.type === 'RBI' && d.runnerId === id);
+  if (
+    !rollback &&
+    outcomes.some((o) => o.to === 'home' && !credited(o.playerId) && !noRbi.includes(o.playerId))
+  )
+    validation = '득점 주자마다 타점 인정 또는 타점 없음을 선택하세요.';
   const [award, setAward] = useState(Boolean(initial?.safetyAward));
   const [awardFrom, setAwardFrom] = useState<Record<string, 0 | 1 | 2 | 3>>(
     initial?.safetyAward?.positionsAtThrow ?? {},
@@ -115,7 +139,11 @@ export function PlayForm({
     }
     setFielding([...remaining, ...projection.fielding]);
     const ids = new Set(old.details.map((d) => d.id));
-    setDetails([...details.filter((d) => !ids.has(d.id)), ...projection.details]);
+    setDetails([
+      ...details.filter((d) => !ids.has(d.id) && d.type !== 'RBI'),
+      ...projection.details,
+    ]);
+    setNoRbi([]);
     const restored = outcomes.map((o) =>
       old.outcomes.some((old) => old.playerId === o.playerId)
         ? (sequenceBase.current.outcomes.find((base) => base.playerId === o.playerId) ?? o)
@@ -160,6 +188,8 @@ export function PlayForm({
   }
   const patch = (id: string, value: Partial<RunnerOutcome>) => {
     setOutcomes((old) => old.map((o) => (o.playerId === id ? { ...o, ...value } : o)));
+    setDetails((ds) => ds.filter((d) => d.type !== 'RBI' || d.runnerId !== id));
+    setNoRbi((ids) => ids.filter((v) => v !== id));
     setConfirmed((ids) => ids.filter((v) => v !== id));
     setTime(false);
   };
@@ -190,7 +220,10 @@ export function PlayForm({
                     setOutcomes(suggestOutcomes(state, key as BatResult));
                     setConfirmed([]);
                     setTime(false);
-                    setDetails((ds) => ds.filter((d) => d.type !== 'FIELDERS_CHOICE'));
+                    setDetails((ds) =>
+                      ds.filter((d) => d.type !== 'FIELDERS_CHOICE' && d.type !== 'RBI'),
+                    );
+                    setNoRbi([]);
                   }}
                 >
                   {label}
@@ -246,7 +279,10 @@ export function PlayForm({
                   setOutcomes(suggestOutcomes(state, next));
                   setConfirmed([]);
                   setTime(false);
-                  setDetails((ds) => ds.filter((d) => d.type !== 'FIELDERS_CHOICE'));
+                  setDetails((ds) =>
+                    ds.filter((d) => d.type !== 'FIELDERS_CHOICE' && d.type !== 'RBI'),
+                  );
+                  setNoRbi([]);
                 }}
               >
                 {Object.entries(resultLabels)
@@ -341,9 +377,10 @@ export function PlayForm({
               game={game}
               side={state.side}
               participants={participants}
-              details={details}
+              rbiInRunnerStep
+              details={details.filter((d) => d.type !== 'RBI')}
               onChange={(v) => {
-                setDetails(v);
+                setDetails((ds) => [...ds.filter((d) => d.type === 'RBI'), ...v]);
                 setTime(false);
               }}
               lockedDetailIds={generatedIds}
@@ -502,6 +539,55 @@ export function PlayForm({
                   </label>
                 </div>
               )}
+              {o.to === 'home' && (
+                <fieldset className="rbi-decision" disabled={rollback}>
+                  <legend>
+                    {data.players.find((p) => p.id === o.playerId)?.name} 득점 · 타점 판정
+                  </legend>
+                  {rollback ? (
+                    <p>RULE02 · 이번 득점과 타점은 반영하지 않습니다.</p>
+                  ) : (
+                    <>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          aria-pressed={credited(o.playerId)}
+                          onClick={() => {
+                            setDetails((ds) => [
+                              ...ds.filter((d) => d.type !== 'RBI' || d.runnerId !== o.playerId),
+                              { id: crypto.randomUUID(), type: 'RBI', runnerId: o.playerId },
+                            ]);
+                            setNoRbi((ids) => ids.filter((id) => id !== o.playerId));
+                            setTime(false);
+                          }}
+                        >
+                          타점 인정
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={noRbi.includes(o.playerId)}
+                          onClick={() => {
+                            setDetails((ds) =>
+                              ds.filter((d) => d.type !== 'RBI' || d.runnerId !== o.playerId),
+                            );
+                            setNoRbi((ids) => [
+                              ...ids.filter((id) => id !== o.playerId),
+                              o.playerId,
+                            ]);
+                            setTime(false);
+                          }}
+                        >
+                          타점 없음
+                        </button>
+                      </div>
+                      <small>
+                        현재 타자에게 1타점 부여 여부를 판정하세요. 실책 등으로 인한 득점을 자동으로
+                        타점 처리하지 않습니다.
+                      </small>
+                    </>
+                  )}
+                </fieldset>
+              )}
               <button
                 type="button"
                 className="runner-confirm"
@@ -563,6 +649,14 @@ export function PlayForm({
           </details>
           <div className="play-confirmation">
             <h3>4 · 심판 타임 후 확정</h3>
+            <p className="rbi-summary" role="status">
+              이번 플레이 {rollback ? 0 : outcomes.filter((o) => o.to === 'home').length}득점 · 현재
+              타자{' '}
+              {rollback
+                ? 0
+                : outcomes.filter((o) => o.to === 'home' && credited(o.playerId)).length}
+              타점
+            </p>
             <label className="check umpire-confirm">
               <input type="checkbox" checked={time} onChange={(e) => setTime(e.target.checked)} />
               심판 타임 선언 확인
