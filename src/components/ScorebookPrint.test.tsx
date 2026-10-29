@@ -5,6 +5,7 @@ import { createDemoWorkspace } from '../data/seed';
 import { ScorebookPages, ScorebookPrint, scorebookHtml } from './ScorebookPrint';
 import { STORAGE_KEY } from '../data/repository';
 import { game as fixtureGame, record } from '../test/fixtures';
+import appCss from '../styles.css?raw';
 afterEach(() => {
   cleanup();
   localStorage.clear();
@@ -128,4 +129,46 @@ it('긴 복수 수비 기록과 타점·마지막 플레이를 HTML/PDF 원본�
   expect(html).toContain('RBI 인정');
   expect(screen.getByLabelText('플레이 상세 기록지 2')).toHaveTextContent('No.4');
   expect(JSON.stringify(data)).toBe(before);
+});
+
+it('앱의 공통 footer·표 스타일을 함께 적용해도 독립 인쇄 양식의 여백·글자·테두리를 유지', () => {
+  const data = createDemoWorkspace();
+  const { container } = render(
+    <ScorebookPages
+      data={data}
+      game={data.games[0]}
+      options={{ filled: false, details: true, blankPages: 2 }}
+    />,
+  );
+  const readStyles = () =>
+    Array.from(
+      container.querySelectorAll(
+        '.scorebook-footer, .scorebook-grid thead th, .scorebook-grid tbody tr:last-child td',
+      ),
+    ).map((element) => {
+      const css = getComputedStyle(element);
+      return [
+        css.display,
+        css.paddingBottom,
+        css.paddingLeft,
+        css.fontSize,
+        css.lineHeight,
+        css.letterSpacing,
+        css.color,
+        css.borderBottomWidth,
+        css.borderBottomStyle,
+      ];
+    });
+  const standalone = readStyles();
+  const globalStyle = document.createElement('style');
+  globalStyle.textContent = appCss;
+  document.head.append(globalStyle);
+  try {
+    expect(readStyles()).toEqual(standalone);
+    const footer = getComputedStyle(container.querySelector('.scorebook-footer')!);
+    expect(footer.paddingBottom).toBe('0px');
+    expect(footer.display).toBe('block');
+  } finally {
+    globalStyle.remove();
+  }
 });

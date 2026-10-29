@@ -121,6 +121,7 @@
 }
 .scorebook-page th,
 .scorebook-page td {
+  font-size: inherit;
   border: 1px solid #555;
   padding: 1mm;
   white-space: normal;
@@ -128,6 +129,9 @@
   text-align: center;
   background: white;
   color: #111;
+}
+.scorebook-page tr:last-child td {
+  border-bottom: 1px solid #555;
 }
 .scorebook-page th {
   font-weight: 700;
@@ -143,7 +147,7 @@
   width: 9mm;
 }
 .scorebook-grid tbody tr {
-  height: 9.5mm;
+  height: 9mm;
 }
 .scorebook-grid small,
 .scorebook-cell span {
@@ -163,7 +167,7 @@
   font: 18pt/1 Arial;
   color: #999;
 }
-.scorebook-cell-blank {
+.scorebook-page td.scorebook-cell-blank {
   padding-left: 9mm;
 }
 .scorebook-defense {
@@ -182,10 +186,15 @@
   padding: 1.5mm;
 }
 .scorebook-footer {
+  /* Isolate from the application's generic footer (25px bottom padding). */
+  display: block;
   border-top: 1px solid #555;
-  padding-top: 2mm;
-  margin-top: 2mm;
+  padding: 2mm 0 0;
+  margin: 2mm 0 0;
   font-size: 7pt;
+  line-height: 1.35;
+  letter-spacing: normal;
+  color: #111;
   overflow-wrap: anywhere;
 }
 .scorebook-page-header,
@@ -204,7 +213,7 @@
   width: 35%;
 }
 .scorebook-log tbody tr {
-  height: 22mm;
+  height: 21mm;
   break-inside: avoid;
 }
 .scorebook-page .scorebook-pre {
