@@ -6,7 +6,7 @@ try {
   const { createDemoWorkspace } = await server.ssrLoadModule('/src/data/seed.ts');
   const { scorebookHtml } = await server.ssrLoadModule('/src/components/ScorebookPrint.tsx');
   const data = createDemoWorkspace();
-  data.players = data.players.map((p) => ({ ...p, name: '선수 __________', number: 0 }));
+  data.players = data.players.map((p) => ({ ...p, name: '선수 ______', number: 0 }));
   data.teams = data.teams.map((t, i) => ({ ...t, name: (i ? '후공' : '선공') + ' 팀 __________' }));
   const game = {
     ...data.games[0],

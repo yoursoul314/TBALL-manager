@@ -6277,6 +6277,17 @@ label {
 .rbi-decision button[aria-pressed="true"] { background:#245742; color:white; border:2px solid #173c2e; }
 .rbi-decision small { display:block; margin-top:6px; }
 .rbi-summary { font-weight:700; }
+.match-detail .runner-row .rbi-decision { grid-column:1 / -1; min-width:0; }
+.match-detail .play-confirmation { position:static; flex-shrink:0; }
+.match-detail .play-confirmation .rbi-summary { grid-column:1 / -1; grid-row:1; margin:0; font-size:12px; }
+.match-detail .play-confirmation .umpire-confirm { grid-column:1; grid-row:2; }
+.match-detail .play-confirmation .record-save-bar { grid-column:2; grid-row:2; }
+.match-detail .play-confirmation > .hint { grid-row:3; }
+.match-detail .runner-input-scroll > .hint { font-size:10px; margin:0 0 4px; }
+@media (min-width:900px) {
+  .match-detail .play-runner-step { display:flex; flex-direction:column; overflow:hidden; }
+  .match-detail .runner-input-scroll { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; scroll-padding-block:8px; }
+}
 .paper-entry-guide { border:1px solid #98b6a8; background:#edf6ee; padding:12px; border-radius:12px; margin:10px 0; }
 .paper-entry-guide p { margin:6px 0; }
 

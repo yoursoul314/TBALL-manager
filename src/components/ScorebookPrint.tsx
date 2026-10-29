@@ -138,8 +138,8 @@ export function ScorebookPages({
                                     <span className="scorebook-diamond" aria-hidden="true">
                                       ◇
                                     </span>
-                                    <span>결과 ____　S/F ____</span>
-                                    <span>R ____　RBI ____　No. ____</span>
+                                    <span>결과 __　S/F __</span>
+                                    <span>R __　RBI __　No.__</span>
                                   </>
                                 )}
                               </td>

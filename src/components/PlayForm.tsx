@@ -403,250 +403,258 @@ export function PlayForm({
           onChange={onSequence}
         />
         <section className="play-runner-step">
-          <h3>3 · 주자 결과 확인</h3>
-          <p className="hint">
-            아래 이동은 미확정 제안입니다. 각 주자의 실제 최종 결과를 확인하세요.
-          </p>
-          {state.live!.lastBatter && (
-            <p className="callout amber">
-              마지막 타자: 1루 포스아웃이면 이번 타격의 득점·진루를 취소하고 직전 잔루를 복구합니다.
+          <div className="runner-input-scroll">
+            <h3>3 · 주자 결과 확인</h3>
+            <p className="hint">
+              아래 이동은 미확정 제안입니다. 각 주자의 실제 최종 결과를 확인하세요.
             </p>
-          )}
-          {outcomes.map((o) => (
-            <div className="runner-row" key={o.playerId}>
-              <b>
-                {data.players.find((p) => p.id === o.playerId)?.name}
-                {o.playerId === state.live!.batterId ? ' · 타자' : ''}
-              </b>
-              <div className="form-row">
-                <label>
-                  최종 위치
-                  <select
-                    aria-label={o.playerId + ' 최종 위치'}
-                    value={o.to}
-                    onChange={(e) =>
-                      patch(o.playerId, {
-                        to: ['out', 'home'].includes(e.target.value)
-                          ? (e.target.value as 'out' | 'home')
-                          : (Number(e.target.value) as 1 | 2 | 3),
-                        action: 'advance',
-                        outReason: undefined,
-                        outAt: undefined,
-                      })
-                    }
-                  >
-                    {[1, 2, 3].map((b) => (
-                      <option value={b} key={b}>
-                        {b}루
-                      </option>
-                    ))}
-                    <option value="home">홈 · 득점</option>
-                    <option value="out">아웃</option>
-                  </select>
-                </label>
-                <label>
-                  주루 유형
-                  <select
-                    value={o.action}
-                    onChange={(e) => {
-                      const action = e.target.value as RunnerOutcome['action'];
-                      patch(o.playerId, {
-                        action,
-                        ...(['lead', 'steal', 'slide'].includes(action)
-                          ? {
-                              to: 'out',
-                              outReason: action as 'lead' | 'steal' | 'slide',
-                              outAt: undefined,
-                            }
-                          : {}),
-                        intentToAdvance: false,
-                      });
-                    }}
-                  >
-                    <option value="advance">진루</option>
-                    <option value="hold">잔류</option>
-                    <option value="tag-up">태그업</option>
-                    <option value="overrun">오버런 · 추가 진루 의사 없음</option>
-                    <option value="lead">리드 위반</option>
-                    <option value="steal">도루 위반</option>
-                    <option value="slide">슬라이딩 위반</option>
-                  </select>
-                </label>
-              </div>
-              {o.action === 'tag-up' && (
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={quality === 'fly'}
-                    onChange={(e) => {
-                      setQuality(e.target.checked ? 'fly' : null);
-                      setConfirmed([]);
-                      setTime(false);
-                    }}
-                  />
-                  태그업의 뜬공 상황 확인 · 필수
-                </label>
-              )}
-              {o.to === 'out' && (
+            {state.live!.lastBatter && (
+              <p className="callout amber">
+                마지막 타자: 1루 포스아웃이면 이번 타격의 득점·진루를 취소하고 직전 잔루를
+                복구합니다.
+              </p>
+            )}
+            {outcomes.map((o) => (
+              <div className="runner-row" key={o.playerId}>
+                <b>
+                  {data.players.find((p) => p.id === o.playerId)?.name}
+                  {o.playerId === state.live!.batterId ? ' · 타자' : ''}
+                </b>
                 <div className="form-row">
                   <label>
-                    아웃 종류
+                    최종 위치
                     <select
-                      value={o.outReason ?? ''}
+                      aria-label={o.playerId + ' 최종 위치'}
+                      value={o.to}
                       onChange={(e) =>
                         patch(o.playerId, {
-                          outReason: (e.target.value || undefined) as RunnerOutcome['outReason'],
+                          to: ['out', 'home'].includes(e.target.value)
+                            ? (e.target.value as 'out' | 'home')
+                            : (Number(e.target.value) as 1 | 2 | 3),
+                          action: 'advance',
+                          outReason: undefined,
+                          outAt: undefined,
                         })
                       }
                     >
-                      <option value="">판정 선택</option>
-                      {['force', 'tag', 'fly', 'lead', 'steal', 'slide'].map((v, i) => (
-                        <option key={v} value={v}>
-                          {
-                            [
-                              '포스아웃',
-                              '태그아웃',
-                              '뜬공 아웃',
-                              '리드 위반',
-                              '도루 위반',
-                              '슬라이딩 위반',
-                            ][i]
-                          }
+                      {[1, 2, 3].map((b) => (
+                        <option value={b} key={b}>
+                          {b}루
                         </option>
                       ))}
+                      <option value="home">홈 · 득점</option>
+                      <option value="out">아웃</option>
                     </select>
                   </label>
                   <label>
-                    아웃 위치
+                    주루 유형
                     <select
-                      value={o.outAt ?? ''}
-                      onChange={(e) =>
+                      value={o.action}
+                      onChange={(e) => {
+                        const action = e.target.value as RunnerOutcome['action'];
                         patch(o.playerId, {
-                          outAt: !e.target.value
-                            ? undefined
-                            : e.target.value === 'home'
-                              ? 'home'
-                              : (Number(e.target.value) as 1 | 2 | 3),
-                        })
-                      }
+                          action,
+                          ...(['lead', 'steal', 'slide'].includes(action)
+                            ? {
+                                to: 'out',
+                                outReason: action as 'lead' | 'steal' | 'slide',
+                                outAt: undefined,
+                              }
+                            : {}),
+                          intentToAdvance: false,
+                        });
+                      }}
                     >
-                      <option value="">위치 선택</option>
-                      <option value="1">1루</option>
-                      <option value="2">2루</option>
-                      <option value="3">3루</option>
-                      <option value="home">홈</option>
+                      <option value="advance">진루</option>
+                      <option value="hold">잔류</option>
+                      <option value="tag-up">태그업</option>
+                      <option value="overrun">오버런 · 추가 진루 의사 없음</option>
+                      <option value="lead">리드 위반</option>
+                      <option value="steal">도루 위반</option>
+                      <option value="slide">슬라이딩 위반</option>
                     </select>
                   </label>
                 </div>
-              )}
-              {o.to === 'home' && (
-                <fieldset className="rbi-decision" disabled={rollback}>
-                  <legend>
-                    {data.players.find((p) => p.id === o.playerId)?.name} 득점 · 타점 판정
-                  </legend>
-                  {rollback ? (
-                    <p>RULE02 · 이번 득점과 타점은 반영하지 않습니다.</p>
-                  ) : (
-                    <>
-                      <div className="button-row">
-                        <button
-                          type="button"
-                          aria-pressed={credited(o.playerId)}
-                          onClick={() => {
-                            setDetails((ds) => [
-                              ...ds.filter((d) => d.type !== 'RBI' || d.runnerId !== o.playerId),
-                              { id: crypto.randomUUID(), type: 'RBI', runnerId: o.playerId },
-                            ]);
-                            setNoRbi((ids) => ids.filter((id) => id !== o.playerId));
-                            setTime(false);
-                          }}
-                        >
-                          타점 인정
-                        </button>
-                        <button
-                          type="button"
-                          aria-pressed={noRbi.includes(o.playerId)}
-                          onClick={() => {
-                            setDetails((ds) =>
-                              ds.filter((d) => d.type !== 'RBI' || d.runnerId !== o.playerId),
-                            );
-                            setNoRbi((ids) => [
-                              ...ids.filter((id) => id !== o.playerId),
-                              o.playerId,
-                            ]);
-                            setTime(false);
-                          }}
-                        >
-                          타점 없음
-                        </button>
-                      </div>
-                      <small>
-                        현재 타자에게 1타점 부여 여부를 판정하세요. 실책 등으로 인한 득점을 자동으로
-                        타점 처리하지 않습니다.
-                      </small>
-                    </>
-                  )}
-                </fieldset>
-              )}
-              <button
-                type="button"
-                className="runner-confirm"
-                aria-label={
-                  (data.players.find((p) => p.id === o.playerId)?.name ?? o.playerId) + ' 결과 확인'
-                }
-                aria-pressed={confirmed.includes(o.playerId)}
-                disabled={o.to === 'out' && (!o.outReason || !o.outAt)}
-                onClick={() => {
-                  setConfirmed((ids) =>
-                    ids.includes(o.playerId)
-                      ? ids.filter((id) => id !== o.playerId)
-                      : [...ids, o.playerId],
-                  );
-                  setTime(false);
-                }}
-              >
-                {confirmed.includes(o.playerId) ? '✓ 실제 결과 확인됨' : '이 주자 실제 결과 확인'}
-              </button>
-            </div>
-          ))}
-          <details>
-            <summary>경기장 밖 악송구 · 안전진루권</summary>
-            <label className="check">
-              <input type="checkbox" checked={award} onChange={(e) => setAward(e.target.checked)} />
-              경기장 밖 악송구 · 안전진루권
-            </label>
-            {award && (
-              <>
-                <p className="hint">
-                  심판이 판정한 악송구 시점의 진루권 대상과 위치를 지정하세요. 최종 결과는 최소
-                  1베이스 진루해야 합니다.
-                </p>
-                {participants.map((id) => (
-                  <label key={id}>
-                    {data.players.find((p) => p.id === id)?.name}
-                    <select
-                      value={awardFrom[id] ?? ''}
-                      onChange={(e) =>
-                        setAwardFrom((old) => {
-                          const next = { ...old };
-                          if (e.target.value === '') delete next[id];
-                          else next[id] = Number(e.target.value) as 0 | 1 | 2 | 3;
-                          return next;
-                        })
-                      }
-                    >
-                      <option value="">대상 아님 (이미 득점·아웃 등)</option>
-                      {[0, 1, 2, 3].map((n) => (
-                        <option value={n} key={n}>
-                          {n === 0 ? '타자석' : n + '루'}
-                        </option>
-                      ))}
-                    </select>
+                {o.action === 'tag-up' && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={quality === 'fly'}
+                      onChange={(e) => {
+                        setQuality(e.target.checked ? 'fly' : null);
+                        setConfirmed([]);
+                        setTime(false);
+                      }}
+                    />
+                    태그업의 뜬공 상황 확인 · 필수
                   </label>
-                ))}
-              </>
-            )}
-          </details>
+                )}
+                {o.to === 'out' && (
+                  <div className="form-row">
+                    <label>
+                      아웃 종류
+                      <select
+                        value={o.outReason ?? ''}
+                        onChange={(e) =>
+                          patch(o.playerId, {
+                            outReason: (e.target.value || undefined) as RunnerOutcome['outReason'],
+                          })
+                        }
+                      >
+                        <option value="">판정 선택</option>
+                        {['force', 'tag', 'fly', 'lead', 'steal', 'slide'].map((v, i) => (
+                          <option key={v} value={v}>
+                            {
+                              [
+                                '포스아웃',
+                                '태그아웃',
+                                '뜬공 아웃',
+                                '리드 위반',
+                                '도루 위반',
+                                '슬라이딩 위반',
+                              ][i]
+                            }
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      아웃 위치
+                      <select
+                        value={o.outAt ?? ''}
+                        onChange={(e) =>
+                          patch(o.playerId, {
+                            outAt: !e.target.value
+                              ? undefined
+                              : e.target.value === 'home'
+                                ? 'home'
+                                : (Number(e.target.value) as 1 | 2 | 3),
+                          })
+                        }
+                      >
+                        <option value="">위치 선택</option>
+                        <option value="1">1루</option>
+                        <option value="2">2루</option>
+                        <option value="3">3루</option>
+                        <option value="home">홈</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+                {o.to === 'home' && (
+                  <fieldset className="rbi-decision" disabled={rollback}>
+                    <legend>
+                      {data.players.find((p) => p.id === o.playerId)?.name} 득점 · 타점 판정
+                    </legend>
+                    {rollback ? (
+                      <p>RULE02 · 이번 득점과 타점은 반영하지 않습니다.</p>
+                    ) : (
+                      <>
+                        <div className="button-row">
+                          <button
+                            type="button"
+                            aria-pressed={credited(o.playerId)}
+                            onClick={() => {
+                              setDetails((ds) => [
+                                ...ds.filter((d) => d.type !== 'RBI' || d.runnerId !== o.playerId),
+                                { id: crypto.randomUUID(), type: 'RBI', runnerId: o.playerId },
+                              ]);
+                              setNoRbi((ids) => ids.filter((id) => id !== o.playerId));
+                              setTime(false);
+                            }}
+                          >
+                            타점 인정
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={noRbi.includes(o.playerId)}
+                            onClick={() => {
+                              setDetails((ds) =>
+                                ds.filter((d) => d.type !== 'RBI' || d.runnerId !== o.playerId),
+                              );
+                              setNoRbi((ids) => [
+                                ...ids.filter((id) => id !== o.playerId),
+                                o.playerId,
+                              ]);
+                              setTime(false);
+                            }}
+                          >
+                            타점 없음
+                          </button>
+                        </div>
+                        <small>
+                          현재 타자에게 1타점 부여 여부를 판정하세요. 실책 등으로 인한 득점을
+                          자동으로 타점 처리하지 않습니다.
+                        </small>
+                      </>
+                    )}
+                  </fieldset>
+                )}
+                <button
+                  type="button"
+                  className="runner-confirm"
+                  aria-label={
+                    (data.players.find((p) => p.id === o.playerId)?.name ?? o.playerId) +
+                    ' 결과 확인'
+                  }
+                  aria-pressed={confirmed.includes(o.playerId)}
+                  disabled={o.to === 'out' && (!o.outReason || !o.outAt)}
+                  onClick={() => {
+                    setConfirmed((ids) =>
+                      ids.includes(o.playerId)
+                        ? ids.filter((id) => id !== o.playerId)
+                        : [...ids, o.playerId],
+                    );
+                    setTime(false);
+                  }}
+                >
+                  {confirmed.includes(o.playerId) ? '✓ 실제 결과 확인됨' : '이 주자 실제 결과 확인'}
+                </button>
+              </div>
+            ))}
+            <details>
+              <summary>경기장 밖 악송구 · 안전진루권</summary>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={award}
+                  onChange={(e) => setAward(e.target.checked)}
+                />
+                경기장 밖 악송구 · 안전진루권
+              </label>
+              {award && (
+                <>
+                  <p className="hint">
+                    심판이 판정한 악송구 시점의 진루권 대상과 위치를 지정하세요. 최종 결과는 최소
+                    1베이스 진루해야 합니다.
+                  </p>
+                  {participants.map((id) => (
+                    <label key={id}>
+                      {data.players.find((p) => p.id === id)?.name}
+                      <select
+                        value={awardFrom[id] ?? ''}
+                        onChange={(e) =>
+                          setAwardFrom((old) => {
+                            const next = { ...old };
+                            if (e.target.value === '') delete next[id];
+                            else next[id] = Number(e.target.value) as 0 | 1 | 2 | 3;
+                            return next;
+                          })
+                        }
+                      >
+                        <option value="">대상 아님 (이미 득점·아웃 등)</option>
+                        {[0, 1, 2, 3].map((n) => (
+                          <option value={n} key={n}>
+                            {n === 0 ? '타자석' : n + '루'}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </>
+              )}
+            </details>
+          </div>
           <div className="play-confirmation">
             <h3>4 · 심판 타임 후 확정</h3>
             <p className="rbi-summary" role="status">
