@@ -19,7 +19,7 @@ try {
   data.events = [];
   await writeFile(
     'public/tb-scorebook-template.html',
-    scorebookHtml(data, game, { filled: false, details: true, blankPages: 2 }),
+    scorebookHtml(data, game, { filled: false, details: true, blankPages: 2 }).replaceAll('#0', '#____'),
     'utf8',
   );
   process.stdout.write('Created anonymous A4 landscape scorebook template (5 pages).\n');
