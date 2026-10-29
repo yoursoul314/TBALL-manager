@@ -122,7 +122,10 @@ export function ScorebookPages({
                           {is.map((n) => {
                             const p = rows.find((r) => r.inning === n);
                             return (
-                              <td key={n} className="scorebook-cell">
+                              <td
+                                key={n}
+                                className={`scorebook-cell${options.filled && p ? '' : ' scorebook-cell-blank'}`}
+                              >
                                 {options.filled && p ? (
                                   <>
                                     <b>
@@ -490,9 +493,26 @@ export function ScorebookPrint({
           <button onClick={onClose}>기록실로 돌아가기</button>
         </div>
         <p>
-          A4 가로 · 배율 100% · 머리글/바닥글 끄기 권장. 아이패드는 인쇄 창에서 프린터를 선택하거나
-          미리보기를 PDF로 공유할 수 있습니다. 인쇄만으로 경기 기록은 변경되지 않습니다.
+          A4 · 가로 · 배율 100% · 머리글/바닥글 끄기 권장. 인쇄와 PDF는 같은 양식을 사용합니다. 긴
+          기록은 다음 페이지로 이어지며, 실제 장수는 인쇄 창에서 확인하세요.
         </p>
+        <details className="scorebook-save-help">
+          <summary>아이패드 인쇄·PDF 저장 안내</summary>
+          <ol>
+            <li>「프린트 / PDF 저장」을 누르고 용지 A4·가로 방향을 확인합니다.</li>
+            <li>
+              미리보기의 첫 장과 마지막 장에서 오른쪽 RBI 열과 하단 경기 ID가 보이는지 확인합니다.
+            </li>
+            <li>PDF는 인쇄 미리보기의 공유 메뉴에서 「파일에 저장」을 선택합니다.</li>
+            <li>
+              저장한 PDF를 파일 앱에서 다시 열어 장수와 잘림을 확인합니다. 프린터 연결은 필요하지
+              않습니다.
+            </li>
+          </ol>
+          <p>
+            인쇄·저장·취소는 원본 경기 기록을 바꾸지 않습니다. PDF와 인쇄물도 안전하게 보관하세요.
+          </p>
+        </details>
         <p>
           빈 기록지의 타순·수비는 경기 시작 스냅샷입니다. 교체 내용은 별지에 적으세요. 각 칸의 No.를
           상세 기록지와 맞추면 나중에 순서대로 입력할 수 있습니다.

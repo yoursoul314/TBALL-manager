@@ -42,32 +42,49 @@
   margin: 6px 0;
   font-size: 13px;
 }
+.scorebook-save-help summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+}
+.scorebook-save-help ol {
+  margin: 0 0 8px;
+  padding-left: 24px;
+  font-size: 13px;
+  line-height: 1.6;
+}
 .scorebook-pages {
-  display: grid;
-  gap: 18px;
+  display: block;
 }
 .scorebook-page {
   box-sizing: border-box;
   width: 281mm;
-  min-height: 190mm;
-  margin: 0 auto;
+  min-height: 0;
+  margin: 0 auto 18px;
   background: white;
-  padding: 4mm;
+  /* Match the 281mm printable width of A4 landscape with 8mm margins.
+     Screen padding previously narrowed cells and hid pagination problems. */
+  padding: 0;
   color: #111;
   font:
     9pt/1.35 Arial,
+    'Apple SD Gothic Neo',
     'Malgun Gothic',
     sans-serif;
   box-shadow: 0 2px 8px #0002;
-  break-after: page;
-  page-break-after: always;
 }
-.scorebook-page:last-child {
-  break-after: auto;
-  page-break-after: auto;
+.scorebook-page + .scorebook-page {
+  break-before: page;
+  page-break-before: always;
 }
 .scorebook-page * {
   box-sizing: border-box;
+}
+.scorebook-page {
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 .scorebook-page p {
   font-size: 8pt;
@@ -84,6 +101,7 @@
 }
 .scorebook-page-header > div {
   max-width: 60%;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 .scorebook-page-header h2 {
@@ -137,10 +155,16 @@
   position: relative;
 }
 .scorebook-cell .scorebook-diamond {
-  float: left;
-  font: 24pt/1 Arial;
+  /* A floated 24pt diamond forced every row taller than the A4 budget. */
+  position: absolute;
+  left: 1mm;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 18pt/1 Arial;
   color: #999;
-  margin-right: 1mm;
+}
+.scorebook-cell-blank {
+  padding-left: 9mm;
 }
 .scorebook-defense {
   display: grid;
@@ -163,6 +187,12 @@
   margin-top: 2mm;
   font-size: 7pt;
   overflow-wrap: anywhere;
+}
+.scorebook-page-header,
+.scorebook-rules,
+.scorebook-footer {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 .scorebook-log th:nth-child(1) {
   width: 17%;
@@ -243,13 +273,32 @@
   }
   .scorebook-page {
     margin: 0;
-    width: 100%;
+    width: 281mm;
+    max-width: 100%;
     min-height: 0;
     padding: 0;
     box-shadow: none;
+    overflow: visible;
   }
+  /* Long real records may continue naturally. Keeping an entire table
+     together can create empty sheets or clip a table taller than a page. */
   .scorebook-page table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .scorebook-page thead {
+    display: table-header-group;
+  }
+  .scorebook-page tfoot {
+    display: table-row-group;
+  }
+  .scorebook-page tr {
     break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .scorebook-page-header {
+    break-after: avoid;
+    page-break-after: avoid;
   }
   .scorebook-page th {
     -webkit-print-color-adjust: exact;
