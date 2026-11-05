@@ -18,7 +18,7 @@ import {
   STRENGTH_LABELS,
   ERROR_LABELS,
 } from '../config/recording';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Search, Plus, ArrowUpRight } from 'lucide-react';
 import { ABILITIES, ABILITY_LABELS, POSITIONS, POSITION_LABELS } from '../config/positions';
 import { positionScore } from '../evaluation/score';
@@ -26,6 +26,7 @@ import type { Player, Workspace } from '../domain/model';
 import { calculateStats } from '../statistics/calculate';
 import { homeRunQualityLabel } from '../statistics/homeRuns';
 import { Badge, Modal, Panel, Progress, Empty, fmt } from './ui';
+const RegistrationManager = lazy(() => import('../registration/RegistrationManager'));
 export function Players({
   data,
   onSave,
@@ -38,6 +39,7 @@ export function Players({
   onPurge: (kind: ManagementKind, ids: string[]) => Promise<void>;
 }) {
   const [management, setManagement] = useState<ManagementRequest | null>(null);
+  const [registration, setRegistration] = useState(false);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]),
     [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [playerTrash, setPlayerTrash] = useState(false);
@@ -91,6 +93,9 @@ export function Players({
           <p>학년과 팀을 독립적으로 관리하고, 경기마다 출전 명단을 정하세요.</p>
         </div>
         <div className="button-row management-actions">
+          <button aria-pressed={registration} onClick={() => setRegistration(!registration)}>
+            학생 온라인 등록
+          </button>
           <button
             onClick={() => {
               setError('');
@@ -114,6 +119,11 @@ export function Players({
       <p className="management-help">
         학생은 팀 선택 없이 등록합니다. 새 경기에서 등록 선수를 불러와 팀에 배정하세요.
       </p>
+      {registration && (
+        <Suspense fallback={<p>학생 등록 관리 화면을 여는 중입니다.</p>}>
+          <RegistrationManager data={data} onSave={onSave} />
+        </Suspense>
+      )}
 
       <div className="tabs" aria-label="팀 목록 구분">
         <button aria-pressed={!teamTrash} onClick={() => setTeamTrash(false)}>
