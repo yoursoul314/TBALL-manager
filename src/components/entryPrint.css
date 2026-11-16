@@ -1,0 +1,183 @@
+.entry-print-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #e9ede7;
+  overflow: auto;
+  padding: 16px;
+  color: #142f2b;
+}
+.entry-print-controls {
+  max-width: 1100px;
+  margin: 0 auto 16px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+}
+.entry-print-controls button {
+  min-height: 48px;
+}
+.entry-sheet {
+  box-sizing: border-box;
+  background: white;
+  color: #111;
+  width: min(100%, 281mm);
+  margin: 0 auto;
+  padding: 8mm;
+  font-family: Arial, 'Malgun Gothic', sans-serif;
+}
+.entry-sheet * {
+  box-sizing: border-box;
+}
+.entry-sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #222;
+  padding-bottom: 4mm;
+  margin-bottom: 4mm;
+}
+.entry-sheet h1 {
+  font-size: 21pt;
+  line-height: 1.25;
+  margin: 2mm 0;
+  overflow-wrap: anywhere;
+}
+.entry-sheet h2 {
+  font-size: 18pt;
+  margin: 0;
+}
+.entry-sheet header p {
+  font-size: 12pt;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.entry-print-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8mm;
+}
+.entry-sheet .printed-captain {
+  font-size: 13pt;
+  margin: 2mm 0 3mm;
+}
+.entry-sheet table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13pt;
+}
+.entry-sheet th,
+.entry-sheet td {
+  border: 1px solid #777;
+  text-align: left;
+  padding: 2mm;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  font-size: 13pt;
+  color: #111;
+  letter-spacing: normal;
+}
+.entry-sheet th:first-child,
+.entry-sheet td:first-child {
+  width: 13%;
+  text-align: center;
+}
+.entry-sheet th:last-child {
+  width: 37%;
+}
+.entry-sheet td span {
+  font-size: 11pt;
+}
+.entry-sheet th {
+  background: #edf2e7;
+  font-size: 12pt;
+}
+.entry-sheet tr {
+  break-inside: avoid;
+}
+.entry-sheet tbody tr:last-child td {
+  border-bottom: 1px solid #777;
+}
+.entry-sheet thead {
+  display: table-header-group;
+}
+.entry-sheet .printed-reserves {
+  font-size: 12pt;
+  line-height: 1.5;
+  margin-top: 3mm;
+  overflow-wrap: anywhere;
+}
+.entry-sheet .printed-reserves p {
+  margin: 1mm 0;
+}
+.entry-sheet footer {
+  display: block;
+  margin: 4mm 0 0;
+  padding: 2mm 0 0;
+  border-top: 1px solid #aaa;
+  font-size: 10pt;
+  line-height: 1.4;
+  letter-spacing: normal;
+  color: #333;
+}
+@media screen and (max-width: 700px) {
+  .entry-print-teams {
+    grid-template-columns: 1fr;
+  }
+  .entry-sheet header {
+    display: block;
+  }
+  .entry-sheet {
+    padding: 12px;
+  }
+  .entry-sheet h1 {
+    font-size: 22px;
+  }
+}
+@page {
+  size: A4 landscape;
+  margin: 8mm;
+}
+body.entry-printing {
+  overflow: hidden;
+}
+@media print {
+  body.entry-printing {
+    margin: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  body.entry-printing > *:not(.entry-print-shell) {
+    display: none !important;
+  }
+  .entry-print-shell {
+    position: static !important;
+    inset: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  .entry-print-controls {
+    display: none !important;
+  }
+  .entry-sheet {
+    width: 281mm;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+  .entry-print-teams {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .entry-sheet header {
+    display: flex;
+  }
+  .entry-sheet h1 {
+    font-size: 21pt;
+  }
+}

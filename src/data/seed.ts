@@ -19,7 +19,8 @@ export function createDemoWorkspace(): Workspace {
     })),
   );
   return {
-    schemaVersion: 15,
+    schemaVersion: 16,
+    classDays: [],
     assessmentManagement: { assessors: [], dayHistory: [] },
     defenseDays: [],
     fungoDays: [],

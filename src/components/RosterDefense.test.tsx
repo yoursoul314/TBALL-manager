@@ -10,6 +10,7 @@ import { STORAGE_KEY, readBackup, serializeBackup } from '../data/repository';
 import { replayGame } from '../engine/game';
 import { calculateStats } from '../statistics/calculate';
 import type { Game, Workspace, GameEvent } from '../domain/model';
+import { addClassGroup, markAttendance, playerGroup } from '../domain/attendance';
 afterEach(() => {
   cleanup();
   localStorage.clear();
@@ -150,8 +151,7 @@ it('필드 터치 수비 연결→주자 확인→심판 타임으로 저장하�
   await user.click(screen.getByRole('button', { name: '선수 & 팀' }));
   expect(screen.getByText(/저장하지 않은 입력이 있습니다/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
-  expect(commit).toBeDisabled();
-  fireEvent.click(screen.getByLabelText('심판 타임 선언 확인'));
+  expect(commit).toBeEnabled();
   fireEvent.click(commit);
   const restored = readBackup(serializeBackup(saved()));
   const event = restored.events.at(-1)!;
@@ -186,7 +186,6 @@ it('연결 수비 저장 실패와 취소는 입력·원본을 보존하며 미�
   expect(screen.getByText(/10명 배치/)).toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: /미배치$/ })).toHaveLength(10);
   fireEvent.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
-  fireEvent.click(screen.getByLabelText('심판 타임 선언 확인'));
   const commit = screen.getByRole('button', { name: /심판 타임 · 플레이 확정/ });
   fireEvent.click(commit);
   expect(save).toHaveBeenCalledOnce();
@@ -196,6 +195,13 @@ it('연결 수비 저장 실패와 취소는 입력·원본을 보존하며 미�
 
 it('날짜 필터 중 새 추천 엔트리를 확인해 생성하면 새 경기 화면을 표시한다', () => {
   const data = createDemoWorkspace();
+  let day = addClassGroup(data, '2026-10-27', playerGroup(data.players[0]));
+  day = markAttendance(
+    day,
+    day.students.map((s) => s.playerId),
+    'present',
+  );
+  data.classDays = [day];
   data.games[0].playedOn = '2026-10-25';
   data.games[0].dateStatus = 'confirmed';
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -209,6 +215,8 @@ it('날짜 필터 중 새 추천 엔트리를 확인해 생성하면 새 경기 
   fireEvent.click(screen.getByRole('button', { name: '수비 기능 추천 적용 · 초안' }));
   expect(screen.getByRole('button', { name: '경기 생성' })).toBeDisabled();
   fireEvent.change(screen.getByLabelText('경기 날짜'), { target: { value: '2026-10-27' } });
+  fireEvent.click(screen.getByLabelText(/수업 대상$/));
+  fireEvent.click(screen.getByRole('button', { name: '출석 기준 적용 · 누락 학생 모두 편성' }));
   fireEvent.change(screen.getByLabelText('엔트리 확인 감독'), { target: { value: '가상 감독' } });
   fireEvent.click(screen.getByLabelText(/양 팀 선발 10명/));
   fireEvent.click(screen.getByRole('button', { name: '경기 생성' }));

@@ -93,214 +93,62 @@ export function PlayDetailsEditor({
             </button>
           ))}
       </div>
-      {details.map((d, index) => (
-        <fieldset className="detail-card" key={d.id} disabled={lockedDetailIds.has(d.id)}>
-          <legend>
-            {index + 1}. {detailNames[d.type]}
-            {lockedDetailIds.has(d.id) ? ' · 수비 연결에서 수정' : ''}
-          </legend>
-          <button
-            type="button"
-            className="text-button"
-            aria-label={index + 1 + '번 세부 이벤트 삭제'}
-            onClick={() => onChange(details.filter((x) => x.id !== d.id))}
-          >
-            삭제
-          </button>
-          {d.type === 'FIELDERS_CHOICE' && (
-            <label>
-              아웃을 시도한 기존 주자
-              <select
-                value={d.targetRunnerId}
-                onChange={(e) => patch(d.id, { targetRunnerId: e.target.value })}
-              >
-                {players(participants.slice(0, -1))}
-              </select>
-            </label>
-          )}
-          {d.type === 'RBI' && (
-            <label>
-              타점이 인정된 득점 주자
-              <select
-                value={d.runnerId}
-                onChange={(e) => patch(d.id, { runnerId: e.target.value })}
-              >
-                {players(participants)}
-              </select>
-            </label>
-          )}
-          {'playerId' in d && (
-            <label>
-              {d.type === 'ERROR_ADVANCE' ? '진루 주자' : '수비 선수'}
-              <select
-                value={d.playerId}
-                onChange={(e) => patch(d.id, { playerId: e.target.value })}
-              >
-                {players(d.type === 'ERROR_ADVANCE' ? participants : defenders)}
-              </select>
-            </label>
-          )}
-          {d.type === 'DEFENSIVE_ERROR' && (
-            <>
+      {details.some((d) => lockedDetailIds.has(d.id)) && (
+        <details className="generated-detail-summary">
+          <summary>
+            연결 수비 자동 기록 · {details.filter((d) => lockedDetailIds.has(d.id)).length}건
+          </summary>
+          <ul>
+            {details
+              .filter((d) => lockedDetailIds.has(d.id))
+              .map((d) => (
+                <li key={d.id}>
+                  {detailNames[d.type]} · {'playerId' in d ? name(d.playerId) : ''}{' '}
+                  {d.type === 'DEFENSIVE_CREDIT'
+                    ? d.credit === 'putout'
+                      ? '자살'
+                      : '보살'
+                    : d.type === 'FIELDING_ACTION'
+                      ? { receive: '포구', throw: '송구', base: '베이스 처리', out: '아웃 기여' }[
+                          d.action
+                        ]
+                      : ''}
+                </li>
+              ))}
+          </ul>
+          <small>수정은 수비 연결에서 진행하세요. 공식 기록과 능력 관찰은 각각 보존합니다.</small>
+        </details>
+      )}
+      {details
+        .filter((d) => !lockedDetailIds.has(d.id))
+        .map((d, index) => (
+          <fieldset className="detail-card" key={d.id} disabled={lockedDetailIds.has(d.id)}>
+            <legend>
+              {index + 1}. {detailNames[d.type]}
+              {lockedDetailIds.has(d.id) ? ' · 수비 연결에서 수정' : ''}
+            </legend>
+            <button
+              type="button"
+              className="text-button"
+              aria-label={index + 1 + '번 세부 이벤트 삭제'}
+              onClick={() => onChange(details.filter((x) => x.id !== d.id))}
+            >
+              삭제
+            </button>
+            {d.type === 'FIELDERS_CHOICE' && (
               <label>
-                실책 세부 유형
+                아웃을 시도한 기존 주자
                 <select
-                  value={d.errorType}
-                  onChange={(e) =>
-                    patch(d.id, { errorType: e.target.value as keyof typeof ERROR_LABELS })
-                  }
+                  value={d.targetRunnerId}
+                  onChange={(e) => patch(d.id, { targetRunnerId: e.target.value })}
                 >
-                  {Object.entries(ERROR_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
+                  {players(participants.slice(0, -1))}
                 </select>
               </label>
+            )}
+            {d.type === 'RBI' && (
               <label>
-                판정 메모
-                <input
-                  value={d.note}
-                  maxLength={1000}
-                  onChange={(e) => patch(d.id, { note: e.target.value })}
-                />
-              </label>
-            </>
-          )}
-          {d.type === 'ERROR_ADVANCE' && (
-            <>
-              <label>
-                원인 실책
-                <select
-                  value={d.errorId}
-                  onChange={(e) => patch(d.id, { errorId: e.target.value })}
-                >
-                  <option value="">실책 이벤트 선택</option>
-                  {details.map(
-                    (err, i) =>
-                      err.type === 'DEFENSIVE_ERROR' && (
-                        <option key={err.id} value={err.id}>
-                          {i + 1}. {name(err.playerId)} · {ERROR_LABELS[err.errorType]}
-                        </option>
-                      ),
-                  )}
-                </select>
-              </label>
-              <div className="form-row">
-                <label>
-                  실책 전 도달 베이스
-                  <select
-                    value={d.from}
-                    onChange={(e) => patch(d.id, { from: Number(e.target.value) as 0 | 1 | 2 | 3 })}
-                  >
-                    {[0, 1, 2, 3].map((b) => (
-                      <option key={b} value={b}>
-                        {b === 0 ? '타석' : b + '루'}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  실책 후 도달 베이스
-                  <select
-                    value={d.to}
-                    onChange={(e) =>
-                      patch(d.id, {
-                        to:
-                          e.target.value === 'home'
-                            ? 'home'
-                            : (Number(e.target.value) as 1 | 2 | 3),
-                      })
-                    }
-                  >
-                    {[1, 2, 3].map((b) => (
-                      <option key={b} value={b}>
-                        {b}루
-                      </option>
-                    ))}
-                    <option value="home">홈</option>
-                  </select>
-                </label>
-              </div>
-            </>
-          )}
-          {d.type === 'FIELDING_ACTION' && (
-            <>
-              <div className="form-row">
-                <label>
-                  포지션
-                  <select
-                    value={d.position}
-                    onChange={(e) => patch(d.id, { position: e.target.value as typeof d.position })}
-                  >
-                    {POSITIONS.map((p) => (
-                      <option key={p} value={p}>
-                        {POSITION_LABELS[p]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  수비 동작
-                  <select
-                    value={d.action}
-                    onChange={(e) =>
-                      patch(d.id, {
-                        action: e.target.value as typeof d.action,
-                        ...(e.target.value === 'out' ? { runnerId: participants[0] } : {}),
-                      })
-                    }
-                  >
-                    <option value="receive">포구</option>
-                    <option value="throw">송구</option>
-                    <option value="base">베이스 처리</option>
-                    <option value="out">아웃 기여</option>
-                  </select>
-                </label>
-              </div>
-              {d.action === 'out' && (
-                <label>
-                  아웃 대상
-                  <select
-                    value={d.runnerId ?? ''}
-                    onChange={(e) => patch(d.id, { runnerId: e.target.value })}
-                  >
-                    <option value="">선택</option>
-                    {players(participants)}
-                  </select>
-                </label>
-              )}
-              <label>
-                동작 수행 결과
-                <select
-                  value={String(d.success)}
-                  onChange={(e) =>
-                    patch(d.id, {
-                      success: e.target.value === 'null' ? null : e.target.value === 'true',
-                    })
-                  }
-                >
-                  <option value="null">미관찰</option>
-                  <option value="true">성공</option>
-                  <option value="false">실패</option>
-                </select>
-              </label>
-            </>
-          )}
-          {d.type === 'DEFENSIVE_CREDIT' && (
-            <div className="form-row">
-              <label>
-                공식 수비 기여
-                <select
-                  value={d.credit}
-                  onChange={(e) => patch(d.id, { credit: e.target.value as typeof d.credit })}
-                >
-                  <option value="assist">보살 A</option>
-                  <option value="putout">자살 PO</option>
-                </select>
-              </label>
-              <label>
-                실제 아웃된 선수
+                타점이 인정된 득점 주자
                 <select
                   value={d.runnerId}
                   onChange={(e) => patch(d.id, { runnerId: e.target.value })}
@@ -308,10 +156,194 @@ export function PlayDetailsEditor({
                   {players(participants)}
                 </select>
               </label>
-            </div>
-          )}
-        </fieldset>
-      ))}
+            )}
+            {'playerId' in d && (
+              <label>
+                {d.type === 'ERROR_ADVANCE' ? '진루 주자' : '수비 선수'}
+                <select
+                  value={d.playerId}
+                  onChange={(e) => patch(d.id, { playerId: e.target.value })}
+                >
+                  {players(d.type === 'ERROR_ADVANCE' ? participants : defenders)}
+                </select>
+              </label>
+            )}
+            {d.type === 'DEFENSIVE_ERROR' && (
+              <>
+                <label>
+                  실책 세부 유형
+                  <select
+                    value={d.errorType}
+                    onChange={(e) =>
+                      patch(d.id, { errorType: e.target.value as keyof typeof ERROR_LABELS })
+                    }
+                  >
+                    {Object.entries(ERROR_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  판정 메모
+                  <input
+                    value={d.note}
+                    maxLength={1000}
+                    onChange={(e) => patch(d.id, { note: e.target.value })}
+                  />
+                </label>
+              </>
+            )}
+            {d.type === 'ERROR_ADVANCE' && (
+              <>
+                <label>
+                  원인 실책
+                  <select
+                    value={d.errorId}
+                    onChange={(e) => patch(d.id, { errorId: e.target.value })}
+                  >
+                    <option value="">실책 이벤트 선택</option>
+                    {details.map(
+                      (err, i) =>
+                        err.type === 'DEFENSIVE_ERROR' && (
+                          <option key={err.id} value={err.id}>
+                            {i + 1}. {name(err.playerId)} · {ERROR_LABELS[err.errorType]}
+                          </option>
+                        ),
+                    )}
+                  </select>
+                </label>
+                <div className="form-row">
+                  <label>
+                    실책 전 도달 베이스
+                    <select
+                      value={d.from}
+                      onChange={(e) =>
+                        patch(d.id, { from: Number(e.target.value) as 0 | 1 | 2 | 3 })
+                      }
+                    >
+                      {[0, 1, 2, 3].map((b) => (
+                        <option key={b} value={b}>
+                          {b === 0 ? '타석' : b + '루'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    실책 후 도달 베이스
+                    <select
+                      value={d.to}
+                      onChange={(e) =>
+                        patch(d.id, {
+                          to:
+                            e.target.value === 'home'
+                              ? 'home'
+                              : (Number(e.target.value) as 1 | 2 | 3),
+                        })
+                      }
+                    >
+                      {[1, 2, 3].map((b) => (
+                        <option key={b} value={b}>
+                          {b}루
+                        </option>
+                      ))}
+                      <option value="home">홈</option>
+                    </select>
+                  </label>
+                </div>
+              </>
+            )}
+            {d.type === 'FIELDING_ACTION' && (
+              <>
+                <div className="form-row">
+                  <label>
+                    포지션
+                    <select
+                      value={d.position}
+                      onChange={(e) =>
+                        patch(d.id, { position: e.target.value as typeof d.position })
+                      }
+                    >
+                      {POSITIONS.map((p) => (
+                        <option key={p} value={p}>
+                          {POSITION_LABELS[p]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    수비 동작
+                    <select
+                      value={d.action}
+                      onChange={(e) =>
+                        patch(d.id, {
+                          action: e.target.value as typeof d.action,
+                          ...(e.target.value === 'out' ? { runnerId: participants[0] } : {}),
+                        })
+                      }
+                    >
+                      <option value="receive">포구</option>
+                      <option value="throw">송구</option>
+                      <option value="base">베이스 처리</option>
+                      <option value="out">아웃 기여</option>
+                    </select>
+                  </label>
+                </div>
+                {d.action === 'out' && (
+                  <label>
+                    아웃 대상
+                    <select
+                      value={d.runnerId ?? ''}
+                      onChange={(e) => patch(d.id, { runnerId: e.target.value })}
+                    >
+                      <option value="">선택</option>
+                      {players(participants)}
+                    </select>
+                  </label>
+                )}
+                <label>
+                  동작 수행 결과
+                  <select
+                    value={String(d.success)}
+                    onChange={(e) =>
+                      patch(d.id, {
+                        success: e.target.value === 'null' ? null : e.target.value === 'true',
+                      })
+                    }
+                  >
+                    <option value="null">미관찰</option>
+                    <option value="true">성공</option>
+                    <option value="false">실패</option>
+                  </select>
+                </label>
+              </>
+            )}
+            {d.type === 'DEFENSIVE_CREDIT' && (
+              <div className="form-row">
+                <label>
+                  공식 수비 기여
+                  <select
+                    value={d.credit}
+                    onChange={(e) => patch(d.id, { credit: e.target.value as typeof d.credit })}
+                  >
+                    <option value="assist">보살 A</option>
+                    <option value="putout">자살 PO</option>
+                  </select>
+                </label>
+                <label>
+                  실제 아웃된 선수
+                  <select
+                    value={d.runnerId}
+                    onChange={(e) => patch(d.id, { runnerId: e.target.value })}
+                  >
+                    {players(participants)}
+                  </select>
+                </label>
+              </div>
+            )}
+          </fieldset>
+        ))}
       <h3>9개 수비 능력 관찰</h3>
       <p className="hint">
         능력 관찰의 성공·실패는 자살·보살·실책을 자동 생성하지 않습니다. 한 플레이에 여러 선수와

@@ -1,3 +1,5 @@
+import { AttendanceView } from './components/AttendanceView';
+import './components/classroom.css';
 import { MemoryRecoveryArchiveStore } from './data/recoveryArchive';
 import { StorageRecoveryView } from './components/StorageRecoveryView';
 import { ComparisonView } from './components/ComparisonView';
@@ -59,6 +61,7 @@ const repository = new LocalWorkspaceRepository(
 );
 const navigation = [
   { id: 'dashboard', name: '대시보드', icon: LayoutDashboard },
+  { id: 'attendance', name: '수업 출석부', icon: ClipboardCheck },
   { id: 'players', name: '선수 & 팀', icon: Users },
   { id: 'match', name: '경기 기록실', icon: CircleDot },
   { id: 'stats', name: '경기 분석', icon: ChartNoAxesCombined },
@@ -323,6 +326,7 @@ export default function App() {
               }}
             />
           )}
+          {view === 'attendance' && <AttendanceView data={data} onSave={save} />}
           {view === 'players' && (
             <Players
               data={data}
@@ -349,6 +353,7 @@ export default function App() {
           {view === 'match' && (!matchOpened || !game) && (
             <MatchLibrary
               data={data}
+              onSave={save}
               onOpen={(id) => {
                 setGameId(id);
                 setMatchOpened(true);

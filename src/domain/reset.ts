@@ -49,6 +49,7 @@ export function resetWorkspace(data: Workspace, scope: ResetScope, at: string): 
     next.legacyTeamwork = [];
     next.selections = [];
   }
+  if (scope === 'records' || scope === 'all') next.classDays = [];
   if (scope === 'all') {
     next.assessmentManagement = { assessors: [], dayHistory: [] };
     next.migrationSource = undefined;

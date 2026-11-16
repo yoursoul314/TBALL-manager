@@ -66,6 +66,7 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
           ? Object.values(g.teamIds).some((id) => ids.has(id))
           : [
               ...Object.values(g.rosters).flat(),
+              ...(g.entry?.attendance?.students.map((s) => s.playerId) ?? []),
               ...Object.values(g.lineups).flat(),
               ...(g.entry
                 ? [...g.entry.players.away, ...g.entry.players.home].map((p) => p.id)
@@ -105,6 +106,14 @@ export function planPermanentDeletion(data: Workspace, kind: ManagementKind, sel
     },
     migrationSource: undefined,
     legacySource: undefined,
+    classDays:
+      kind === 'players'
+        ? data.classDays.map((day) => ({
+            ...day,
+            students: day.students.filter((s) => !ids.has(s.playerId)),
+            history: day.history.filter((h) => !ids.has(h.playerId)),
+          }))
+        : data.classDays,
     players:
       kind === 'players'
         ? data.players.filter((p) => !ids.has(p.id))

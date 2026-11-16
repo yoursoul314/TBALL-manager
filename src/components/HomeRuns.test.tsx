@@ -27,7 +27,6 @@ it.each([
   expect(screen.getByRole('group', { name: '홈런 타구 질' })).toHaveTextContent('홈런 · ' + label);
   await user.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
   await user.click(screen.getByRole('button', { name: '타점 인정' }));
-  await user.click(screen.getByLabelText('심판 타임 선언 확인'));
   await user.click(commit);
   expect(screen.getByText('홈런 · ' + label + ' · 1득점 · 1타점')).toBeInTheDocument();
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as Workspace;

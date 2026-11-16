@@ -130,8 +130,7 @@ it('경기 간편 결과는 주자 확인·심판 타임 전에 확정 불가, �
   expect(save).toBeDisabled();
   expect(screen.getByLabelText('green-1 최종 위치')).toHaveValue('2');
   await user.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
-  expect(save).toBeDisabled();
-  await user.click(screen.getByLabelText('심판 타임 선언 확인'));
+  expect(save).toBeEnabled();
   await user.click(save);
   expect(saved().events[1].payload).toMatchObject({
     result: 'double',
@@ -165,7 +164,6 @@ it('아웃 종류·위치 누락은 확인 차단, 확인 후 주자 변경은 �
   expect(confirm).toBeDisabled();
   await user.selectOptions(screen.getByLabelText('아웃 위치'), '1');
   await user.click(confirm);
-  await user.click(screen.getByLabelText('심판 타임 선언 확인'));
   await user.selectOptions(screen.getByLabelText('아웃 종류'), 'tag');
   expect(screen.getByRole('button', { name: '심판 타임 · 플레이 확정' })).toBeDisabled();
 });
@@ -179,7 +177,6 @@ it('수비 관찰 추가 시 미관찰을 기본으로 저장하며 실패로 �
   await user.click(screen.getByRole('button', { name: '+ 수비 능력 관찰' }));
   await user.selectOptions(screen.getByLabelText('수비 난도 (선택)'), 'difficult');
   await user.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
-  await user.click(screen.getByLabelText('심판 타임 선언 확인'));
   await user.click(screen.getByRole('button', { name: '심판 타임 · 플레이 확정' }));
   expect(saved().events[1].payload).toMatchObject({
     fielding: [{ success: null, difficulty: 'difficult' }],

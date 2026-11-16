@@ -27,6 +27,7 @@ export function RandomEntryPicker({
   onDefenseSource,
   captains,
   usePreferences,
+  attendanceIds,
   onPreferences,
 }: {
   data: Workspace;
@@ -38,6 +39,7 @@ export function RandomEntryPicker({
   onDefenseSource: (value: BalanceDefenseSource) => void;
   captains: EntryCaptains;
   usePreferences: boolean;
+  attendanceIds?: string[];
   onPreferences: (value: boolean) => void;
 }) {
   const [method, setMethod] = useState<'random' | 'balanced'>('random');
@@ -123,6 +125,17 @@ export function RandomEntryPicker({
         </summary>
         <StudentFilters players={eligible} value={filter} onChange={setFilter} prefix="랜덤 선수" />
         <div className="button-row">
+          {attendanceIds && (
+            <button
+              type="button"
+              disabled={!attendanceIds.length}
+              onClick={() =>
+                setSelectedIds(attendanceIds.filter((id) => eligible.some((p) => p.id === id)))
+              }
+            >
+              수업 출석 학생 전체 선택
+            </button>
+          )}
           <button
             type="button"
             disabled={!visible.length}

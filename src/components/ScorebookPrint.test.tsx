@@ -39,19 +39,17 @@ it('인쇄 클릭은 브라우저 인쇄를 열며 저장소를 쓰지 않고 �
   fireEvent.click(screen.getByRole('button', { name: '기록실로 돌아가기' }));
   expect(close).toHaveBeenCalledOnce();
 });
-it('경기 목록→인쇄→종이 입력 안내는 경기·원본을 그대로 유지', () => {
+it('경기 목록은 학생용 엔트리 인쇄로 바뀌고 종이 경기 기록 안내는 제거', () => {
   const d = createDemoWorkspace();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
   render(<App />);
   fireEvent.click(screen.getByRole('button', { name: '경기 기록실' }));
-  fireEvent.click(screen.getByRole('button', { name: d.games[0].name + ' 기록지 인쇄' }));
-  expect(screen.getByRole('dialog', { name: '경기 기록지 인쇄' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: d.games[0].name + ' 엔트리 인쇄' }));
+  expect(screen.getByRole('dialog', { name: '학생용 엔트리 인쇄' })).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: '기록실로 돌아가기' }));
   fireEvent.click(screen.getByRole('button', { name: d.games[0].name + ' 경기 열기' }));
-  fireEvent.click(screen.getByRole('button', { name: '종이 기록 입력 안내' }));
-  expect(screen.getByRole('complementary', { name: '종이 기록 입력 안내' })).toHaveTextContent(
-    '다음 입력: 1회 초 / 1번',
-  );
+  expect(screen.queryByRole('button', { name: '종이 기록 입력 안내' })).not.toBeInTheDocument();
+  expect(screen.queryByText('빈 경기 기록지 다운로드')).not.toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).events).toEqual(d.events);
 });
 

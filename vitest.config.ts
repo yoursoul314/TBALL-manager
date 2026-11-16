@@ -4,7 +4,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    css: { include: [/scorebook\.css/] },
+    css: { include: [/scorebook\.css/, /entryPrint\.css/] },
     maxWorkers: 2,
     // Multi-screen jsdom workflows can exceed 5s on shared CI runners; assertions remain unchanged.
     testTimeout: 15000,

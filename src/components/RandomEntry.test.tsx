@@ -5,7 +5,8 @@ import App from '../App';
 import { createDemoWorkspace } from '../data/seed';
 import type { Game, Workspace } from '../domain/model';
 import { replayGame } from '../engine/game';
-import { validateEntry } from '../domain/roster';
+import { validateEntry, localDate } from '../domain/roster';
+import { addClassGroup, markAttendance, playerGroup } from '../domain/attendance';
 import { STORAGE_KEY, readBackup, serializeBackup } from '../data/repository';
 
 afterEach(() => {
@@ -134,6 +135,14 @@ it('경기 저장 실패 시 랜덤 편성과 입력을 유지하고 창을 닫�
 
 it('생성·새로고침·백업 복원에도 기존 선수·평가·경기 원본을 보존한다', () => {
   const original = createDemoWorkspace();
+  const day = addClassGroup(original, localDate(), playerGroup(original.players[0]));
+  original.classDays = [
+    markAttendance(
+      day,
+      day.students.map((s) => s.playerId),
+      'present',
+    ),
+  ];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(original));
   const app = render(<App />);
   click('경기 기록실');

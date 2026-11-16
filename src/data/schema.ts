@@ -1,3 +1,4 @@
+import { classDaySchema, entryAttendanceSchema } from './attendanceSchema';
 import { fungoDaysSchema, fungoAssessmentsSchema } from './fungoSchema';
 import { defenseAssessmentsSchema } from './defenseAssessmentSchema';
 import { z } from 'zod';
@@ -77,6 +78,7 @@ const gameExtra = z.object({
       teams: z.object({ away: team, home: team }),
       players: z.object({ away: entryPlayers, home: entryPlayers }),
       defense: z.object({ away: assignments, home: assignments }),
+      attendance: entryAttendanceSchema.optional(),
       captains: z.object({ away: id.nullable(), home: id.nullable() }).optional(),
     })
     .optional(),
@@ -128,7 +130,8 @@ const battingDaySchema = z.object({
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(15),
+      schemaVersion: z.literal(16),
+      classDays: z.array(classDaySchema).max(10000).default([]),
       assessmentManagement: z
         .object({
           assessors: z
@@ -445,6 +448,16 @@ export function parseWorkspace(input: unknown): Workspace {
     header.defenseEvaluationChoices.some((c) => !ids.has(c.playerId))
   )
     throw new Error('수비 점수 출처 선택 오류');
+  if (
+    new Set(header.classDays.map((d) => d.id)).size !== header.classDays.length ||
+    new Set(header.classDays.map((d) => d.date)).size !== header.classDays.length
+  )
+    throw new Error('출석부 날짜 또는 ID 중복');
+  for (const day of header.classDays)
+    if (day.students.some((s) => !ids.has(s.playerId))) throw new Error('출석부 학생 ID 없음');
+  for (const game of games)
+    if (game.entry?.attendance?.students.some((s) => !ids.has(s.playerId)))
+      throw new Error('경기 출석 스냅샷 학생 ID 없음');
   for (const game of games) {
     validateEntry(game);
     if (
@@ -469,7 +482,8 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 15,
+    schemaVersion: 16,
+    classDays: header.classDays,
     assessmentManagement: header.assessmentManagement,
     selections: header.selections,
     fungoDays: header.fungoDays,

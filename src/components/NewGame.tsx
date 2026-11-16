@@ -1,3 +1,10 @@
+import { EntryAttendanceCheck } from './EntryAttendanceCheck';
+import {
+  attendanceRows,
+  entryCoverage,
+  groupKey,
+  unlistedClassStudents,
+} from '../domain/attendance';
 import { applyApprovedEntry } from '../domain/approvedEntry';
 import { defenseEvaluation } from '../evaluation/defense';
 import { StudentFilters } from './StudentFilters';
@@ -27,8 +34,12 @@ export function NewGame({
   data,
   onCreate,
   onClose,
+  onSave,
+  attendanceRequired = false,
 }: {
   data: Workspace;
+  onSave?: (d: Workspace) => void;
+  attendanceRequired?: boolean;
   onCreate: (g: Game) => boolean | void;
   onClose: () => void;
 }) {
@@ -53,6 +64,20 @@ export function NewGame({
     [manager, setManager] = useState(''),
     [approved, setApproved] = useState(false),
     [error, setError] = useState('');
+  const [classGroups, setClassGroups] = useState<string[]>(() => {
+    const day = data.classDays.find((d) => d.date === localDate());
+    return day?.groups.length === 1 ? day.groups.map(groupKey) : [];
+  });
+  const classDay = data.classDays.find((d) => d.date === date),
+    classRows = attendanceRows(classDay, classGroups),
+    coverage = entryCoverage(data, classRows, entries);
+  const attendanceBlocked =
+    attendanceRequired &&
+    (!classRows.length ||
+      !!unlistedClassStudents(data, classDay, classGroups).length ||
+      !!coverage.unmarked.length ||
+      !!coverage.missing.length ||
+      !!coverage.conflicts.length);
   const [filter, setFilter] = useState(emptyStudentFilter);
   const [mode, setMode] = useState<'manual' | 'random'>('manual');
   const [beforeRandom, setBeforeRandom] = useState<MatchEntryDrafts | null>(null);
@@ -162,6 +187,8 @@ export function NewGame({
             )
               throw new Error('서로 다른 두 운영 팀을 선택하세요');
             if (!approved || !manager.trim()) throw new Error('감독의 엔트리 확인이 필요합니다');
+            if (attendanceBlocked)
+              throw new Error('수업 학급의 출석과 편성 누락을 먼저 확인하세요');
             if (captainInvalid)
               throw new Error('주장은 해당 팀의 선발로 배정하거나 변경·해제하세요');
             const now = new Date().toISOString();
@@ -180,6 +207,20 @@ export function NewGame({
               rosters: { away: [], home: [] },
               lineups: { away: entries.away.lineup, home: entries.home.lineup },
               entry: {
+                ...(classDay && classRows.length && !attendanceBlocked
+                  ? {
+                      attendance: {
+                        dayId: classDay.id,
+                        date,
+                        groups: classDay.groups.filter((g) => classGroups.includes(groupKey(g))),
+                        checkedAt: now,
+                        students: classRows.map((s) => ({
+                          ...s,
+                          eligible: coverage.eligible.some((e) => e.playerId === s.playerId),
+                        })),
+                      },
+                    }
+                  : {}),
                 captains: { away: captains.away || null, home: captains.home || null },
                 capturedAt: now,
                 source: 'manager',
@@ -291,6 +332,25 @@ export function NewGame({
             .join(', ') || '없음'}{' '}
           · 한 경기는 두 팀만 진행합니다. TYPE1 기본 10포지션.
         </p>
+        {attendanceRequired && (
+          <EntryAttendanceCheck
+            data={data}
+            date={date}
+            groups={classGroups}
+            onGroups={(v) => {
+              setClassGroups(v);
+              setApproved(false);
+            }}
+            entries={entries}
+            onEntries={(v) => {
+              setEntries(v);
+              setApproved(false);
+              setBeforeRandom(null);
+              setFeedback('출석 학생을 빠짐없이 편성했습니다. 선발·후보·수비 위치를 확인하세요.');
+            }}
+            onSave={onSave}
+          />
+        )}
         <EntryCaptainsPicker
           players={data.players}
           entries={entries}
@@ -315,6 +375,9 @@ export function NewGame({
             data={data}
             entries={entries}
             sameTeam={teams.away === teams.home}
+            attendanceIds={
+              attendanceRequired ? coverage.eligible.map((s) => s.playerId) : undefined
+            }
             captains={captains}
             usePreferences={usePreferences}
             onPreferences={(value) => {
@@ -855,6 +918,7 @@ export function NewGame({
               entries.home.lineup.length !== 10 ||
               !approved ||
               captainInvalid ||
+              attendanceBlocked ||
               !manager.trim()
             }
           >

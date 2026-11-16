@@ -9,7 +9,7 @@ it('v14 원본 전체를 유지하고 주장·가상 관측 없이 v15로 읽는
   const old = { ...createDemoWorkspace(), schemaVersion: 14 };
   const before = structuredClone(old),
     next = migrateWorkspace(old);
-  expect(next).toEqual({ ...old, schemaVersion: 15 });
+  expect(next).toEqual({ ...old, schemaVersion: 16 });
   expect(next.games[0].entry?.captains).toBeUndefined();
   expect(next.migrationSource).toBeUndefined();
   expect(old).toEqual(before);

@@ -5,6 +5,7 @@ export type WorkspaceV4 = Omit<
   | 'assessmentManagement'
   | 'schemaVersion'
   | 'migrationSource'
+  | 'classDays'
   | 'fungoDays'
   | 'fungoAssessments'
   | 'battingDays'

@@ -30,7 +30,6 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
   await user.selectOptions(screen.getByLabelText('타구 강도'), 'strong');
   await user.selectOptions(screen.getByLabelText('타구 유형'), 'ground');
   await user.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
-  await user.click(screen.getByLabelText('심판 타임 선언 확인'));
   await user.click(commit);
   const first = saved();
   expect(first.events[1].payload).toMatchObject({
@@ -48,7 +47,6 @@ it('터치 필드맵 → 플레이 저장 → 과거 수정이 원본을 남기�
   await user.click(dialog.getByRole('button', { name: '홈런' }));
   await user.click(dialog.getByRole('button', { name: '타점 인정' }));
   await user.click(dialog.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
-  await user.click(dialog.getByLabelText('심판 타임 선언 확인'));
   await user.click(dialog.getByRole('button', { name: '수정 이력 저장 · 전체 경기 재계산' }));
   const next = saved();
   expect(next.events).toHaveLength(3);

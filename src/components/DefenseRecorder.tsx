@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QuickDefense } from './QuickDefense';
 import type { GameState, Workspace } from '../domain/model';
 import type { DefenseAction, DefenseStep } from '../domain/defense';
 import { DEFENSE_ACTIONS } from '../domain/defense';
@@ -24,6 +25,7 @@ export function DefenseRecorder({
   steps: DefenseStep[];
   onChange: (s: DefenseStep[]) => void;
 }) {
+  const [presetOpen, setPresetOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null),
     [action, setAction] = useState<DefenseAction | null>(null),
     [target, setTarget] = useState<DefenseStep['targetBase']>(null),
@@ -76,13 +78,20 @@ export function DefenseRecorder({
   return (
     <section className="defense-recorder" aria-label="상대 팀 수비 터치 기록">
       <h3>수비 · {teamName ?? '상대 팀'} · TYPE1</h3>
+      <QuickDefense
+        state={state}
+        data={data}
+        steps={steps}
+        onChange={onChange}
+        onOpen={setPresetOpen}
+      />
       {Object.keys(assignments).length < 10 && (
         <p className="callout amber">
           수비 {Object.keys(assignments).length}/10명 배치. 미배치 자리는 추정하지 않습니다. 볼
           데드에서 수비 포지션 변경을 먼저 확인하세요.
         </p>
       )}
-      {!selected ? (
+      {presetOpen ? null : !selected ? (
         <Field
           players={data.players}
           showEmpty

@@ -1,0 +1,248 @@
+.attendance-view,
+.entry-attendance-check {
+  min-width: 0;
+  border: 1px solid #cbd8cd;
+  border-radius: 16px;
+  padding: 16px;
+  background: #f7faf5;
+  margin: 12px 0;
+}
+.attendance-view .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+.attendance-view .form-row label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.attendance-view input,
+.attendance-view select {
+  width: 100%;
+  min-width: 0;
+}
+.attendance-students {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.attendance-student {
+  padding: 12px;
+  background: white;
+  border: 1px solid #d9e1d9;
+  border-radius: 12px;
+  min-width: 0;
+}
+.attendance-student small {
+  display: block;
+  font-weight: 400;
+  margin: 4px 0 8px;
+}
+.attendance-student > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.attendance-view button,
+.entry-attendance-check button {
+  min-height: 48px;
+}
+.attendance-view button[aria-pressed='true'] {
+  background: #163f35;
+  border-color: #163f35;
+  color: white;
+}
+.entry-attendance-check > small {
+  display: block;
+  margin: 8px 0;
+}
+.entry-attendance-check details {
+  margin-top: 12px;
+}
+.quick-out-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+.quick-out-buttons button {
+  min-height: 48px;
+  padding: 8px;
+  font-weight: 700;
+}
+.runner-destinations {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin: 6px 0;
+}
+.runner-destinations button {
+  min-height: 48px;
+  padding: 6px 2px;
+}
+.runner-destinations button[aria-pressed='true'],
+.quick-fielder-choice button[aria-pressed='true'] {
+  background: #163f35;
+  color: white;
+  border-color: #163f35;
+}
+.runner-extra {
+  margin: 8px 0;
+}
+.runner-extra summary {
+  min-height: 44px;
+  padding: 10px 0;
+  font-size: 13px;
+}
+.confirm-all {
+  width: 100%;
+  min-height: 48px;
+  border: 2px solid #2b6752;
+  font-weight: 700;
+  margin: 6px 0;
+}
+.time-save-help {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 4px 0;
+  color: #42514a;
+}
+.live-result-picker > summary {
+  min-height: 48px;
+  padding: 12px 8px;
+  font-weight: 700;
+  background: #edf5e7;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.match-detail .runner-row > .runner-outcome-details {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.runner-outcome-details > summary {
+  min-height: 56px;
+  padding: 6px 2px;
+  cursor: pointer;
+  list-style: none;
+}
+.runner-outcome-details > summary b,
+.runner-outcome-details > summary span,
+.runner-outcome-details > summary small {
+  display: block;
+  line-height: 1.4;
+}
+.runner-outcome-details > summary b {
+  font-size: 13px;
+}
+.runner-outcome-details > summary span {
+  font-size: 12px;
+  font-weight: 600;
+}
+.runner-outcome-details > summary small {
+  font-size: 10px;
+  color: #536350;
+}
+.match-detail .play-form .runner-row .runner-confirm {
+  grid-row: 1;
+  align-self: start;
+  min-height: 56px;
+}
+.match-detail .runner-destinations {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.match-detail .runner-destinations button {
+  min-height: 48px;
+}
+.match-detail .play-confirmation .time-save-help {
+  grid-column: 1;
+  grid-row: 2;
+}
+.quick-defense-presets {
+  padding: 8px;
+  border: 1px solid #c5d9ce;
+  border-radius: 10px;
+  background: #f5faf6;
+  margin-bottom: 10px;
+}
+.quick-defense-presets > .button-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+}
+.quick-defense-presets button {
+  min-height: 48px;
+  padding: 6px;
+  font-size: 13px;
+}
+.quick-defense-path {
+  display: flex;
+  gap: 4px;
+}
+.quick-defense-path > button {
+  flex: 1;
+  min-width: 0;
+}
+.quick-defense-path b {
+  display: block;
+  margin-top: 4px;
+}
+.quick-defense-path button[aria-pressed='true'] {
+  background: #e3f0de;
+  border: 2px solid #2b6752;
+}
+.quick-fielder-choice {
+  min-width: 0;
+  padding: 8px;
+  margin: 8px 0;
+}
+.quick-fielder-choice > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.generated-detail-summary {
+  padding: 10px;
+  background: #eef4ed;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+.generated-detail-summary summary {
+  min-height: 44px;
+  padding: 10px 0;
+}
+.last-play-shortcut {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #cbd8cd;
+  border-radius: 12px;
+  margin: 10px 0;
+}
+.last-play-shortcut button {
+  min-height: 48px;
+}
+.last-play-shortcut small {
+  width: 100%;
+}
+.history-edit-modal {
+  width: min(1380px, 96vw) !important;
+  max-width: 96vw !important;
+}
+@media (max-width: 760px) {
+  .attendance-students {
+    grid-template-columns: 1fr;
+  }
+  .quick-out-buttons {
+    grid-template-columns: 1fr;
+  }
+  .attendance-view,
+  .entry-attendance-check {
+    padding: 10px;
+  }
+}

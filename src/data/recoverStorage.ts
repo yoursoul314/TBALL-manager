@@ -121,7 +121,7 @@ export async function recoverBrowserStorage(
     storage.setItem(anchorKey, marker); // Atomic replacement releases space without losing the archive link.
   }
   const archivedTarget = JSON.parse(decodeStorageText(row.target));
-  const writeTarget = [12, 13, 14].includes(archivedTarget.schemaVersion)
+  const writeTarget = [12, 13, 14, 15].includes(archivedTarget.schemaVersion)
     ? encodeStorageText(
         JSON.stringify({ ...archivedTarget, ...migrateWorkspace(archivedTarget) }),
         true,

@@ -8,6 +8,7 @@ import type { BattingData } from '../domain/batting';
 type WorkspaceV2 = Omit<
   Workspace,
   | keyof BattingData
+  | 'classDays'
   | 'fungoDays'
   | 'fungoAssessments'
   | 'assessmentManagement'

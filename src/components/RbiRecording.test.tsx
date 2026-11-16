@@ -18,14 +18,12 @@ it('간편 모드 홈런은 득점별 타점 판정 후 저장, 반복 터치해
   const submit = screen.getByRole('button', { name: '심판 타임 · 플레이 확정' });
   fireEvent.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
   fireEvent.click(screen.getByRole('button', { name: '샘플 선수 02 결과 확인' }));
-  fireEvent.click(screen.getByLabelText('심판 타임 선언 확인'));
   expect(submit).toBeDisabled();
   for (const name of ['샘플 선수 01', '샘플 선수 02']) {
     const group = within(screen.getByRole('group', { name: name + ' 득점 · 타점 판정' }));
     fireEvent.click(group.getByRole('button', { name: '타점 인정' }));
     fireEvent.click(group.getByRole('button', { name: '타점 인정' }));
   }
-  fireEvent.click(screen.getByLabelText('심판 타임 선언 확인'));
   fireEvent.click(submit);
   const payload = save.mock.calls[0]?.[0] as unknown as EndPlayPayload;
   expect(payload.details).toHaveLength(2);
@@ -54,7 +52,6 @@ it('주자·결과 변경은 이전 타점 선택을 제거하고 실책 득점�
   fireEvent.change(screen.getByLabelText('green-1 최종 위치'), { target: { value: 'home' } });
   fireEvent.click(screen.getByRole('button', { name: '타점 없음' }));
   fireEvent.click(screen.getByRole('button', { name: '샘플 선수 01 결과 확인' }));
-  fireEvent.click(screen.getByLabelText('심판 타임 선언 확인'));
   fireEvent.click(screen.getByRole('button', { name: '심판 타임 · 플레이 확정' }));
   r.add(save.mock.calls[0][0] as EndPlayPayload);
   expect(calculateStats(game, r.events, d.policy).rows[0]).toMatchObject({

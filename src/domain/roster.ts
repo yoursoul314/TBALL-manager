@@ -61,6 +61,17 @@ export function validateEntry(game: Game) {
   };
   const all = [...entry.players.away, ...entry.players.home];
   require(new Set(all.map((p) => p.id)).size === all.length, '경기 엔트리 선수 중복');
+  if (entry.attendance) {
+    const rows = entry.attendance.students,
+      roster = new Set([...game.rosters.away, ...game.rosters.home]);
+    require(new Set(rows.map((s) => s.playerId)).size === rows.length, '출석 확인 학생 중복');
+    require(rows.every((s) => s.status !== 'unmarked'), '미확인 출석이 있습니다');
+    require(rows.every((s) =>
+      s.eligible
+        ? ['present', 'late'].includes(s.status) && roster.has(s.playerId)
+        : !roster.has(s.playerId),
+    ), '출석 기준과 경기 등록 명단 불일치');
+  }
   for (const side of ['away', 'home'] as const) {
     const ps = entry.players[side];
     require(entry.teams[side].id === game.teamIds[side], '경기 팀 스냅샷 불일치');

@@ -5,15 +5,17 @@ import { replayGame, scoreboard } from '../engine/game';
 import { gameTeamName } from '../domain/roster';
 import { activeTeams } from '../domain/gameLibrary';
 import { NewGame } from './NewGame';
-import { ScorebookPrint } from './ScorebookPrint';
+import { EntryPrint } from './EntryPrint';
 import { Badge, Empty, Modal } from './ui';
 export function MatchLibrary({
   data,
   onOpen,
   onCreate,
   onArchive,
+  onSave,
 }: {
   data: Workspace;
+  onSave?: (d: Workspace) => void;
   onOpen: (id: string) => void;
   onCreate: (g: Game) => boolean;
   onArchive: (id: string, archived: boolean) => boolean;
@@ -56,13 +58,6 @@ export function MatchLibrary({
           <div className="eyebrow">MATCH LIBRARY</div>
           <h1>경기 기록실</h1>
           <p>경기를 선택하면 기록과 상세 내용을 확인할 수 있습니다.</p>
-          <a
-            href={import.meta.env.BASE_URL + 'tb-scorebook-template.html'}
-            target="_blank"
-            rel="noreferrer"
-          >
-            공통 빈 기록지 양식 열기
-          </a>
         </div>
         <button
           className="primary"
@@ -180,8 +175,8 @@ export function MatchLibrary({
               </div>
             </button>
             <div className="match-list-actions">
-              <button onClick={() => setPrinting(game)} aria-label={game.name + ' 기록지 인쇄'}>
-                기록지 인쇄
+              <button onClick={() => setPrinting(game)} aria-label={game.name + ' 엔트리 인쇄'}>
+                엔트리 인쇄
               </button>
               {trash ? (
                 <button onClick={() => onArchive(game.id, false)} aria-label={game.name + ' 복원'}>
@@ -206,6 +201,8 @@ export function MatchLibrary({
       {creating && (
         <NewGame
           data={data}
+          onSave={onSave}
+          attendanceRequired={Boolean(onSave)}
           onClose={() => setCreating(false)}
           onCreate={(g) => {
             if (!onCreate(g)) return false;
@@ -214,7 +211,7 @@ export function MatchLibrary({
           }}
         />
       )}
-      {printing && <ScorebookPrint data={data} game={printing} onClose={() => setPrinting(null)} />}
+      {printing && <EntryPrint data={data} game={printing} onClose={() => setPrinting(null)} />}
       {deleting && (
         <Modal title="경기 삭제" onClose={() => setDeleting(null)}>
           <p>

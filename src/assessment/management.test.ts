@@ -194,7 +194,7 @@ it('v12를 같은 키에서 원자적으로 v14 이전: 원문/평가/보관소 
     };
   const repo = new LocalWorkspaceRepository(storage);
   const next = repo.load()!;
-  expect(next.schemaVersion).toBe(15);
+  expect(next.schemaVersion).toBe(16);
   expect(next.migrationSource).toEqual({ schemaVersion: 12, raw });
   expect(next.battingAttempts).toEqual(old.battingAttempts);
   expect(next.assessmentManagement.assessors).toEqual([]);
@@ -412,7 +412,7 @@ it('v13 백업·같은 저장키 이전은 삭제 이력·원문을 보존하고
     },
   });
   const d = repo.load()!;
-  expect(d.schemaVersion).toBe(15);
+  expect(d.schemaVersion).toBe(16);
   expect(d.migrationSource).toEqual({ schemaVersion: 13, raw });
   expect(d.assessmentManagement).toEqual(old.assessmentManagement);
   expect(

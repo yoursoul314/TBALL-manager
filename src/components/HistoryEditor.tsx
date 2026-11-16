@@ -27,7 +27,7 @@ export function HistoryEditor({
     return null;
   const before = stateBeforeEvent(game, events, targetId);
   return (
-    <Modal title="과거 플레이 수정" onClose={onClose}>
+    <Modal className="history-edit-modal" title="과거 플레이 수정" onClose={onClose}>
       <div className="callout amber">
         원본은 보존됩니다. 저장 시 전체 경기를 재생하여 모든 통계를 다시 계산합니다. 후속 주자
         상태와 충돌하면 저장되지 않습니다.

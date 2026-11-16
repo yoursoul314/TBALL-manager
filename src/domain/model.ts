@@ -1,3 +1,4 @@
+import type { ClassDay, EntryAttendance } from './attendance';
 import type { AssessmentManagerData } from './assessmentManagement';
 import type { FungoAssessment, FungoDay } from './fungo';
 import type {
@@ -44,6 +45,7 @@ export interface EntryPlayer extends Player {
   status: EntryStatus;
 }
 export interface GameEntry {
+  attendance?: EntryAttendance;
   /** Absent in old games: captain was never recorded, not inferred. */
   captains?: Record<Side, Id | null>;
   capturedAt: string;
@@ -280,7 +282,8 @@ export interface Workspace extends BattingData {
   } | null;
   defenseEvaluationChoices: DefenseEvaluationChoice[];
   lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
-  schemaVersion: 15;
+  schemaVersion: 16;
+  classDays: ClassDay[];
   migrationSource?: {
     schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13;
     raw: string;

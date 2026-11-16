@@ -1,5 +1,7 @@
+import { BattingDetailEditor } from './BattingDetailEditor';
+import { QUICK_OUT_LABELS, type QuickOut } from '../engine/quickPlays';
 import { PlayerAvatar } from './PlayerAvatar';
-import { ScorebookPrint } from './ScorebookPrint';
+import { EntryPrint } from './EntryPrint';
 import { gamePlayers, gameTeamName } from '../domain/roster';
 import { HistoryEditor } from './HistoryEditor';
 import { DefenseEditor } from './DefenseEditor';
@@ -43,6 +45,7 @@ export function MatchView({
   const [editingDate, setEditingDate] = useState(false);
   const [detailMode, setDetailMode] = useState(false);
   const [quickResult, setQuickResult] = useState<BatResult>('single');
+  const [quickPattern, setQuickPattern] = useState<QuickOut | undefined>();
   const [temp, setTemp] = useState('');
   const [manager, setManager] = useState('');
   const [swap, setSwap] = useState(false);
@@ -50,7 +53,7 @@ export function MatchView({
   const [history, setHistory] = useState<string | null>(null);
   const [defense, setDefense] = useState(false);
   const [printing, setPrinting] = useState(false);
-  const [paperEntry, setPaperEntry] = useState(false);
+  const [detailTarget, setDetailTarget] = useState<string | null>(null);
   const names = (id: Id) => data.players.find((p) => p.id === id)?.name || id;
   const teamName = (side: Side) => gameTeamName(game, data, side);
   const score = scoreboard(state);
@@ -75,35 +78,11 @@ export function MatchView({
               경기일 수정
             </button>
           )}
-          <button onClick={() => setPrinting(true)}>기록지 인쇄</button>
-          <button aria-pressed={paperEntry} onClick={() => setPaperEntry(!paperEntry)}>
-            종이 기록 입력 안내
-          </button>
+          <button onClick={() => setPrinting(true)}>엔트리 인쇄</button>
           <Badge>
             {state.status === 'finished' ? '종료' : state.ball === 'live' ? '플레이 중' : '볼 데드'}
           </Badge>
         </header>
-        {paperEntry && (
-          <aside className="paper-entry-guide" aria-label="종이 기록 입력 안내">
-            <b>
-              경기 ID {game.id} · 입력 완료 {state.plays.length}타석
-            </b>
-            <p>
-              {state.status === 'finished'
-                ? '경기가 종료됐습니다. 아래 플레이 기록에서 수정할 타석을 선택하세요.'
-                : `다음 입력: ${state.inning}회 ${state.side === 'away' ? '초' : '말'} / ${state.appearances + 1}번 ${names(current)}`}
-            </p>
-            <p>
-              종이의 순번과 타자를 확인한 뒤 스트라이크·파울 → 타격 결과 → 주자별 실제 결과·타점 →
-              당시 심판 타임 확인 → 플레이 확정 순서로 입력하세요. 교체·임시주자·수비 변경은 적힌
-              시점에 입력합니다.
-            </p>
-            <p>
-              이미 입력한 타석은 아래 「타순·플레이 기록 보기 → 플레이 수정 · 이력」에서 정정하세요.
-              원본은 보존됩니다. 종이 사진 자동 인식은 지원하지 않습니다.
-            </p>
-          </aside>
-        )}
         <div className="match-status">
           <div className="scoreboard">
             <div className="team-score">
@@ -327,7 +306,10 @@ export function MatchView({
                             key={key}
                             type="button"
                             onClick={() => {
-                              if (onEvent({ type: 'START_PLAY' })) setQuickResult(key as BatResult);
+                              if (onEvent({ type: 'START_PLAY' })) {
+                                setQuickResult(key as BatResult);
+                                setQuickPattern(undefined);
+                              }
                             }}
                           >
                             {label}
@@ -340,6 +322,23 @@ export function MatchView({
                         삼진
                       </button>
                     </div>
+                    <div className="quick-out-buttons">
+                      {(Object.keys(QUICK_OUT_LABELS) as QuickOut[]).map((kind) => (
+                        <button
+                          type="button"
+                          key={kind}
+                          disabled={kind === 'double' && !state.bases[state.side][1]}
+                          onClick={() => {
+                            if (onEvent({ type: 'START_PLAY' })) {
+                              setQuickResult('out');
+                              setQuickPattern(kind);
+                            }
+                          }}
+                        >
+                          {QUICK_OUT_LABELS[kind]}
+                        </button>
+                      ))}
+                    </div>
                     <p className="hint">
                       삼진 버튼은 2스트라이크에서 세 번째 스트라이크를 기록합니다. 파울도 카운트에
                       포함됩니다.
@@ -348,8 +347,13 @@ export function MatchView({
                   </>
                 ) : (
                   <PlayForm
-                    key={last?.id}
+                    key={
+                      effectiveEvents(data.events.filter((e) => e.gameId === game.id))
+                        .filter((e) => e.payload.type === 'START_PLAY')
+                        .at(-1)?.id
+                    }
                     initialResult={quickResult}
+                    initialPattern={quickPattern}
                     defaultDetailed={detailMode}
                     onModeChange={setDetailMode}
                     onDirtyChange={onDirtyChange}
@@ -360,6 +364,37 @@ export function MatchView({
                   />
                 )}
               </>
+            )}
+            {state.plays.filter((p) => p.result !== 'strikeout').at(-1) && (
+              <div className="last-play-shortcut">
+                <b>
+                  직전 타격 ·{' '}
+                  {names(state.plays.filter((p) => p.result !== 'strikeout').at(-1)!.batterId)} ·{' '}
+                  {playResultLabel(state.plays.filter((p) => p.result !== 'strikeout').at(-1)!)}
+                </b>
+                <button
+                  type="button"
+                  disabled={state.ball === 'live'}
+                  onClick={() =>
+                    setHistory(state.plays.filter((p) => p.result !== 'strikeout').at(-1)!.eventId)
+                  }
+                >
+                  직전 플레이 수정 · 상세 보완
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDetailTarget(
+                      state.plays.filter((p) => p.result !== 'strikeout').at(-1)!.eventId,
+                    )
+                  }
+                >
+                  직전 타구 상세 보완
+                </button>
+                <small>
+                  다음 타자로 넘어간 뒤에도 수정할 수 있습니다. 원본과 정정 이력을 보존합니다.
+                </small>
+              </div>
             )}
             <div className="button-row separated record-tools">
               <button
@@ -477,7 +512,16 @@ export function MatchView({
           </div>
         </details>
       </section>
-      {printing && <ScorebookPrint data={data} game={game} onClose={() => setPrinting(false)} />}
+      {printing && <EntryPrint data={data} game={game} onClose={() => setPrinting(false)} />}
+      {detailTarget && (
+        <BattingDetailEditor
+          data={data}
+          game={game}
+          targetId={detailTarget}
+          onEvent={onEvent}
+          onClose={() => setDetailTarget(null)}
+        />
+      )}
       {history && (
         <HistoryEditor
           data={data}
