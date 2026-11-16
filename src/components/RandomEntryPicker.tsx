@@ -1,42 +1,148 @@
 import { useState } from 'react';
-import type { Workspace } from '../domain/model';
+import type { Side, Workspace } from '../domain/model';
 import {
   createRandomEntries,
   randomEntryEligible,
   type MatchEntryDrafts,
+  type EntryCaptains,
 } from '../domain/randomEntry';
 import { emptyStudentFilter, filterStudents } from '../domain/studentFilter';
 import { gradeLabel } from '../domain/roster';
 import { PlayerAvatar } from './PlayerAvatar';
 import { StudentFilters } from './StudentFilters';
+import {
+  createBalancedEntries,
+  type BalanceDefenseSource,
+  type BalanceProfile,
+} from '../evaluation/teamBalance';
 
 export function RandomEntryPicker({
   data,
   entries,
   sameTeam,
   onApply,
+  profiles,
+  defenseSource,
+  onDefenseSource,
+  captains,
+  teamNames,
+  onCaptain,
 }: {
   data: Workspace;
   entries: MatchEntryDrafts;
   sameTeam: boolean;
-  onApply: (next: MatchEntryDrafts) => void;
+  onApply: (next: MatchEntryDrafts, method: 'random' | 'balanced') => void;
+  profiles: BalanceProfile[];
+  defenseSource: BalanceDefenseSource;
+  onDefenseSource: (value: BalanceDefenseSource) => void;
+  captains: EntryCaptains;
+  teamNames: Record<Side, string>;
+  onCaptain: (side: Side, id: string) => void;
 }) {
+  const [method, setMethod] = useState<'random' | 'balanced'>('random');
   const [filter, setFilter] = useState(emptyStudentFilter);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(true);
   const [error, setError] = useState('');
-  const eligible = data.players.filter((player) => randomEntryEligible(player, entries));
+  const available = data.players.filter((player) => randomEntryEligible(player, entries));
+  const fixed = Object.values(captains).filter(Boolean);
+  const eligible = available.filter((p) => !fixed.includes(p.id));
   const visible = filterStudents(eligible, filter);
   const selected = selectedIds.filter((id) => eligible.some((p) => p.id === id));
+  const total = selected.length + fixed.length;
   const hiddenCount = selected.filter((id) => !visible.some((p) => p.id === id)).length;
   return (
     <section className="random-entry-picker" aria-label="랜덤 구성 대상 선택">
+      <div className="tabs" aria-label="자동 구성 방식">
+        <button
+          type="button"
+          aria-pressed={method === 'random'}
+          onClick={() => {
+            setMethod('random');
+            setError('');
+          }}
+        >
+          단순 랜덤
+        </button>
+        <button
+          type="button"
+          aria-pressed={method === 'balanced'}
+          onClick={() => {
+            setMethod('balanced');
+            setError('');
+          }}
+        >
+          실력 균형
+        </button>
+      </div>
       <p>
-        선택한 학생을 양 팀 선발 10명씩 나누고, 나머지는 교체 후보로 고르게 배정합니다. 타순·TYPE1
-        수비 위치도 무작위 초안으로 만듭니다.
+        선택한 학생을 양 팀 선발 10명씩 나누고, 나머지는 교체 후보로 고르게 배정합니다.
+        {method === 'balanced'
+          ? ' 타격·수비 평균 차이와 측정 인원 차이를 줄이는 참고 초안입니다.'
+          : ' 선수는 무작위로 배정합니다.'}
+        타순·TYPE1 수비 위치는 무작위 초안으로 만들며 직접 조정할 수 있습니다.
       </p>
+      <section aria-label="자동 구성 주장 고정" className="entry-captains">
+        <b>주장 먼저 선택 · 선택 사항</b>
+        <div className="form-row">
+          {(['away', 'home'] as const).map((side) => (
+            <label key={side}>
+              {side === 'away' ? '선공' : '후공'} · {teamNames[side]} 주장
+              <select
+                aria-label={(side === 'away' ? '선공' : '후공') + ' 주장'}
+                value={captains[side] ?? ''}
+                onChange={(e) => {
+                  onCaptain(side, e.target.value);
+                  setError('');
+                }}
+              >
+                <option value="">미지정 · 고정 해제</option>
+                {captains[side] && !available.some((p) => p.id === captains[side]) && (
+                  <option value={captains[side]}>주장 출전 상태 확인 필요 · 다시 선택하세요</option>
+                )}
+                {available.map((p) => (
+                  <option
+                    key={p.id}
+                    value={p.id}
+                    disabled={captains[side === 'away' ? 'home' : 'away'] === p.id}
+                  >
+                    {p.name} · {p.number}번 · {gradeLabel(p)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+        <small>
+          자동 구성 시 주장은 해당 팀 선발 10명에 포함하고 추첨·팀 교환에서 제외합니다. 주장 점수도
+          균형 비교에 반영합니다. 타순·수비는 조정할 수 있으며, 직접 구성에서는 선수도 변경할 수
+          있습니다.
+        </small>
+      </section>
+      {method === 'balanced' && (
+        <div className="balance-options">
+          <label>
+            수비 균형 기준
+            <select
+              aria-label="수비 균형 기준"
+              value={defenseSource}
+              onChange={(e) => onDefenseSource(e.target.value as BalanceDefenseSource)}
+            >
+              <option value="nine">선택된 수비 9능력 평균</option>
+              <option value="fungo">최근 유효 펑고 5항목 평균</option>
+            </select>
+          </label>
+          <p className="hint">
+            타격은 규칙 & 설정에서 선택한 기능평가 점수 출처를 따릅니다. 수비는 선택한 기준의 모든
+            항목이 측정된 경우에만 사용합니다. 미측정은 0점으로 채우지 않습니다. 타격·수비 차이를
+            같은 중요도로 줄이는 편성용 기준이며 최종 선발 배점·포지션 가중치는 바꾸지 않습니다.
+          </p>
+        </div>
+      )}
       <details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
-        <summary>참가 학생 선택 · {selected.length}명</summary>
+        <summary>
+          참가 학생 선택 · {selected.length}명{fixed.length ? ` + 주장 ${fixed.length}명` : ''}
+        </summary>
         <StudentFilters players={eligible} value={filter} onChange={setFilter} prefix="랜덤 선수" />
         <div className="button-row">
           <button
@@ -78,6 +184,13 @@ export function RandomEntryPicker({
                   {player.name} · {player.number}번
                 </b>
                 <small>{gradeLabel(player)}</small>
+                {method === 'balanced' && (
+                  <small title={profiles.find((p) => p.id === player.id)?.note}>
+                    타격 {profiles.find((p) => p.id === player.id)?.batting?.toFixed(1) ?? '미측정'}{' '}
+                    · 수비{' '}
+                    {profiles.find((p) => p.id === player.id)?.defense?.toFixed(1) ?? '미측정'}
+                  </small>
+                )}
               </span>
             </label>
           ))}
@@ -86,16 +199,28 @@ export function RandomEntryPicker({
       </details>
       <div className="random-entry-apply">
         <b aria-live="polite">
-          선택 {selected.length}명 · 선발 {Math.min(selected.length, 20)}명 · 후보{' '}
-          {Math.max(0, selected.length - 20)}명
+          선택 {total}명{fixed.length ? ` (주장 ${fixed.length}명 포함)` : ''} · 선발{' '}
+          {Math.min(total, 20)}명 · 후보 {Math.max(0, total - 20)}명
         </b>
         <button
           type="button"
           className="primary"
-          disabled={selected.length < 20 || sameTeam}
+          disabled={total < 20 || sameTeam}
           onClick={() => {
             try {
-              onApply(createRandomEntries(data.players, selected, entries));
+              onApply(
+                method === 'balanced'
+                  ? createBalancedEntries(
+                      data.players,
+                      selected,
+                      entries,
+                      profiles,
+                      Math.random,
+                      captains,
+                    )
+                  : createRandomEntries(data.players, selected, entries, Math.random, captains),
+                method,
+              );
               setExpanded(false);
               setError('');
             } catch (e) {
@@ -103,11 +228,11 @@ export function RandomEntryPicker({
             }
           }}
         >
-          랜덤 구성 적용
+          {method === 'balanced' ? '균형 구성 적용' : '랜덤 구성 적용'}
         </button>
       </div>
       {sameTeam && <p role="alert">서로 다른 선공·후공 팀을 선택하세요.</p>}
-      {selected.length < 20 && <p className="hint">양 팀 선발을 위해 20명 이상 선택하세요.</p>}
+      {total < 20 && <p className="hint">양 팀 선발을 위해 주장 포함 20명 이상 선택하세요.</p>}
       <p className="hint">
         적용하면 현재 양 팀의 선발·교체 후보·타순·수비 초안을 교체합니다. 선택하지 않은 기존 출전
         선수는 미출전으로 남고 결석·출전 불가 상태는 유지됩니다. 다시 적용해 재추첨하거나 직접

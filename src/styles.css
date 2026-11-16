@@ -3247,6 +3247,18 @@ tr:last-child td {
   line-height: 1.8;
 }
 .entry-mode { margin: 12px 0; }
+.entry-balance-details { margin: 12px 0; padding: 12px; border: 1px solid #b7cdb7; border-radius: 12px; background: #f4f8ee; }
+.entry-balance-details summary { min-height: 48px; padding: 12px 0; cursor: pointer; font-weight: 700; }
+.entry-balance-summary h3, .entry-balance-summary h4 { margin: 8px 0; }
+.entry-balance-teams { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.entry-balance-teams > div { padding: 10px; background: white; border-radius: 8px; min-width: 0; overflow-wrap: anywhere; }
+.entry-balance-teams p { margin: 6px 0; }
+.entry-team-slots { position: sticky; bottom: 8px; z-index: 3; padding: 12px; background: #f3f8eb; border: 2px solid #245b43; border-radius: 12px; box-shadow: 0 4px 18px #173b2526; }
+.entry-team-slots > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 8px 0; }
+.entry-team-slots button { min-height: 64px; display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; overflow-wrap: anywhere; border-color: #245b43; }
+.entry-player > .batch-check { min-height: 48px; }
+.entry-approval > .primary { min-height: 56px; }
+@media (max-width: 600px) { .entry-balance-teams { grid-template-columns: 1fr; } }
 .entry-mode button { min-height: 56px; flex: 1; }
 .random-entry-picker { padding: 12px; border: 1px solid #a6c6ae; border-radius: 12px; background: #f4f8ee; }
 .random-entry-picker summary { min-height: 48px; padding: 12px 0; cursor: pointer; font-weight: 700; }
@@ -6318,3 +6330,7 @@ label {
   .form-row > .assessor-picker,
   .form-row > .assessment-purpose-picker { flex-basis: 100%; }
 }
+.entry-captains{padding:16px;border:1px solid #b7cdb7;border-radius:14px;background:#f5f8ed;margin:12px 0}
+.entry-captains select{min-height:48px}
+.entry-captains small{display:block;line-height:1.6}
+.captain-label{font-weight:700;color:#225842}

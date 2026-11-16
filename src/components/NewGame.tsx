@@ -4,7 +4,7 @@ import { StudentFilters } from './StudentFilters';
 import { emptyStudentFilter, filterStudents } from '../domain/studentFilter';
 import { assignEntryBatch, type EntryDraft } from '../domain/entryBatch';
 import { activeTeams } from '../domain/gameLibrary';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import type { EntryStatus, Game, Side, Workspace } from '../domain/model';
 import { localDate, gradeLabel, ENTRY_LABELS, validateEntry } from '../domain/roster';
 import { POSITIONS, POSITION_LABELS } from '../config/positions';
@@ -13,7 +13,11 @@ import { RULES_VERSION } from '../config/rules';
 import { PlayerAvatar } from './PlayerAvatar';
 import { Modal } from './ui';
 import { RandomEntryPicker } from './RandomEntryPicker';
-import type { MatchEntryDrafts } from '../domain/randomEntry';
+import type { EntryCaptains, MatchEntryDrafts } from '../domain/randomEntry';
+import { assignTeamSlot } from '../domain/entrySlots';
+import { TeamAssignmentSlots } from './TeamAssignmentSlots';
+import { EntryBalanceSummary } from './EntryBalanceSummary';
+import { balanceProfiles, type BalanceDefenseSource } from '../evaluation/teamBalance';
 type Draft = EntryDraft;
 export function NewGame({
   data,
@@ -48,6 +52,14 @@ export function NewGame({
   const [filter, setFilter] = useState(emptyStudentFilter);
   const [mode, setMode] = useState<'manual' | 'random'>('manual');
   const [beforeRandom, setBeforeRandom] = useState<MatchEntryDrafts | null>(null);
+  const [captains, setCaptains] = useState<EntryCaptains>({});
+  const [balanceDefense, setBalanceDefense] = useState<BalanceDefenseSource>('nine');
+  const [balanceOpen, setBalanceOpen] = useState(false);
+  const profiles = useMemo(() => balanceProfiles(data, balanceDefense), [data, balanceDefense]);
+  const teamNames = {
+    away: data.teams.find((t) => t.id === teams.away)?.name ?? '선공 팀',
+    home: data.teams.find((t) => t.id === teams.home)?.name ?? '후공 팀',
+  };
   const [checked, setChecked] = useState<Record<Side, string[]>>({ away: [], home: [] });
   const [bulkStatus, setBulkStatus] = useState<EntryStatus>('starter');
   const [feedback, setFeedback] = useState('');
@@ -222,6 +234,7 @@ export function NewGame({
                   const id = e.target.value;
                   setChecked((old) => ({ ...old, [s]: [] }));
                   setTeams((old) => ({ ...old, [s]: id }));
+                  setCaptains((old) => ({ ...old, [s]: '' }));
                   setEntries((old) => ({ ...old, [s]: empty() }));
                   setApproved(false);
                   setBeforeRandom(null);
@@ -258,8 +271,27 @@ export function NewGame({
             data={data}
             entries={entries}
             sameTeam={teams.away === teams.home}
-            onApply={(next) => {
+            captains={captains}
+            teamNames={teamNames}
+            onCaptain={(s, id) => {
+              setCaptains((old) => ({ ...old, [s]: id }));
+              setApproved(false);
+              setFeedback(
+                '주장 고정 조건을 변경했습니다. 자동 구성을 적용하면 해당 팀 선발로 배정합니다.',
+              );
+            }}
+            profiles={profiles}
+            defenseSource={balanceDefense}
+            onDefenseSource={(source) => {
+              setBalanceDefense(source);
+              setApproved(false);
+              setFeedback(
+                '수비 비교 기준을 변경했습니다. 새 기준으로 편성하려면 균형 구성을 다시 적용하세요.',
+              );
+            }}
+            onApply={(next, method) => {
               setBeforeRandom(entries);
+              setBalanceOpen(method === 'balanced');
               setEntries(next);
               setApproved(false);
               setChecked({ away: [], home: [] });
@@ -267,7 +299,7 @@ export function NewGame({
               setError('');
               setImportError('');
               setFeedback(
-                '양 팀 랜덤 구성을 적용했습니다. 선공·후공 탭에서 타순과 수비를 조정하고 감독 확인 후 경기를 생성하세요.',
+                `양 팀 ${method === 'balanced' ? '균형' : '랜덤'} 구성을 적용했습니다. 선공·후공 탭에서 타순과 수비를 조정하고 감독 확인 후 경기를 생성하세요.`,
               );
             }}
           />
@@ -281,7 +313,7 @@ export function NewGame({
               setBeforeRandom(null);
               setApproved(false);
               setError('');
-              setFeedback('랜덤 적용 전 편성으로 되돌렸습니다. 감독 확인을 다시 진행하세요.');
+              setFeedback('자동 구성 적용 전 편성으로 되돌렸습니다. 감독 확인을 다시 진행하세요.');
             }}
           >
             이전 편성으로 되돌리기
@@ -295,6 +327,11 @@ export function NewGame({
                   {s === 'away' ? '선공' : '후공'} ·{' '}
                   {data.teams.find((t) => t.id === teams[s])?.name}
                 </h3>
+                {captains[s] && entries[s].lineup.includes(captains[s]!) && (
+                  <p className="captain-label">
+                    주장 고정 · {data.players.find((p) => p.id === captains[s])?.name}
+                  </p>
+                )}
                 <b>
                   선발 {entries[s].lineup.length}/10명 · 후보{' '}
                   {entries[s].assigned.filter((id) => entries[s].status[id] === 'reserve').length}명
@@ -307,6 +344,22 @@ export function NewGame({
               </section>
             ))}
           </div>
+        )}
+        {(entries.away.lineup.length > 0 || entries.home.lineup.length > 0) && (
+          <details
+            className="entry-balance-details"
+            open={balanceOpen}
+            onToggle={(event) => setBalanceOpen(event.currentTarget.open)}
+          >
+            <summary>타격·수비 균형 비교 보기</summary>
+            <p className="hint">
+              수비 비교 기준:{' '}
+              {balanceDefense === 'nine'
+                ? '선수별 선택 출처의 9능력 평균'
+                : '최근 유효 펑고 5항목 평균'}
+            </p>
+            <EntryBalanceSummary entries={entries} profiles={profiles} names={teamNames} />
+          </details>
         )}
         <div className="entry-navigation">
           <div className="tabs">
@@ -565,7 +618,7 @@ export function NewGame({
                         )
                       }
                     />
-                    일괄 선택
+                    팀 배정 대상 선택
                   </label>
                   <button
                     type="button"
@@ -628,6 +681,27 @@ export function NewGame({
               );
             })}
           </div>
+          <TeamAssignmentSlots
+            count={selected.length}
+            entries={entries}
+            names={teamNames}
+            disabled={teams.away === teams.home}
+            onAssign={(target) => {
+              try {
+                const next = assignTeamSlot(entries, selected, target, data.players);
+                setEntries(next);
+                setApproved(false);
+                setBeforeRandom(null);
+                setChecked({ away: [], home: [] });
+                setError('');
+                setFeedback(
+                  `${selected.length}명을 ${teamNames[target]} 팀에 배정했습니다. 양 팀 선발 인원과 수비 위치를 확인하세요.`,
+                );
+              } catch (e) {
+                setError(e instanceof Error ? e.message : '팀 배정 실패');
+              }
+            }}
+          />
         </div>
         <details ref={orderRef} className="entry-arrangement" open={draft.lineup.length === 10}>
           <summary>타순 · 수비 포지션 편성 ({draft.lineup.length}/10)</summary>

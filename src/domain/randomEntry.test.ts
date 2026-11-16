@@ -2,7 +2,12 @@ import { expect, it } from 'vitest';
 import { createDemoWorkspace } from '../data/seed';
 import { POSITIONS } from '../config/positions';
 import { assignEntryBatch, type EntryDraft } from './entryBatch';
-import { createRandomEntries, randomEntryEligible, type MatchEntryDrafts } from './randomEntry';
+import {
+  createRandomEntries,
+  randomEntryEligible,
+  type MatchEntryDrafts,
+  type EntryCaptains,
+} from './randomEntry';
 
 const blank = (): EntryDraft => ({
   loaded: false,
@@ -13,6 +18,51 @@ const blank = (): EntryDraft => ({
 });
 const entries = (): MatchEntryDrafts => ({ away: blank(), home: blank() });
 const rng = (seed: number) => () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32;
+
+it.each<EntryCaptains>([
+  { away: 'green-1', home: 'orange-1' },
+  { away: 'green-1' },
+  { home: 'orange-1' },
+])(
+  '주장 %j는 추첨에서 제외하지만 선발·인원·수비에 포함하고 재추첨에도 팀을 유지한다',
+  (captains) => {
+    const players = createDemoWorkspace().players.slice(0, 23);
+    const ids = players.map((p) => p.id).filter((id) => !Object.values(captains).includes(id));
+    const current = entries(),
+      before = structuredClone(current);
+    for (let seed = 1; seed <= 8; seed++) {
+      const next = createRandomEntries(players, ids, current, rng(seed), captains);
+      expect(next.away.lineup).toHaveLength(10);
+      expect(next.home.lineup).toHaveLength(10);
+      expect(Math.abs(next.away.assigned.length - next.home.assigned.length)).toBe(1);
+      expect(new Set([...next.away.assigned, ...next.home.assigned]).size).toBe(23);
+      for (const side of ['away', 'home'] as const) {
+        if (!captains[side]) continue;
+        expect(next[side].lineup).toContain(captains[side]);
+        expect(Object.values(next[side].defense)).toContain(captains[side]);
+        expect(next[side === 'away' ? 'home' : 'away'].assigned).not.toContain(captains[side]);
+      }
+    }
+    expect(current).toEqual(before);
+  },
+);
+
+it('중복·결석 주장은 거절하고 선택 목록의 주장 중복은 한 명으로 센다', () => {
+  const players = createDemoWorkspace().players,
+    current = entries();
+  const ids = players.slice(0, 20).map((p) => p.id);
+  expect(() =>
+    createRandomEntries(players, ids, current, rng(1), { away: ids[0], home: ids[0] }),
+  ).toThrow('양 팀 주장');
+  const next = createRandomEntries(players, ids, current, rng(1), { away: ids[0], home: ids[1] });
+  expect([...next.away.assigned, ...next.home.assigned]).toHaveLength(20);
+  current.home.status[ids[0]] = 'absent';
+  const before = structuredClone(current);
+  expect(() =>
+    createRandomEntries(players, ids.slice(1), current, rng(1), { away: ids[0] }),
+  ).toThrow('결석');
+  expect(current).toEqual(before);
+});
 
 it('20명을 양 팀 선발·타순·TYPE1 10포지션에 중복 없이 배치한다', () => {
   const players = createDemoWorkspace().players;
