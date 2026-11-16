@@ -12,6 +12,8 @@ import { recommendPositions, positionScore } from '../evaluation/score';
 import { RULES_VERSION } from '../config/rules';
 import { PlayerAvatar } from './PlayerAvatar';
 import { Modal } from './ui';
+import { RandomEntryPicker } from './RandomEntryPicker';
+import type { MatchEntryDrafts } from '../domain/randomEntry';
 type Draft = EntryDraft;
 export function NewGame({
   data,
@@ -44,6 +46,8 @@ export function NewGame({
     [approved, setApproved] = useState(false),
     [error, setError] = useState('');
   const [filter, setFilter] = useState(emptyStudentFilter);
+  const [mode, setMode] = useState<'manual' | 'random'>('manual');
+  const [beforeRandom, setBeforeRandom] = useState<MatchEntryDrafts | null>(null);
   const [checked, setChecked] = useState<Record<Side, string[]>>({ away: [], home: [] });
   const [bulkStatus, setBulkStatus] = useState<EntryStatus>('starter');
   const [feedback, setFeedback] = useState('');
@@ -66,6 +70,7 @@ export function NewGame({
   const change = (next: Draft) => {
     setEntries((old) => ({ ...old, [side]: next }));
     setApproved(false);
+    setBeforeRandom(null);
   };
   const status = (id: string, value: EntryStatus) => {
     if (entries[other].assigned.includes(id)) {
@@ -219,6 +224,8 @@ export function NewGame({
                   setTeams((old) => ({ ...old, [s]: id }));
                   setEntries((old) => ({ ...old, [s]: empty() }));
                   setApproved(false);
+                  setBeforeRandom(null);
+                  setFeedback('');
                 }}
               >
                 {activeTeams(data).map((t) => (
@@ -238,6 +245,69 @@ export function NewGame({
             .join(', ') || '없음'}{' '}
           · 한 경기는 두 팀만 진행합니다. TYPE1 기본 10포지션.
         </p>
+        <div className="tabs entry-mode" aria-label="선수 구성 방식">
+          <button type="button" aria-pressed={mode === 'manual'} onClick={() => setMode('manual')}>
+            직접 구성
+          </button>
+          <button type="button" aria-pressed={mode === 'random'} onClick={() => setMode('random')}>
+            랜덤 구성
+          </button>
+        </div>
+        <div hidden={mode !== 'random'}>
+          <RandomEntryPicker
+            data={data}
+            entries={entries}
+            sameTeam={teams.away === teams.home}
+            onApply={(next) => {
+              setBeforeRandom(entries);
+              setEntries(next);
+              setApproved(false);
+              setChecked({ away: [], home: [] });
+              setFilter(emptyStudentFilter());
+              setError('');
+              setImportError('');
+              setFeedback(
+                '양 팀 랜덤 구성을 적용했습니다. 선공·후공 탭에서 타순과 수비를 조정하고 감독 확인 후 경기를 생성하세요.',
+              );
+            }}
+          />
+        </div>
+        {feedback && <p role="status">{feedback}</p>}
+        {beforeRandom && (
+          <button
+            type="button"
+            onClick={() => {
+              setEntries(beforeRandom);
+              setBeforeRandom(null);
+              setApproved(false);
+              setError('');
+              setFeedback('랜덤 적용 전 편성으로 되돌렸습니다. 감독 확인을 다시 진행하세요.');
+            }}
+          >
+            이전 편성으로 되돌리기
+          </button>
+        )}
+        {mode === 'random' && (
+          <div className="random-entry-summary" aria-label="현재 양 팀 편성">
+            {(['away', 'home'] as const).map((s) => (
+              <section key={s}>
+                <h3>
+                  {s === 'away' ? '선공' : '후공'} ·{' '}
+                  {data.teams.find((t) => t.id === teams[s])?.name}
+                </h3>
+                <b>
+                  선발 {entries[s].lineup.length}/10명 · 후보{' '}
+                  {entries[s].assigned.filter((id) => entries[s].status[id] === 'reserve').length}명
+                </b>
+                <p>
+                  {entries[s].lineup
+                    .map((id) => data.players.find((p) => p.id === id)?.name)
+                    .join(' · ') || '아직 편성하지 않았습니다'}
+                </p>
+              </section>
+            ))}
+          </div>
+        )}
         <div className="entry-navigation">
           <div className="tabs">
             {(['away', 'home'] as const).map((s) => (
@@ -249,7 +319,12 @@ export function NewGame({
           <nav className="entry-shortcuts" aria-label="엔트리 편성 단계">
             <button
               type="button"
-              onClick={() => candidatesRef.current?.scrollIntoView({ block: 'start' })}
+              onClick={() => {
+                setMode('manual');
+                requestAnimationFrame(() =>
+                  candidatesRef.current?.scrollIntoView({ block: 'start' }),
+                );
+              }}
             >
               선수 선택
             </button>
@@ -270,286 +345,289 @@ export function NewGame({
             </button>
           </nav>
         </div>
-        <section className="approved-entry-import" aria-label="감독 승인 배치안 불러오기">
-          <label>
-            감독 승인 배치안
-            <select
-              aria-label="감독 승인 배치안"
-              value={selectedPlan?.id ?? ''}
-              onChange={(e) => setSelectionIds((old) => ({ ...old, [side]: e.target.value }))}
-            >
-              {!approvedPlans.length && <option value="">이 팀의 승인 배치안 없음</option>}
-              {approvedPlans.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {new Date(p.approvedAt ?? p.createdAt).toLocaleString()} · {p.approvedBy} ·{' '}
-                  {p.method === 'manual' ? '수동' : '추천'} 배치
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            disabled={!selectedPlan}
-            onClick={() => {
-              try {
-                const next = applyApprovedEntry(
-                  data,
-                  teams[side],
-                  selectedPlan!.id,
-                  draft,
-                  entries[other].assigned,
-                );
-                change(next);
-                select([]);
-                setError('');
-                setImportError('');
-                setFeedback(
-                  '승인안의 선발 10명과 수비 위치를 적용했습니다. 타순은 위·아래 버튼으로 조정한 뒤 경기 엔트리를 확인하세요.',
-                );
-                if (orderRef.current) {
-                  orderRef.current.open = true;
-                  orderRef.current.scrollIntoView?.({ block: 'start' });
-                }
-              } catch (e) {
-                setImportError(e instanceof Error ? e.message : '승인안 적용 실패');
-              }
-            }}
-          >
-            승인 배치안 적용
-          </button>
-          {importError && (
-            <p role="alert" className="alert">
-              {importError}
-            </p>
-          )}
-          <p className="hint">
-            선발·수비를 승인안으로 교체합니다. 기존 교체 후보와 공통 선수 명단은 유지합니다. 타순은
-            직접 조정하며 경기 생성 전 감독 확인이 필요합니다.
-          </p>
-          {selectedPlan && (
-            <p className="hint">승인 당시 배치입니다. 이후 평가 변화는 자동 반영하지 않습니다.</p>
-          )}
-        </section>
-        <button
-          type="button"
-          className="primary"
-          onClick={() => {
-            change({
-              ...draft,
-              loaded: true,
-              status: Object.fromEntries(
-                candidates.map((p) => [
-                  p.id,
-                  draft.status[p.id] ?? (p.active ? 'not-playing' : 'unavailable'),
-                ]),
-              ),
-            });
-            setError('');
-          }}
-        >
-          등록 선수 불러오기
-        </button>
-        <p className="callout">
-          공통 등록 명단에서 이 경기의 선수를 선택하세요. 상대 팀에 이미 편성된 학생은 제외됩니다.
-          팀 배정은 이 경기에만 적용됩니다.
-        </p>
-        <div className="entry-summary">
-          불러온 선수 {players.length}명 · 팀 편성 {draft.assigned.length}명 ·{' '}
-          {Object.entries(ENTRY_LABELS).map(([key, label]) => (
-            <span key={key}>
-              {label} {draft.assigned.filter((id) => draft.status[id] === key).length}명{' '}
-            </span>
-          ))}
-        </div>
-        <button
-          type="button"
-          disabled={!data.comparisonSelection?.playerIds.length}
-          onClick={() => {
-            const ids = (data.comparisonSelection?.playerIds ?? []).filter((id) =>
-              candidates.some((p) => p.id === id && p.active),
-            );
-            change({ ...draft, loaded: true });
-            select(ids);
-            setFeedback(
-              ids.length + '명 비교 후보를 불러왔습니다. 경기 상태를 선택하고 팀에 배정하세요.',
-            );
-          }}
-        >
-          비교 후보 불러오기
-        </button>
-        <button type="button" onClick={recommend}>
-          수비 기능 추천 적용 · 초안
-        </button>
-        <p className="hint">
-          추천은 TYPE1 v2.0 수비 기능 가중치만 사용합니다. 최종 종합 선발 점수가 아니며 감독이
-          수정·확인합니다.
-        </p>
-        {draft.loaded && (
-          <section className="bulk-entry-controls" aria-label="여러 학생 팀 배정">
-            <StudentFilters
-              players={players}
-              value={filter}
-              onChange={setFilter}
-              prefix="경기 선수"
-            />
-            <div className="bulk-actions">
-              <button
-                type="button"
-                onClick={() =>
-                  select([...new Set([...selected, ...visiblePlayers.map((p) => p.id)])])
-                }
+        <div hidden={mode !== 'manual'}>
+          <section className="approved-entry-import" aria-label="감독 승인 배치안 불러오기">
+            <label>
+              감독 승인 배치안
+              <select
+                aria-label="감독 승인 배치안"
+                value={selectedPlan?.id ?? ''}
+                onChange={(e) => setSelectionIds((old) => ({ ...old, [side]: e.target.value }))}
               >
-                검색 결과 전체 선택 · {visiblePlayers.length}명
-              </button>
-              <button type="button" disabled={!selected.length} onClick={() => select([])}>
-                선택 해제
-              </button>
-              <b aria-live="polite">
-                선택 {selected.length}명 · 표시 {visiblePlayers.length}명
-              </b>
-              <label>
-                일괄 경기 상태
-                <select
-                  aria-label="일괄 경기 상태"
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value as EntryStatus)}
-                >
-                  {Object.entries(ENTRY_LABELS).map(([v, label]) => (
-                    <option key={v} value={v}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                className="primary"
-                disabled={!selected.length}
-                onClick={() => {
-                  try {
-                    change(
-                      assignEntryBatch(
-                        draft,
-                        selected,
-                        bulkStatus,
-                        data.players,
-                        entries[other].assigned,
-                      ),
-                    );
-                    select([]);
-                    setError('');
-                    setFeedback(
-                      selected.length +
-                        '명을 ' +
-                        (data.teams.find((t) => t.id === teams[side])?.name ?? '팀') +
-                        ' ' +
-                        ENTRY_LABELS[bulkStatus] +
-                        '로 배정했습니다',
-                    );
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : '배정 실패');
+                {!approvedPlans.length && <option value="">이 팀의 승인 배치안 없음</option>}
+                {approvedPlans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {new Date(p.approvedAt ?? p.createdAt).toLocaleString()} · {p.approvedBy} ·{' '}
+                    {p.method === 'manual' ? '수동' : '추천'} 배치
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              disabled={!selectedPlan}
+              onClick={() => {
+                try {
+                  const next = applyApprovedEntry(
+                    data,
+                    teams[side],
+                    selectedPlan!.id,
+                    draft,
+                    entries[other].assigned,
+                  );
+                  change(next);
+                  select([]);
+                  setError('');
+                  setImportError('');
+                  setFeedback(
+                    '승인안의 선발 10명과 수비 위치를 적용했습니다. 타순은 위·아래 버튼으로 조정한 뒤 경기 엔트리를 확인하세요.',
+                  );
+                  if (orderRef.current) {
+                    orderRef.current.open = true;
+                    orderRef.current.scrollIntoView?.({ block: 'start' });
                   }
-                }}
-              >
-                선택 학생 팀에 배정
-              </button>
-            </div>
-            {feedback && <p role="status">{feedback}</p>}
-            {error && (
+                } catch (e) {
+                  setImportError(e instanceof Error ? e.message : '승인안 적용 실패');
+                }
+              }}
+            >
+              승인 배치안 적용
+            </button>
+            {importError && (
               <p role="alert" className="alert">
-                {error}
+                {importError}
               </p>
             )}
             <p className="hint">
-              필터를 바꿔도 선택은 유지됩니다. 선택한 학생 전체에 적용하며 선발 10명 초과 시 모두
-              배정하지 않습니다.
+              선발·수비를 승인안으로 교체합니다. 기존 교체 후보와 공통 선수 명단은 유지합니다.
+              타순은 직접 조정하며 경기 생성 전 감독 확인이 필요합니다.
             </p>
+            {selectedPlan && (
+              <p className="hint">승인 당시 배치입니다. 이후 평가 변화는 자동 반영하지 않습니다.</p>
+            )}
           </section>
-        )}
-        <div className="entry-candidates" ref={candidatesRef}>
-          {visiblePlayers.map((p) => {
-            const evaluation = defenseEvaluation(data, p.id);
-            const scores = POSITIONS.map((pos) => positionScore(evaluation.abilities, pos)).filter(
-              (v): v is number => v !== null,
-            );
-            return (
-              <div
-                className={'entry-player ' + (draft.status[p.id] === 'starter' ? 'selected' : '')}
-                key={p.id}
-              >
-                <label className="check batch-check">
-                  <input
-                    type="checkbox"
-                    aria-label={p.name + ' 일괄 선택'}
-                    checked={selected.includes(p.id)}
-                    onChange={(e) =>
-                      select(
-                        e.target.checked
-                          ? [...selected, p.id]
-                          : selected.filter((id) => id !== p.id),
-                      )
-                    }
-                  />
-                  일괄 선택
-                </label>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => {
+              change({
+                ...draft,
+                loaded: true,
+                status: Object.fromEntries(
+                  candidates.map((p) => [
+                    p.id,
+                    draft.status[p.id] ?? (p.active ? 'not-playing' : 'unavailable'),
+                  ]),
+                ),
+              });
+              setError('');
+            }}
+          >
+            등록 선수 불러오기
+          </button>
+          <p className="callout">
+            공통 등록 명단에서 이 경기의 선수를 선택하세요. 상대 팀에 이미 편성된 학생은 제외됩니다.
+            팀 배정은 이 경기에만 적용됩니다.
+          </p>
+          <div className="entry-summary">
+            불러온 선수 {players.length}명 · 팀 편성 {draft.assigned.length}명 ·{' '}
+            {Object.entries(ENTRY_LABELS).map(([key, label]) => (
+              <span key={key}>
+                {label} {draft.assigned.filter((id) => draft.status[id] === key).length}명{' '}
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={!data.comparisonSelection?.playerIds.length}
+            onClick={() => {
+              const ids = (data.comparisonSelection?.playerIds ?? []).filter((id) =>
+                candidates.some((p) => p.id === id && p.active),
+              );
+              change({ ...draft, loaded: true });
+              select(ids);
+              setFeedback(
+                ids.length + '명 비교 후보를 불러왔습니다. 경기 상태를 선택하고 팀에 배정하세요.',
+              );
+            }}
+          >
+            비교 후보 불러오기
+          </button>
+          <button type="button" onClick={recommend}>
+            수비 기능 추천 적용 · 초안
+          </button>
+          <p className="hint">
+            추천은 TYPE1 v2.0 수비 기능 가중치만 사용합니다. 최종 종합 선발 점수가 아니며 감독이
+            수정·확인합니다.
+          </p>
+          {draft.loaded && (
+            <section className="bulk-entry-controls" aria-label="여러 학생 팀 배정">
+              <StudentFilters
+                players={players}
+                value={filter}
+                onChange={setFilter}
+                prefix="경기 선수"
+              />
+              <div className="bulk-actions">
                 <button
                   type="button"
-                  aria-pressed={draft.status[p.id] === 'starter'}
-                  aria-label={p.name + ' 선발 선택'}
-                  disabled={!p.active}
                   onClick={() =>
-                    status(p.id, draft.status[p.id] === 'starter' ? 'not-playing' : 'starter')
+                    select([...new Set([...selected, ...visiblePlayers.map((p) => p.id)])])
                   }
                 >
-                  <PlayerAvatar player={p} />
-                  <span>
-                    <b>
-                      {p.name} · {p.number}번
-                    </b>
-                    <small>
-                      {gradeLabel(p)} ·{' '}
-                      {p.primaryPosition ? POSITION_LABELS[p.primaryPosition] : '주 포지션 미설정'}
-                    </small>
-                    <small>
-                      수비 기능 최고 적합도{' '}
-                      {scores.length ? Math.max(...scores).toFixed(1) : '미측정'}
-                    </small>
-                  </span>
+                  검색 결과 전체 선택 · {visiblePlayers.length}명
                 </button>
+                <button type="button" disabled={!selected.length} onClick={() => select([])}>
+                  선택 해제
+                </button>
+                <b aria-live="polite">
+                  선택 {selected.length}명 · 표시 {visiblePlayers.length}명
+                </b>
                 <label>
-                  경기 상태
+                  일괄 경기 상태
                   <select
-                    aria-label={p.name + ' 경기 상태'}
-                    value={draft.assigned.includes(p.id) ? draft.status[p.id] : ''}
-                    onChange={(e) => {
-                      if (!e.target.value) {
-                        change({
-                          ...draft,
-                          assigned: draft.assigned.filter((id) => id !== p.id),
-                          lineup: draft.lineup.filter((id) => id !== p.id),
-                          status: { ...draft.status, [p.id]: 'not-playing' },
-                          defense: Object.fromEntries(
-                            Object.entries(draft.defense).filter(([, id]) => id !== p.id),
-                          ),
-                        });
-                      } else status(p.id, e.target.value as EntryStatus);
-                    }}
+                    aria-label="일괄 경기 상태"
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value as EntryStatus)}
                   >
-                    <option value="">미편성 · 팀 배정 해제</option>
                     {Object.entries(ENTRY_LABELS).map(([v, label]) => (
-                      <option
-                        key={v}
-                        value={v}
-                        disabled={!p.active && (v === 'starter' || v === 'reserve')}
-                      >
+                      <option key={v} value={v}>
                         {label}
                       </option>
                     ))}
                   </select>
                 </label>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!selected.length}
+                  onClick={() => {
+                    try {
+                      change(
+                        assignEntryBatch(
+                          draft,
+                          selected,
+                          bulkStatus,
+                          data.players,
+                          entries[other].assigned,
+                        ),
+                      );
+                      select([]);
+                      setError('');
+                      setFeedback(
+                        selected.length +
+                          '명을 ' +
+                          (data.teams.find((t) => t.id === teams[side])?.name ?? '팀') +
+                          ' ' +
+                          ENTRY_LABELS[bulkStatus] +
+                          '로 배정했습니다',
+                      );
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : '배정 실패');
+                    }
+                  }}
+                >
+                  선택 학생 팀에 배정
+                </button>
               </div>
-            );
-          })}
+              {error && (
+                <p role="alert" className="alert">
+                  {error}
+                </p>
+              )}
+              <p className="hint">
+                필터를 바꿔도 선택은 유지됩니다. 선택한 학생 전체에 적용하며 선발 10명 초과 시 모두
+                배정하지 않습니다.
+              </p>
+            </section>
+          )}
+          <div className="entry-candidates" ref={candidatesRef}>
+            {visiblePlayers.map((p) => {
+              const evaluation = defenseEvaluation(data, p.id);
+              const scores = POSITIONS.map((pos) =>
+                positionScore(evaluation.abilities, pos),
+              ).filter((v): v is number => v !== null);
+              return (
+                <div
+                  className={'entry-player ' + (draft.status[p.id] === 'starter' ? 'selected' : '')}
+                  key={p.id}
+                >
+                  <label className="check batch-check">
+                    <input
+                      type="checkbox"
+                      aria-label={p.name + ' 일괄 선택'}
+                      checked={selected.includes(p.id)}
+                      onChange={(e) =>
+                        select(
+                          e.target.checked
+                            ? [...selected, p.id]
+                            : selected.filter((id) => id !== p.id),
+                        )
+                      }
+                    />
+                    일괄 선택
+                  </label>
+                  <button
+                    type="button"
+                    aria-pressed={draft.status[p.id] === 'starter'}
+                    aria-label={p.name + ' 선발 선택'}
+                    disabled={!p.active}
+                    onClick={() =>
+                      status(p.id, draft.status[p.id] === 'starter' ? 'not-playing' : 'starter')
+                    }
+                  >
+                    <PlayerAvatar player={p} />
+                    <span>
+                      <b>
+                        {p.name} · {p.number}번
+                      </b>
+                      <small>
+                        {gradeLabel(p)} ·{' '}
+                        {p.primaryPosition
+                          ? POSITION_LABELS[p.primaryPosition]
+                          : '주 포지션 미설정'}
+                      </small>
+                      <small>
+                        수비 기능 최고 적합도{' '}
+                        {scores.length ? Math.max(...scores).toFixed(1) : '미측정'}
+                      </small>
+                    </span>
+                  </button>
+                  <label>
+                    경기 상태
+                    <select
+                      aria-label={p.name + ' 경기 상태'}
+                      value={draft.assigned.includes(p.id) ? draft.status[p.id] : ''}
+                      onChange={(e) => {
+                        if (!e.target.value) {
+                          change({
+                            ...draft,
+                            assigned: draft.assigned.filter((id) => id !== p.id),
+                            lineup: draft.lineup.filter((id) => id !== p.id),
+                            status: { ...draft.status, [p.id]: 'not-playing' },
+                            defense: Object.fromEntries(
+                              Object.entries(draft.defense).filter(([, id]) => id !== p.id),
+                            ),
+                          });
+                        } else status(p.id, e.target.value as EntryStatus);
+                      }}
+                    >
+                      <option value="">미편성 · 팀 배정 해제</option>
+                      {Object.entries(ENTRY_LABELS).map(([v, label]) => (
+                        <option
+                          key={v}
+                          value={v}
+                          disabled={!p.active && (v === 'starter' || v === 'reserve')}
+                        >
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
         </div>
         <details ref={orderRef} className="entry-arrangement" open={draft.lineup.length === 10}>
           <summary>타순 · 수비 포지션 편성 ({draft.lineup.length}/10)</summary>
