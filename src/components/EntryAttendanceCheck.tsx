@@ -57,11 +57,15 @@ export function EntryAttendanceCheck({
           ))}
         </div>
       )}
-      {!day && <p className="callout amber">먼저 이 날짜의 출석부를 만드세요.</p>}
+      {!day && (
+        <p className="callout amber">
+          아래 일별 출석부에서 전체 명단을 반영하고 출석을 확인하세요.
+        </p>
+      )}
       {!!unlisted.length && (
         <p role="alert">
           출석부 생성 후 등록된 학생: {unlisted.map((p) => p.name).join(' · ')}. 아래 출석부에서
-          해당 학급을 선택하고 ‘학급 명단 추가·새 학생 반영’을 누른 뒤 출석을 확인하세요.
+          ‘전체 명단 반영’을 누른 뒤 새 학생의 출석을 확인하세요.
         </p>
       )}
       {!!rows.length && (

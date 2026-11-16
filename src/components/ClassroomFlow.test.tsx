@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { AttendanceView } from './AttendanceView';
 import { NewGame } from './NewGame';
 import { createDemoWorkspace } from '../data/seed';
-import { addClassGroup, markAttendance, groupKey } from '../domain/attendance';
+import { addClassGroup, markAttendance } from '../domain/attendance';
 import { localDate } from '../domain/roster';
 import { readBackup, serializeBackup } from '../data/repository';
 import type { Game } from '../domain/model';
@@ -30,15 +30,12 @@ it('출석 터치·일괄 확인·다음 날짜·저장 실패 시 이전 기록
     );
   }
   render(<Harness />);
-  fireEvent.change(screen.getByLabelText('출석 학년·반'), {
-    target: { value: groupKey({ grade: '2', classroom: '1' }) },
-  });
-  click('학급 명단 추가·새 학생 반영');
-  const student = () => within(screen.getByRole('group', { name: '샘플 선수 01 출석' }));
+  expect(save).not.toHaveBeenCalled();
+  const student = () => within(screen.getByRole('row', { name: '샘플 선수 01 출결' }));
   fireEvent.click(student().getByRole('button', { name: '결석' }));
   click('표시 명단의 미확인 학생 모두 출석');
   expect(student().getByRole('button', { name: '결석' })).toHaveAttribute('aria-pressed', 'true');
-  expect(screen.getByRole('status')).toHaveTextContent('출석/지각 23명');
+  expect(screen.getByLabelText('전체 출결 요약')).toHaveTextContent('출석 23');
   save.mockImplementationOnce(() => {
     throw Error('용량 부족');
   });
@@ -46,8 +43,7 @@ it('출석 터치·일괄 확인·다음 날짜·저장 실패 시 이전 기록
   expect(screen.getByRole('alert')).toHaveTextContent('용량 부족');
   expect(student().getByRole('button', { name: '결석' })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.change(screen.getByLabelText('출석 날짜'), { target: { value: '2026-12-01' } });
-  click('학급 명단 추가·새 학생 반영');
-  expect(screen.getByRole('status')).toHaveTextContent('미확인 24명');
+  expect(screen.getByLabelText('전체 출결 요약')).toHaveTextContent('미확인 24');
 });
 it('당일 수업 24명 중 결석 1명 제외·선발 20명·후보 3명 전원 편성 후 승인·생성', () => {
   const d = createDemoWorkspace();

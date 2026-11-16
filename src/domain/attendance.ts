@@ -49,13 +49,77 @@ export interface EntryAttendance {
   checkedAt: string;
   students: (ClassStudent & { eligible: boolean })[];
 }
+export function isAttendanceDate(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const parsed = new Date(date + 'T12:00:00Z');
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}
+/** Prepare the whole daily roster without writing storage or changing historical snapshots. */
+export function prepareDailyAttendance(
+  data: Workspace,
+  date: string,
+  at = new Date().toISOString(),
+): ClassDay {
+  if (!isAttendanceDate(date)) throw new Error('올바른 수업 날짜를 선택하세요');
+  const old = data.classDays.find((d) => d.date === date);
+  const next: ClassDay = old
+    ? structuredClone(old)
+    : {
+        id: crypto.randomUUID(),
+        date,
+        groups: [],
+        students: [],
+        history: [],
+        createdAt: at,
+        updatedAt: at,
+      };
+  const ids = new Set(next.students.map((s) => s.playerId));
+  const groups = new Set(next.groups.map(groupKey));
+  for (const p of data.players) {
+    if (p.archivedAt || ids.has(p.id)) continue;
+    const group = playerGroup(p);
+    if (!groups.has(groupKey(group))) {
+      next.groups.push(group);
+      groups.add(groupKey(group));
+    }
+    next.students.push({
+      playerId: p.id,
+      name: p.name,
+      number: p.number,
+      studentNumber: p.studentNumber ?? null,
+      ...group,
+      status: 'unmarked',
+    });
+    ids.add(p.id);
+    next.updatedAt = at;
+  }
+  return next;
+}
+export function sortAttendanceStudents(students: ClassStudent[]) {
+  const compareGroup = (a: string, b: string) =>
+    a === b
+      ? 0
+      : a === 'unset'
+        ? 1
+        : b === 'unset'
+          ? -1
+          : a.localeCompare(b, 'ko', { numeric: true });
+  return [...students].sort(
+    (a, b) =>
+      compareGroup(a.grade, b.grade) ||
+      compareGroup(a.classroom, b.classroom) ||
+      (a.studentNumber ?? Infinity) - (b.studentNumber ?? Infinity) ||
+      a.name.localeCompare(b.name, 'ko', { numeric: true }) ||
+      a.playerId.localeCompare(b.playerId),
+  );
+}
 export function addClassGroup(
   data: Workspace,
   date: string,
   group: ClassGroup,
   at = new Date().toISOString(),
 ): ClassDay {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('수업 날짜를 선택하세요');
+  if (!isAttendanceDate(date)) throw new Error('올바른 수업 날짜를 선택하세요');
   const students = data.players.filter(
     (p) => !p.archivedAt && groupKey(playerGroup(p)) === groupKey(group),
   );
@@ -93,8 +157,9 @@ export function markAttendance(
   at = new Date().toISOString(),
 ): ClassDay {
   const next = structuredClone(day);
+  const selected = new Set(ids);
   for (const row of next.students)
-    if (ids.includes(row.playerId) && row.status !== status) {
+    if (selected.has(row.playerId) && row.status !== status) {
       next.history.push({
         id: crypto.randomUUID(),
         at,

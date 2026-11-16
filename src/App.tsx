@@ -199,7 +199,13 @@ export default function App() {
     window.scrollTo({ top: 0 });
   };
   return (
-    <div className={'app-shell' + (view === 'match' && matchOpened ? ' match-recording' : '')}>
+    <div
+      className={
+        'app-shell' +
+        (view === 'match' && matchOpened ? ' match-recording' : '') +
+        (view === 'attendance' ? ' attendance-recording' : '')
+      }
+    >
       <aside className={'sidebar ' + (menu ? 'open' : '')}>
         <a
           className="brand"
