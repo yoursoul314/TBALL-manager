@@ -69,11 +69,10 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         throw new Error(
           '구버전 탭의 데이터 변경이 감지되었습니다. 두 원본을 백업한 뒤 복구하세요.',
         );
-      const current =
-        input.schemaVersion === 12 || input.schemaVersion === 13
-          ? migrateWorkspace(input, raw)
-          : parseWorkspace(input);
-      if ((input.schemaVersion === 12 || input.schemaVersion === 13) && persistMigration)
+      const current = [12, 13, 14].includes(input.schemaVersion)
+        ? migrateWorkspace(input, raw)
+        : parseWorkspace(input);
+      if ([12, 13, 14].includes(input.schemaVersion) && persistMigration)
         writeStorageText(this.storage, STORAGE_KEY, JSON.stringify({ ...input, ...current }));
       return current;
     }
@@ -414,7 +413,7 @@ export function serializeBackup(workspace: Workspace) {
   return JSON.stringify(
     {
       format: 'tb-manager-backup',
-      version: 14,
+      version: 15,
       exportedAt: new Date().toISOString(),
       workspace: parseWorkspace(workspace),
     },
@@ -427,7 +426,7 @@ export function readBackup(text: string) {
   const value = JSON.parse(text);
   if (
     value?.format !== 'tb-manager-backup' ||
-    ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(value.version) ||
+    ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].includes(value.version) ||
     value.workspace?.schemaVersion !== value.version
   )
     throw new Error('지원하지 않는 백업 형식');

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Side, Workspace } from '../domain/model';
+import type { Workspace } from '../domain/model';
 import {
   createRandomEntries,
   randomEntryEligible,
@@ -10,6 +10,7 @@ import { emptyStudentFilter, filterStudents } from '../domain/studentFilter';
 import { gradeLabel } from '../domain/roster';
 import { PlayerAvatar } from './PlayerAvatar';
 import { StudentFilters } from './StudentFilters';
+import { applyPositionPreferences } from '../domain/preferenceEntry';
 import {
   createBalancedEntries,
   type BalanceDefenseSource,
@@ -25,8 +26,8 @@ export function RandomEntryPicker({
   defenseSource,
   onDefenseSource,
   captains,
-  teamNames,
-  onCaptain,
+  usePreferences,
+  onPreferences,
 }: {
   data: Workspace;
   entries: MatchEntryDrafts;
@@ -36,8 +37,8 @@ export function RandomEntryPicker({
   defenseSource: BalanceDefenseSource;
   onDefenseSource: (value: BalanceDefenseSource) => void;
   captains: EntryCaptains;
-  teamNames: Record<Side, string>;
-  onCaptain: (side: Side, id: string) => void;
+  usePreferences: boolean;
+  onPreferences: (value: boolean) => void;
 }) {
   const [method, setMethod] = useState<'random' | 'balanced'>('random');
   const [filter, setFilter] = useState(emptyStudentFilter);
@@ -80,45 +81,22 @@ export function RandomEntryPicker({
         {method === 'balanced'
           ? ' 타격·수비 평균 차이와 측정 인원 차이를 줄이는 참고 초안입니다.'
           : ' 선수는 무작위로 배정합니다.'}
-        타순·TYPE1 수비 위치는 무작위 초안으로 만들며 직접 조정할 수 있습니다.
+        타순은 무작위 초안이며, 수비 위치는 아래 희망 반영 설정에 따라 배정합니다. 모두 직접 조정할
+        수 있습니다.
       </p>
-      <section aria-label="자동 구성 주장 고정" className="entry-captains">
-        <b>주장 먼저 선택 · 선택 사항</b>
-        <div className="form-row">
-          {(['away', 'home'] as const).map((side) => (
-            <label key={side}>
-              {side === 'away' ? '선공' : '후공'} · {teamNames[side]} 주장
-              <select
-                aria-label={(side === 'away' ? '선공' : '후공') + ' 주장'}
-                value={captains[side] ?? ''}
-                onChange={(e) => {
-                  onCaptain(side, e.target.value);
-                  setError('');
-                }}
-              >
-                <option value="">미지정 · 고정 해제</option>
-                {captains[side] && !available.some((p) => p.id === captains[side]) && (
-                  <option value={captains[side]}>주장 출전 상태 확인 필요 · 다시 선택하세요</option>
-                )}
-                {available.map((p) => (
-                  <option
-                    key={p.id}
-                    value={p.id}
-                    disabled={captains[side === 'away' ? 'home' : 'away'] === p.id}
-                  >
-                    {p.name} · {p.number}번 · {gradeLabel(p)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
-        </div>
-        <small>
-          자동 구성 시 주장은 해당 팀 선발 10명에 포함하고 추첨·팀 교환에서 제외합니다. 주장 점수도
-          균형 비교에 반영합니다. 타순·수비는 조정할 수 있으며, 직접 구성에서는 선수도 변경할 수
-          있습니다.
-        </small>
-      </section>
+      <label className="check preference-option">
+        <input
+          type="checkbox"
+          checked={usePreferences}
+          onChange={(e) => onPreferences(e.target.checked)}
+        />
+        희망 포지션 반영
+      </label>
+      <p className="hint">
+        {usePreferences
+          ? '선발·후보로 뽑힌 학생은 유지하고 1지망 충족 수, 그다음 2지망 충족 수를 최대화합니다. 단순 랜덤은 주장 외 선발의 팀을 조정하고, 균형 구성은 나눠진 팀 안에서 수비 위치만 조정합니다. 희망 배정에는 수비 능력 점수나 가산점을 사용하지 않습니다. 희망이 겹치거나 없으면 남는 자리에 무작위로 배정합니다.'
+          : '현재 수비 위치도 무작위로 배정합니다. 희망을 반영하려면 위 항목을 선택하세요.'}
+      </p>
       {method === 'balanced' && (
         <div className="balance-options">
           <label>
@@ -208,7 +186,7 @@ export function RandomEntryPicker({
           disabled={total < 20 || sameTeam}
           onClick={() => {
             try {
-              onApply(
+              const next =
                 method === 'balanced'
                   ? createBalancedEntries(
                       data.players,
@@ -218,7 +196,11 @@ export function RandomEntryPicker({
                       Math.random,
                       captains,
                     )
-                  : createRandomEntries(data.players, selected, entries, Math.random, captains),
+                  : createRandomEntries(data.players, selected, entries, Math.random, captains);
+              onApply(
+                usePreferences
+                  ? applyPositionPreferences(data.players, next, captains, method === 'random')
+                  : next,
                 method,
               );
               setExpanded(false);

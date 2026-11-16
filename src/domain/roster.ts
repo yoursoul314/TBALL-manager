@@ -69,6 +69,8 @@ export function validateEntry(game: Game) {
       .filter((p) => p.status === 'starter' || p.status === 'reserve')
       .map((p) => p.id);
     const starters = ps.filter((p) => p.status === 'starter').map((p) => p.id);
+    const captain = entry.captains?.[side];
+    require(!captain || starters.includes(captain), '주장은 해당 팀의 선발 선수여야 합니다');
     require(roster.length === game.rosters[side].length &&
       roster.every((id) => game.rosters[side].includes(id)), '경기 등록 명단과 상태 불일치');
     require(starters.length === game.lineups[side].length &&

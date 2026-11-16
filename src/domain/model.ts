@@ -44,6 +44,8 @@ export interface EntryPlayer extends Player {
   status: EntryStatus;
 }
 export interface GameEntry {
+  /** Absent in old games: captain was never recorded, not inferred. */
+  captains?: Record<Side, Id | null>;
   capturedAt: string;
   source: 'manager' | 'legacy';
   approvedBy: string | null;
@@ -278,7 +280,7 @@ export interface Workspace extends BattingData {
   } | null;
   defenseEvaluationChoices: DefenseEvaluationChoice[];
   lastReset?: { at: string; scope: 'games' | 'evaluations' | 'records' | 'all' };
-  schemaVersion: 14;
+  schemaVersion: 15;
   migrationSource?: {
     schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13;
     raw: string;

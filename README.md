@@ -1,6 +1,6 @@
 # TB Manager | 티볼 통합 매니지먼트 시스템
 
-중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA** v0.14입니다.
+중학교 티볼 수업의 실시간 경기 기록, 선수 분석, 기능평가와 TYPE1 포지션 시뮬레이션을 위한 **React + TypeScript + Vite PWA**입니다.
 
 - 웹앱: https://yoursoul314.github.io/TBALL-manager/
 - 저장소: https://github.com/yoursoul314/TBALL-manager
@@ -10,7 +10,11 @@
 - 검증 결과: [docs/VALIDATION.md](docs/VALIDATION.md)
 - 학생·엔트리·공수 통합 기록 v3: [docs/ROSTER_DEFENSE_V3.md](docs/ROSTER_DEFENSE_V3.md)
 
-감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 유지하며 현재 schema14로 기존 원문을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+감독 승인 배치안 → 새 경기 선발·수비 불러오기와 타순 수동 조정, 타격 측정·기록지·설정·분석 분리 화면을 제공합니다. 수비 횟수 설정, 9능력 설명, 키보드 대응을 유지하며 현재 schema15로 기존 기록을 보존해 이전합니다. [v0.12 변경 내용](docs/IPAD_DEFENSE_V12.md). [변경 내역·사용 순서](docs/APPROVED_ENTRY_STUDIO_V11.md).
+
+## BETA 0.15.3 · 지난 경기 편성·희망 포지션 반영
+
+새 경기에서 지난 경기의 시작 당시 팀·주장·선수·타순·수비를 불러와 직접 수정합니다. 새 경기부터 주장을 저장하며, 주장 정보가 없는 과거 경기에서는 직접 지정하도록 안내합니다. 랜덤 구성의 **희망 포지션 반영**을 켜면 1·2지망만으로 수비 자리를 조정합니다. 단순 랜덤은 주장 외 선발의 팀을 조정하고, 실력 균형은 기존 팀을 유지하며 팀 안에서 배치합니다. 기존 경기와 평가는 그대로 보존합니다. [사용 방법·schema15 이전·검증 계약](docs/PREVIOUS_ENTRY_V153.md).
 
 ## BETA 0.15.2 · 실력 균형·빠른 팀 슬롯·주장 고정
 

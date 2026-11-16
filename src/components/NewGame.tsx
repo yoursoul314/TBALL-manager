@@ -18,6 +18,10 @@ import { assignTeamSlot } from '../domain/entrySlots';
 import { TeamAssignmentSlots } from './TeamAssignmentSlots';
 import { EntryBalanceSummary } from './EntryBalanceSummary';
 import { balanceProfiles, type BalanceDefenseSource } from '../evaluation/teamBalance';
+import { EntryCaptainsPicker } from './EntryCaptainsPicker';
+import { PreviousEntryPicker } from './PreviousEntryPicker';
+import { copyGameEntry } from '../domain/entryHistory';
+import { preferenceCounts } from '../domain/preferenceEntry';
 type Draft = EntryDraft;
 export function NewGame({
   data,
@@ -53,6 +57,11 @@ export function NewGame({
   const [mode, setMode] = useState<'manual' | 'random'>('manual');
   const [beforeRandom, setBeforeRandom] = useState<MatchEntryDrafts | null>(null);
   const [captains, setCaptains] = useState<EntryCaptains>({});
+  const [usePreferences, setUsePreferences] = useState(false);
+  const preferences = preferenceCounts(data.players, entries);
+  const captainInvalid = (['away', 'home'] as const).some(
+    (s) => captains[s] && !entries[s].lineup.includes(captains[s]!),
+  );
   const [balanceDefense, setBalanceDefense] = useState<BalanceDefenseSource>('nine');
   const [balanceOpen, setBalanceOpen] = useState(false);
   const profiles = useMemo(() => balanceProfiles(data, balanceDefense), [data, balanceDefense]);
@@ -153,6 +162,8 @@ export function NewGame({
             )
               throw new Error('서로 다른 두 운영 팀을 선택하세요');
             if (!approved || !manager.trim()) throw new Error('감독의 엔트리 확인이 필요합니다');
+            if (captainInvalid)
+              throw new Error('주장은 해당 팀의 선발로 배정하거나 변경·해제하세요');
             const now = new Date().toISOString();
             const game: Game = {
               id: crypto.randomUUID(),
@@ -169,6 +180,7 @@ export function NewGame({
               rosters: { away: [], home: [] },
               lineups: { away: entries.away.lineup, home: entries.home.lineup },
               entry: {
+                captains: { away: captains.away || null, home: captains.home || null },
                 capturedAt: now,
                 source: 'manager',
                 approvedBy: manager.trim(),
@@ -199,6 +211,27 @@ export function NewGame({
           }
         }}
       >
+        <PreviousEntryPicker
+          data={data}
+          onImport={(id) => {
+            const copied = copyGameEntry(data, id);
+            setTeams(copied.teams);
+            setEntries(copied.entries);
+            setCaptains(copied.captains);
+            setMode('manual');
+            setSide('away');
+            setApproved(false);
+            setBeforeRandom(null);
+            setChecked({ away: [], home: [] });
+            setFilter(emptyStudentFilter());
+            setError('');
+            setImportError('');
+            setFeedback(
+              '지난 경기의 시작 편성을 불러왔습니다. 날짜·출전 상태·주장·타순·수비를 확인하고 감독 승인을 다시 진행하세요. ' +
+                copied.warnings.join(' / '),
+            );
+          }}
+        />
         <label>
           경기 이름
           <input required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} />
@@ -258,6 +291,17 @@ export function NewGame({
             .join(', ') || '없음'}{' '}
           · 한 경기는 두 팀만 진행합니다. TYPE1 기본 10포지션.
         </p>
+        <EntryCaptainsPicker
+          players={data.players}
+          entries={entries}
+          captains={captains}
+          names={teamNames}
+          onChange={(s, id) => {
+            setCaptains((old) => ({ ...old, [s]: id }));
+            setApproved(false);
+            setFeedback('주장을 변경했습니다. 직접 선발로 배정하거나 자동 구성을 적용하세요.');
+          }}
+        />
         <div className="tabs entry-mode" aria-label="선수 구성 방식">
           <button type="button" aria-pressed={mode === 'manual'} onClick={() => setMode('manual')}>
             직접 구성
@@ -272,13 +316,11 @@ export function NewGame({
             entries={entries}
             sameTeam={teams.away === teams.home}
             captains={captains}
-            teamNames={teamNames}
-            onCaptain={(s, id) => {
-              setCaptains((old) => ({ ...old, [s]: id }));
+            usePreferences={usePreferences}
+            onPreferences={(value) => {
+              setUsePreferences(value);
               setApproved(false);
-              setFeedback(
-                '주장 고정 조건을 변경했습니다. 자동 구성을 적용하면 해당 팀 선발로 배정합니다.',
-              );
+              setFeedback('희망 포지션 설정을 변경했습니다. 자동 구성을 다시 적용하면 반영됩니다.');
             }}
             profiles={profiles}
             defenseSource={balanceDefense}
@@ -305,6 +347,13 @@ export function NewGame({
           />
         </div>
         {feedback && <p role="status">{feedback}</p>}
+        {usePreferences && (entries.away.lineup.length > 0 || entries.home.lineup.length > 0) && (
+          <p className="preference-summary" aria-label="희망 포지션 배치 현황">
+            현재 수비 배치 · 1지망 {preferences.first}명 / 2지망 {preferences.second}명 / 희망
+            미충족 {preferences.unmatched}명 / 희망 미설정 {preferences.unset}명. 직접 수정하면 다시
+            계산됩니다.
+          </p>
+        )}
         {beforeRandom && (
           <button
             type="button"
@@ -805,6 +854,7 @@ export function NewGame({
               entries.away.lineup.length !== 10 ||
               entries.home.lineup.length !== 10 ||
               !approved ||
+              captainInvalid ||
               !manager.trim()
             }
           >

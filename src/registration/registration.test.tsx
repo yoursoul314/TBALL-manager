@@ -127,7 +127,7 @@ it('승인 전 추가 불가·승인 후 재수입은 같은 선수·기존 기�
   expect(JSON.stringify(data)).toBe(before);
   expect(next.events).toBe(data.events);
   expect(next.assessments).toBe(data.assessments);
-  expect(parseWorkspace(next).schemaVersion).toBe(14);
+  expect(parseWorkspace(next).schemaVersion).toBe(15);
   const repo = new LocalWorkspaceRepository(localStorage);
   repo.save(next, 0);
   expect(new LocalWorkspaceRepository(localStorage).load()?.players.at(-1)).toMatchObject({

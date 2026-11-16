@@ -232,8 +232,8 @@ it.each([12, 13])('중단된 schema%s 원본 보관본도 v14로 이어서 복�
   f.failWrite(false);
   f.capacity(Infinity);
   const result = await f.repo.recoverStorage();
-  expect(result.schemaVersion).toBe(14);
+  expect(result.schemaVersion).toBe(15);
   expect(f.repo.load()!.battingAttempts).toEqual(f.data.battingAttempts);
-  expect(JSON.parse(decodeStorageText(f.rows.get(STORAGE_KEY)!)).schemaVersion).toBe(14);
+  expect(JSON.parse(decodeStorageText(f.rows.get(STORAGE_KEY)!)).schemaVersion).toBe(15);
   expect((await f.archives.all())[0].target).toBe(row.target);
 });

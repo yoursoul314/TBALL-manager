@@ -77,6 +77,7 @@ const gameExtra = z.object({
       teams: z.object({ away: team, home: team }),
       players: z.object({ away: entryPlayers, home: entryPlayers }),
       defense: z.object({ away: assignments, home: assignments }),
+      captains: z.object({ away: id.nullable(), home: id.nullable() }).optional(),
     })
     .optional(),
   dateHistory: z
@@ -127,7 +128,7 @@ const battingDaySchema = z.object({
 export function parseWorkspace(input: unknown): Workspace {
   const header = z
     .object({
-      schemaVersion: z.literal(14),
+      schemaVersion: z.literal(15),
       assessmentManagement: z
         .object({
           assessors: z
@@ -468,7 +469,7 @@ export function parseWorkspace(input: unknown): Workspace {
   }
   return {
     ...base,
-    schemaVersion: 14,
+    schemaVersion: 15,
     assessmentManagement: header.assessmentManagement,
     selections: header.selections,
     fungoDays: header.fungoDays,

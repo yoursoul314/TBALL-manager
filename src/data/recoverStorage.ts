@@ -121,13 +121,12 @@ export async function recoverBrowserStorage(
     storage.setItem(anchorKey, marker); // Atomic replacement releases space without losing the archive link.
   }
   const archivedTarget = JSON.parse(decodeStorageText(row.target));
-  const writeTarget =
-    archivedTarget.schemaVersion === 12 || archivedTarget.schemaVersion === 13
-      ? encodeStorageText(
-          JSON.stringify({ ...archivedTarget, ...migrateWorkspace(archivedTarget) }),
-          true,
-        )
-      : row.target;
+  const writeTarget = [12, 13, 14].includes(archivedTarget.schemaVersion)
+    ? encodeStorageText(
+        JSON.stringify({ ...archivedTarget, ...migrateWorkspace(archivedTarget) }),
+        true,
+      )
+    : row.target;
   const marker = markerText(row.id);
   // A restarted move accepts only the archived values, our journal, already removed keys, or our exact target.
   for (const key of RECOVERY_KEYS) {
